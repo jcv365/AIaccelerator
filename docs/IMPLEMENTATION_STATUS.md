@@ -1,11 +1,11 @@
 # Implementation Status
 
-## Phase 1 — Foundation (in progress)
+## Phase 1 — Foundation (complete)
 
-- Docker Compose skeleton: postgres + server (Express/TS) + client (React/Vite)
-- Health checks: `/health`, `/ready`, `/version`
-- Env-driven config, validated at startup
-- No accelerator logic yet
+- [x] Docker Compose skeleton: postgres + server (Express/TS) + client (React/Vite)
+- [x] Health checks: `/health`, `/ready`, `/version`
+- [x] Env-driven config, validated at startup
+- [x] No accelerator logic yet
 
 ## Not yet implemented
 
