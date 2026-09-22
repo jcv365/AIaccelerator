@@ -1,5 +1,6 @@
 import express, { Express } from "express";
 import type { Pool } from "pg";
+import { checkDbConnection } from "./db.js";
 
 export interface AppDeps {
   pool: Pool;
@@ -12,6 +13,17 @@ export function createApp(deps: AppDeps): Express {
   app.use(express.json());
 
   app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
+
+  app.get("/ready", async (_req, res) => {
+    const dbOk = await checkDbConnection(deps.pool);
+    if (!dbOk) {
+      res
+        .status(503)
+        .json({ error: { code: "DB_UNAVAILABLE", message: "Database is unreachable" } });
+      return;
+    }
     res.status(200).json({ status: "ok" });
   });
 
