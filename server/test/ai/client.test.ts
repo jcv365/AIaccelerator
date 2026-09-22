@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { createAiClient } from "../../src/ai/client.js";
-import { AiClientError } from "../../src/ai/errors.js";
 
 const config = { baseUrl: "http://conclave.test", apiKey: "test-key" };
 
