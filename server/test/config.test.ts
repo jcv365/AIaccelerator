@@ -48,4 +48,26 @@ describe("loadConfig", () => {
       loadConfig({ DATABASE_URL: "postgres://u:p@h:5432/d", PORT: "70000" })
     ).toThrowError(/Invalid PORT/);
   });
+
+  it("leaves councilBaseUrl and councilApiKey undefined when unset", () => {
+    const config = loadConfig({
+      DATABASE_URL: "postgres://u:p@h:5432/d",
+      PORT: "4000",
+    });
+
+    expect(config.councilBaseUrl).toBeUndefined();
+    expect(config.councilApiKey).toBeUndefined();
+  });
+
+  it("reads councilBaseUrl and councilApiKey when set", () => {
+    const config = loadConfig({
+      DATABASE_URL: "postgres://u:p@h:5432/d",
+      PORT: "4000",
+      COUNCIL_BASE_URL: "http://192.168.1.195:8010",
+      COUNCIL_API_KEY: "secret",
+    });
+
+    expect(config.councilBaseUrl).toBe("http://192.168.1.195:8010");
+    expect(config.councilApiKey).toBe("secret");
+  });
 });
