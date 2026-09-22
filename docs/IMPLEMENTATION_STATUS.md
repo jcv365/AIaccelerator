@@ -22,4 +22,4 @@
 
 ## Risks
 
-- Council-of-ai-experts is currently a Python CLI, not an HTTP service — Phase 2 needs a thin API wrapper or reimplementation of its provider-routing logic.
+- Council-of-ai-experts exposes `/api/external/quick` and `/api/external/session`; the AI Accelerator depends on that deployment being reachable and on the conclave's single-session slot (409 when busy).

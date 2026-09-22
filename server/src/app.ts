@@ -1,4 +1,4 @@
-import express, { Express } from "express";
+import express, { Express, Response, NextFunction } from "express";
 import type { Pool } from "pg";
 import { checkDbConnection } from "./db.js";
 import { requestIdMiddleware, requestLoggingMiddleware, errorHandler } from "./errors.js";
@@ -28,6 +28,22 @@ function aiErrorStatus(code: AiErrorCode): number {
   }
 }
 
+function requireAiClient(deps: AppDeps, res: Response): AiClient | undefined {
+  if (!deps.aiClient) {
+    res.status(503).json({ error: { code: "AI_NOT_CONFIGURED", message: "AI backend is not configured" } });
+    return undefined;
+  }
+  return deps.aiClient;
+}
+
+function handleAiError(err: unknown, res: Response, next: NextFunction): void {
+  if (err instanceof AiClientError) {
+    res.status(aiErrorStatus(err.code)).json({ error: { code: err.code, message: err.message } });
+    return;
+  }
+  next(err);
+}
+
 export function createApp(deps: AppDeps): Express {
   const app = express();
   app.use(requestIdMiddleware);
@@ -54,10 +70,8 @@ export function createApp(deps: AppDeps): Express {
   });
 
   app.post("/ai/quick", async (req, res, next) => {
-    if (!deps.aiClient) {
-      res.status(503).json({ error: { code: "AI_NOT_CONFIGURED", message: "AI backend is not configured" } });
-      return;
-    }
+    const aiClient = requireAiClient(deps, res);
+    if (!aiClient) return;
     const { model, system, prompt } = req.body ?? {};
     if (typeof model !== "string" || typeof system !== "string" || typeof prompt !== "string") {
       res
@@ -66,36 +80,26 @@ export function createApp(deps: AppDeps): Express {
       return;
     }
     try {
-      const result = await deps.aiClient.quickAsk(model, system, prompt);
+      const result = await aiClient.quickAsk(model, system, prompt);
       res.status(200).json(result);
     } catch (err) {
-      if (err instanceof AiClientError) {
-        res.status(aiErrorStatus(err.code)).json({ error: { code: err.code, message: err.message } });
-        return;
-      }
-      next(err);
+      handleAiError(err, res, next);
     }
   });
 
   app.post("/ai/session", async (req, res, next) => {
-    if (!deps.aiClient) {
-      res.status(503).json({ error: { code: "AI_NOT_CONFIGURED", message: "AI backend is not configured" } });
-      return;
-    }
+    const aiClient = requireAiClient(deps, res);
+    if (!aiClient) return;
     const { goal } = req.body ?? {};
     if (typeof goal !== "string") {
       res.status(400).json({ error: { code: "AI_BAD_REQUEST", message: "goal must be a string" } });
       return;
     }
     try {
-      const result = await deps.aiClient.runSession(goal);
+      const result = await aiClient.runSession(goal);
       res.status(200).json({ ok: result.ok, session_id: result.sessionId, synthesis: result.synthesis });
     } catch (err) {
-      if (err instanceof AiClientError) {
-        res.status(aiErrorStatus(err.code)).json({ error: { code: err.code, message: err.message } });
-        return;
-      }
-      next(err);
+      handleAiError(err, res, next);
     }
   });
 

@@ -59,6 +59,38 @@ describe("createAiClient.quickAsk", () => {
       code: "AI_UNREACHABLE",
     });
   });
+
+  it("maps a non-JSON 2xx response to AI_UPSTREAM_ERROR", async () => {
+    mockFetchOnce({
+      ok: true,
+      json: async () => {
+        throw new Error("invalid json");
+      },
+    });
+    const client = createAiClient(config);
+
+    await expect(client.quickAsk("Claude", "sys", "prompt")).rejects.toMatchObject({
+      code: "AI_UPSTREAM_ERROR",
+    });
+  });
+
+  it("throws AI_UPSTREAM_ERROR when the conclave returns ok:false in a 200 response", async () => {
+    mockFetchOnce({ ok: true, json: async () => ({ ok: false }) });
+    const client = createAiClient(config);
+
+    await expect(client.quickAsk("Claude", "sys", "prompt")).rejects.toMatchObject({
+      code: "AI_UPSTREAM_ERROR",
+    });
+  });
+
+  it("throws AI_UPSTREAM_ERROR when the conclave response is missing model/response fields", async () => {
+    mockFetchOnce({ ok: true, json: async () => ({ ok: true, model: "Claude" }) });
+    const client = createAiClient(config);
+
+    await expect(client.quickAsk("Claude", "sys", "prompt")).rejects.toMatchObject({
+      code: "AI_UPSTREAM_ERROR",
+    });
+  });
 });
 
 describe("createAiClient.runSession", () => {
@@ -85,5 +117,19 @@ describe("createAiClient.runSession", () => {
     const client = createAiClient(config);
 
     await expect(client.runSession("evaluate X")).rejects.toMatchObject({ code: "AI_UPSTREAM_ERROR" });
+  });
+
+  it("maps a non-JSON 2xx response to AI_UPSTREAM_ERROR", async () => {
+    mockFetchOnce({
+      ok: true,
+      json: async () => {
+        throw new Error("invalid json");
+      },
+    });
+    const client = createAiClient(config);
+
+    await expect(client.runSession("evaluate X")).rejects.toMatchObject({
+      code: "AI_UPSTREAM_ERROR",
+    });
   });
 });

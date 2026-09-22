@@ -35,6 +35,14 @@ async function postJson(url: string, apiKey: string, body: unknown, timeoutMs: n
   }
 }
 
+async function parseJson(res: Response): Promise<unknown> {
+  try {
+    return await res.json();
+  } catch {
+    throw new AiClientError("AI_UPSTREAM_ERROR", "Conclave returned a non-JSON response");
+  }
+}
+
 function mapStatusToError(status: number): AiClientError {
   if (status === 403) return new AiClientError("AI_UPSTREAM_ERROR", "Conclave rejected the API key");
   if (status === 409) return new AiClientError("AI_BUSY", "Conclave is busy with another session");
@@ -52,7 +60,11 @@ export function createAiClient(config: AiClientConfig): AiClient {
         30_000
       );
       if (!res.ok) throw mapStatusToError(res.status);
-      return (await res.json()) as QuickAskResult;
+      const body = (await parseJson(res)) as { ok?: boolean; model?: unknown; response?: unknown };
+      if (!body.ok || typeof body.model !== "string" || typeof body.response !== "string") {
+        throw new AiClientError("AI_UPSTREAM_ERROR", "Conclave returned an unexpected response shape");
+      }
+      return { ok: true, model: body.model, response: body.response };
     },
 
     async runSession(goal) {
@@ -63,7 +75,7 @@ export function createAiClient(config: AiClientConfig): AiClient {
         5 * 60_000
       );
       if (!res.ok) throw mapStatusToError(res.status);
-      const body = (await res.json()) as {
+      const body = (await parseJson(res)) as {
         ok: boolean;
         session_id: string;
         synthesis?: unknown;
