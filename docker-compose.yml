@@ -24,6 +24,8 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgres://accelerator:accelerator@postgres:5432/accelerator}
       PORT: ${PORT:-4000}
       NODE_ENV: ${NODE_ENV:-development}
+      COUNCIL_BASE_URL: ${COUNCIL_BASE_URL:-}
+      COUNCIL_API_KEY: ${COUNCIL_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
