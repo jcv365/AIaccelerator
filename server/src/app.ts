@@ -27,5 +27,9 @@ export function createApp(deps: AppDeps): Express {
     res.status(200).json({ status: "ok" });
   });
 
+  app.get("/version", (_req, res) => {
+    res.status(200).json({ version: deps.version, commit: deps.commit });
+  });
+
   return app;
 }
