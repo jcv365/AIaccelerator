@@ -9,6 +9,20 @@ export function requestIdMiddleware(req: Request, res: Response, next: NextFunct
   next();
 }
 
+export function requestLoggingMiddleware(req: Request, res: Response, next: NextFunction): void {
+  const start = Date.now();
+  res.on("finish", () => {
+    logJson("info", "request completed", {
+      requestId: (req as Request & { id?: string }).id,
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      durationMs: Date.now() - start,
+    });
+  });
+  next();
+}
+
 export function errorHandler(
   err: unknown,
   req: Request,

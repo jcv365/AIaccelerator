@@ -36,4 +36,16 @@ describe("loadConfig", () => {
 
     expect(config.nodeEnv).toBe("development");
   });
+
+  it("throws a clear error when PORT is not numeric", () => {
+    expect(() =>
+      loadConfig({ DATABASE_URL: "postgres://u:p@h:5432/d", PORT: "abc" })
+    ).toThrowError(/Invalid PORT/);
+  });
+
+  it("throws a clear error when PORT is out of range", () => {
+    expect(() =>
+      loadConfig({ DATABASE_URL: "postgres://u:p@h:5432/d", PORT: "70000" })
+    ).toThrowError(/Invalid PORT/);
+  });
 });

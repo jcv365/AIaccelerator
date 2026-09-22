@@ -1,10 +1,16 @@
 import { createApp } from "./app.js";
 import { loadConfig } from "./config.js";
-import { Pool } from "pg";
+import { createPool } from "./db.js";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
 
 const config = loadConfig();
-const pool = new Pool({ connectionString: config.databaseUrl });
-const app = createApp({ pool, version: "0.1.0", commit: process.env.GIT_SHA ?? "dev" });
+const pool = createPool(config.databaseUrl);
+const app = createApp({ pool, version: pkg.version, commit: process.env.GIT_SHA ?? "dev" });
 
 app.listen(config.port, () => {
   console.log(JSON.stringify({ level: "info", msg: `server listening on ${config.port}` }));
