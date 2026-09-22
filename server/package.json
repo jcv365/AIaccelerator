@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "test": "vitest run",
+    "test": "vitest run --exclude \"**/ready.integration.test.ts\"",
     "test:integration": "vitest run test/ready.integration.test.ts",
     "lint": "eslint src test",
     "typecheck": "tsc --noEmit"
