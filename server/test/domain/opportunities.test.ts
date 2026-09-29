@@ -2,11 +2,19 @@ import { describe, it, expect, vi } from "vitest";
 import express from "express";
 import request from "supertest";
 import { createOpportunitiesRouter } from "../../src/domain/opportunities.js";
+import { AiClientError } from "../../src/ai/errors.js";
 
 function appWithPrisma(prisma: unknown) {
   const app = express();
   app.use(express.json());
   app.use("/opportunities", createOpportunitiesRouter(prisma as never));
+  return app;
+}
+
+function appWithPrismaAndAi(prisma: unknown, aiClient?: unknown) {
+  const app = express();
+  app.use(express.json());
+  app.use("/opportunities", createOpportunitiesRouter(prisma as never, aiClient as never));
   return app;
 }
 
@@ -244,5 +252,62 @@ describe("POST /opportunities/:id/decisions", () => {
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual(created);
+  });
+});
+
+describe("POST /opportunities/:id/report", () => {
+  it("returns 404 NOT_FOUND when the opportunity doesn't exist", async () => {
+    const prisma = { opportunity: { findUnique: vi.fn().mockResolvedValue(null) } };
+    const app = appWithPrismaAndAi(prisma, { quickAsk: vi.fn() });
+
+    const res = await request(app).post("/opportunities/nope/report").send({});
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 503 AI_NOT_CONFIGURED when no aiClient is provided", async () => {
+    const prisma = {
+      opportunity: { findUnique: vi.fn().mockResolvedValue({ id: "1", title: "X", evidence: [], decisions: [] }) },
+    };
+    const app = appWithPrismaAndAi(prisma, undefined);
+
+    const res = await request(app).post("/opportunities/1/report").send({});
+
+    expect(res.status).toBe(503);
+    expect(res.body.error.code).toBe("AI_NOT_CONFIGURED");
+  });
+
+  it("returns a generated report on success, including evidence/decisions in the prompt", async () => {
+    const opportunity = {
+      id: "1",
+      title: "Contract renewals",
+      description: "desc",
+      businessProblem: "problem",
+      status: "QUALIFIED",
+      evidence: [{ type: "FACT", claim: "Volume is high" }],
+      decisions: [{ decision: "Proceed", rationale: "Strong evidence" }],
+    };
+    const prisma = { opportunity: { findUnique: vi.fn().mockResolvedValue(opportunity) } };
+    const quickAsk = vi.fn().mockResolvedValue({ ok: true, model: "Claude", response: "A generated report." });
+    const app = appWithPrismaAndAi(prisma, { quickAsk });
+
+    const res = await request(app).post("/opportunities/1/report").send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ report: "A generated report." });
+    expect(quickAsk).toHaveBeenCalledWith("Claude", expect.any(String), expect.stringContaining("Volume is high"));
+  });
+
+  it("maps an AiClientError to the matching HTTP status", async () => {
+    const prisma = {
+      opportunity: { findUnique: vi.fn().mockResolvedValue({ id: "1", title: "X", evidence: [], decisions: [] }) },
+    };
+    const quickAsk = vi.fn().mockRejectedValue(new AiClientError("AI_BUSY", "busy"));
+    const app = appWithPrismaAndAi(prisma, { quickAsk });
+
+    const res = await request(app).post("/opportunities/1/report").send({});
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("AI_BUSY");
   });
 });

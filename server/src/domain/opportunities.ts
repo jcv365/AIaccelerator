@@ -2,6 +2,8 @@ import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { asyncHandler } from "../asyncHandler.js";
 import { isValidTransition, validTransitionsFrom, type OpportunityStatus } from "./stateMachine.js";
+import type { AiClient } from "../ai/client.js";
+import { AiClientError, aiErrorStatus } from "../ai/errors.js";
 
 const EDITABLE_FIELDS = [
   "title",
@@ -30,7 +32,7 @@ function pickEditableFields(body: Record<string, unknown>): { data: Record<strin
   return { data: result };
 }
 
-export function createOpportunitiesRouter(prisma: PrismaClient): Router {
+export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiClient): Router {
   const router = Router();
 
   router.get(
@@ -200,6 +202,56 @@ export function createOpportunitiesRouter(prisma: PrismaClient): Router {
         } as never,
       });
       res.status(201).json(decision);
+    })
+  );
+
+  router.post(
+    "/:id/report",
+    asyncHandler(async (req, res, next) => {
+      const opportunity = await prisma.opportunity.findUnique({
+        where: { id: req.params.id },
+        include: { evidence: true, decisions: true },
+      });
+      if (!opportunity) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Opportunity not found" } });
+        return;
+      }
+      if (!aiClient) {
+        res.status(503).json({ error: { code: "AI_NOT_CONFIGURED", message: "AI backend is not configured" } });
+        return;
+      }
+      const system =
+        "You are a business analyst producing a concise report on an AI opportunity. Base your report only on the information given below. Clearly distinguish established facts from inferences or assumptions. Do not invent information not present in the input.";
+      const evidenceLines = opportunity.evidence.length
+        ? opportunity.evidence.map((e: { type: string; claim: string }) => `- [${e.type}] ${e.claim}`).join("\n")
+        : "(none)";
+      const decisionLines = opportunity.decisions.length
+        ? opportunity.decisions
+            .map((d: { decision: string; rationale: string | null }) => `- ${d.decision}${d.rationale ? ` — ${d.rationale}` : ""}`)
+            .join("\n")
+        : "(none)";
+      const prompt = `Opportunity: ${opportunity.title}
+Description: ${opportunity.description ?? "—"}
+Business problem: ${opportunity.businessProblem ?? "—"}
+Status: ${opportunity.status}
+
+Evidence:
+${evidenceLines}
+
+Decisions:
+${decisionLines}
+
+Write a concise report (3-5 paragraphs) summarizing the opportunity, the strength of the evidence, and the decisions made so far.`;
+      try {
+        const result = await aiClient.quickAsk("Claude", system, prompt);
+        res.status(200).json({ report: result.response });
+      } catch (err) {
+        if (err instanceof AiClientError) {
+          res.status(aiErrorStatus(err.code)).json({ error: { code: err.code, message: err.message } });
+          return;
+        }
+        next(err);
+      }
     })
   );
 
