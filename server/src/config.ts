@@ -2,6 +2,7 @@ export interface AppConfig {
   databaseUrl: string;
   port: number;
   nodeEnv: string;
+  acceleratorApiKey: string;
   councilBaseUrl?: string;
   councilApiKey?: string;
 }
@@ -21,8 +22,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     throw new Error(`Invalid PORT: must be an integer between 1 and 65535, got "${env.PORT}"`);
   }
   const nodeEnv = env.NODE_ENV ?? "development";
+  const acceleratorApiKey = requireEnv(env, "ACCELERATOR_API_KEY");
   const councilBaseUrl = env.COUNCIL_BASE_URL || undefined;
   const councilApiKey = env.COUNCIL_API_KEY || undefined;
 
-  return { databaseUrl, port, nodeEnv, councilBaseUrl, councilApiKey };
+  return { databaseUrl, port, nodeEnv, acceleratorApiKey, councilBaseUrl, councilApiKey };
 }

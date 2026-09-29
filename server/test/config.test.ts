@@ -14,17 +14,25 @@ describe("loadConfig", () => {
     ).toThrowError("Missing required environment variable: PORT");
   });
 
+  it("throws a clear error when ACCELERATOR_API_KEY is missing", () => {
+    expect(() =>
+      loadConfig({ DATABASE_URL: "postgres://u:p@h:5432/d", PORT: "4000" })
+    ).toThrowError("Missing required environment variable: ACCELERATOR_API_KEY");
+  });
+
   it("returns a parsed config when all required vars are present", () => {
     const config = loadConfig({
       DATABASE_URL: "postgres://u:p@h:5432/d",
       PORT: "4000",
       NODE_ENV: "test",
+      ACCELERATOR_API_KEY: "test-key",
     });
 
     expect(config).toEqual({
       databaseUrl: "postgres://u:p@h:5432/d",
       port: 4000,
       nodeEnv: "test",
+      acceleratorApiKey: "test-key",
     });
   });
 
@@ -32,6 +40,7 @@ describe("loadConfig", () => {
     const config = loadConfig({
       DATABASE_URL: "postgres://u:p@h:5432/d",
       PORT: "4000",
+      ACCELERATOR_API_KEY: "test-key",
     });
 
     expect(config.nodeEnv).toBe("development");
@@ -53,6 +62,7 @@ describe("loadConfig", () => {
     const config = loadConfig({
       DATABASE_URL: "postgres://u:p@h:5432/d",
       PORT: "4000",
+      ACCELERATOR_API_KEY: "test-key",
     });
 
     expect(config.councilBaseUrl).toBeUndefined();
@@ -63,6 +73,7 @@ describe("loadConfig", () => {
     const config = loadConfig({
       DATABASE_URL: "postgres://u:p@h:5432/d",
       PORT: "4000",
+      ACCELERATOR_API_KEY: "test-key",
       COUNCIL_BASE_URL: "http://192.168.1.195:8010",
       COUNCIL_API_KEY: "secret",
     });
