@@ -5,6 +5,7 @@ import { requestIdMiddleware, requestLoggingMiddleware, errorHandler } from "./e
 import { requireAccelApiKey } from "./auth.js";
 import type { AiClient } from "./ai/client.js";
 import { AiClientError, type AiErrorCode } from "./ai/errors.js";
+import { createOpportunitiesRouter } from "./domain/opportunities.js";
 
 export interface AppDeps {
   pool: Pool;
@@ -107,6 +108,10 @@ export function createApp(deps: AppDeps): Express {
       handleAiError(err, res, next);
     }
   });
+
+  if (deps.prisma) {
+    app.use("/opportunities", createOpportunitiesRouter(deps.prisma));
+  }
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: "NOT_FOUND", message: "Not found" } });

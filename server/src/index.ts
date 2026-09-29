@@ -2,6 +2,7 @@ import { createApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { createPool } from "./db.js";
 import { createAiClient } from "./ai/client.js";
+import { createPrismaClient } from "./db/prisma.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -15,12 +16,14 @@ const aiClient =
   config.councilBaseUrl && config.councilApiKey
     ? createAiClient({ baseUrl: config.councilBaseUrl, apiKey: config.councilApiKey })
     : undefined;
+const prisma = createPrismaClient();
 const app = createApp({
   pool,
   version: pkg.version,
   commit: process.env.GIT_SHA ?? "dev",
   acceleratorApiKey: config.acceleratorApiKey,
   aiClient,
+  prisma,
 });
 
 app.listen(config.port, () => {
