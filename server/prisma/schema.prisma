@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OpportunityStatus {
+  DISCOVERED
+  QUALIFIED
+  HYPOTHESIS
+  EXPERIMENT
+  PROVING
+  PROVEN
+  REJECTED
+  DEFERRED
+  NO_AI
+}
+
+enum EvidenceType {
+  FACT
+  INFERENCE
+  ASSUMPTION
+  AI_HYPOTHESIS
+}
+
+model Opportunity {
+  id              String            @id @default(cuid())
+  title           String
+  description     String?
+  businessProblem String?
+  potentialValue  String?
+  complexity      String?
+  dependencies    String?
+  aiSuitability   String?
+  risks           String?
+  owner           String?
+  hypothesis      String?
+  status          OpportunityStatus @default(DISCOVERED)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  evidence        Evidence[]
+  decisions       Decision[]
+}
+
+model Evidence {
+  id            String       @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity  @relation(fields: [opportunityId], references: [id])
+  claim         String
+  type          EvidenceType
+  confidence    Float?
+  source        String?
+  location      String?
+  excerpt       String?
+  capturedAt    DateTime     @default(now())
+}
+
+model Decision {
+  id                     String      @id @default(cuid())
+  opportunityId          String
+  opportunity            Opportunity @relation(fields: [opportunityId], references: [id])
+  decision               String
+  rationale              String?
+  assumptions            String?
+  confidence             Float?
+  alternativesConsidered String?
+  risks                  String?
+  owner                  String?
+  decidedAt              DateTime    @default(now())
+}
