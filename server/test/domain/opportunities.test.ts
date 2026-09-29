@@ -154,3 +154,84 @@ describe("PATCH /opportunities/:id/status", () => {
     });
   });
 });
+
+describe("POST /opportunities/:id/evidence", () => {
+  it("returns 404 NOT_FOUND when the opportunity doesn't exist", async () => {
+    const prisma = { opportunity: { findUnique: vi.fn().mockResolvedValue(null) }, evidence: { create: vi.fn() } };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app)
+      .post("/opportunities/nope/evidence")
+      .send({ claim: "x", type: "FACT" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 400 VALIDATION_ERROR for an invalid type", async () => {
+    const prisma = {
+      opportunity: { findUnique: vi.fn().mockResolvedValue({ id: "1" }) },
+      evidence: { create: vi.fn() },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app)
+      .post("/opportunities/1/evidence")
+      .send({ claim: "x", type: "NOT_A_TYPE" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    expect(prisma.evidence.create).not.toHaveBeenCalled();
+  });
+
+  it("creates evidence and returns 201", async () => {
+    const created = { id: "e1", claim: "x", type: "FACT" };
+    const prisma = {
+      opportunity: { findUnique: vi.fn().mockResolvedValue({ id: "1" }) },
+      evidence: { create: vi.fn().mockResolvedValue(created) },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).post("/opportunities/1/evidence").send({ claim: "x", type: "FACT" });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual(created);
+  });
+});
+
+describe("POST /opportunities/:id/decisions", () => {
+  it("returns 404 NOT_FOUND when the opportunity doesn't exist", async () => {
+    const prisma = { opportunity: { findUnique: vi.fn().mockResolvedValue(null) }, decision: { create: vi.fn() } };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).post("/opportunities/nope/decisions").send({ decision: "Proceed" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 400 VALIDATION_ERROR when decision text is missing", async () => {
+    const prisma = {
+      opportunity: { findUnique: vi.fn().mockResolvedValue({ id: "1" }) },
+      decision: { create: vi.fn() },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).post("/opportunities/1/decisions").send({});
+
+    expect(res.status).toBe(400);
+    expect(prisma.decision.create).not.toHaveBeenCalled();
+  });
+
+  it("creates a decision and returns 201", async () => {
+    const created = { id: "d1", decision: "Proceed" };
+    const prisma = {
+      opportunity: { findUnique: vi.fn().mockResolvedValue({ id: "1" }) },
+      decision: { create: vi.fn().mockResolvedValue(created) },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).post("/opportunities/1/decisions").send({ decision: "Proceed" });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual(created);
+  });
+});
