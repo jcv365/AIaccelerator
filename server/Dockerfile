@@ -13,6 +13,7 @@ WORKDIR /app
 ARG GIT_SHA=dev
 ENV GIT_SHA=$GIT_SHA
 ENV NODE_ENV=production
+RUN apk add --no-cache openssl
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev
 COPY --from=build /app/dist ./dist
