@@ -15,7 +15,13 @@ const aiClient =
   config.councilBaseUrl && config.councilApiKey
     ? createAiClient({ baseUrl: config.councilBaseUrl, apiKey: config.councilApiKey })
     : undefined;
-const app = createApp({ pool, version: pkg.version, commit: process.env.GIT_SHA ?? "dev", aiClient });
+const app = createApp({
+  pool,
+  version: pkg.version,
+  commit: process.env.GIT_SHA ?? "dev",
+  acceleratorApiKey: config.acceleratorApiKey,
+  aiClient,
+});
 
 app.listen(config.port, () => {
   console.log(JSON.stringify({ level: "info", msg: `server listening on ${config.port}` }));
