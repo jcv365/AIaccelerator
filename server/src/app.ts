@@ -105,7 +105,7 @@ export function createApp(deps: AppDeps): Express {
   });
 
   if (deps.prisma) {
-    app.use("/opportunities", createOpportunitiesRouter(deps.prisma));
+    app.use("/opportunities", createOpportunitiesRouter(deps.prisma, deps.aiClient));
   }
 
   app.use((_req, res) => {
