@@ -5,7 +5,7 @@ import { requestIdMiddleware, requestLoggingMiddleware, errorHandler } from "./e
 import { requireAuth } from "./auth.js";
 import { createAuthRouter } from "./domain/authRoutes.js";
 import type { AiClient } from "./ai/client.js";
-import { AiClientError, type AiErrorCode } from "./ai/errors.js";
+import { AiClientError, aiErrorStatus, type AiErrorCode } from "./ai/errors.js";
 import { createOpportunitiesRouter } from "./domain/opportunities.js";
 
 export interface AppDeps {
@@ -17,22 +17,6 @@ export interface AppDeps {
   authTokenSecret: string;
   prisma?: import("@prisma/client").PrismaClient;
   aiClient?: AiClient;
-}
-
-function aiErrorStatus(code: AiErrorCode): number {
-  switch (code) {
-    case "AI_NOT_CONFIGURED":
-      return 503;
-    case "AI_BUSY":
-      return 409;
-    case "AI_BAD_REQUEST":
-      return 400;
-    case "AI_UPSTREAM_ERROR":
-    case "AI_UNREACHABLE":
-      return 502;
-    default:
-      return 502;
-  }
 }
 
 function requireAiClient(deps: AppDeps, res: Response): AiClient | undefined {
