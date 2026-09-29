@@ -2,13 +2,23 @@ import { describe, it, expect, vi } from "vitest";
 import request from "supertest";
 import { Pool } from "pg";
 import { createApp } from "../../src/app.js";
+import { signToken } from "../../src/auth.js";
 import { AiClientError } from "../../src/ai/errors.js";
 import type { AiClient } from "../../src/ai/client.js";
 
 const fakePool = {} as Pool;
+const token = signToken("test-secret", "admin");
 
 function appWithAiClient(aiClient?: AiClient) {
-  return createApp({ pool: fakePool, version: "0.1.0", commit: "test", acceleratorApiKey: "test-key", aiClient });
+  return createApp({
+    pool: fakePool,
+    version: "0.1.0",
+    commit: "test",
+    adminUsername: "admin",
+    adminPasswordHash: "test-hash",
+    authTokenSecret: "test-secret",
+    aiClient,
+  });
 }
 
 describe("POST /ai/quick", () => {
@@ -17,7 +27,7 @@ describe("POST /ai/quick", () => {
 
     const res = await request(app)
       .post("/ai/quick")
-      .set("X-API-Key", "test-key")
+      .set("Authorization", `Bearer ${token}`)
       .send({ model: "Claude", system: "s", prompt: "p" });
 
     expect(res.status).toBe(503);
@@ -28,7 +38,7 @@ describe("POST /ai/quick", () => {
     const aiClient = { quickAsk: vi.fn(), runSession: vi.fn() } as unknown as AiClient;
     const app = appWithAiClient(aiClient);
 
-    const res = await request(app).post("/ai/quick").set("X-API-Key", "test-key").send({ model: "Claude" });
+    const res = await request(app).post("/ai/quick").set("Authorization", `Bearer ${token}`).send({ model: "Claude" });
 
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("AI_BAD_REQUEST");
@@ -44,7 +54,7 @@ describe("POST /ai/quick", () => {
 
     const res = await request(app)
       .post("/ai/quick")
-      .set("X-API-Key", "test-key")
+      .set("Authorization", `Bearer ${token}`)
       .send({ model: "Claude", system: "s", prompt: "p" });
 
     expect(res.status).toBe(200);
@@ -61,7 +71,7 @@ describe("POST /ai/quick", () => {
 
     const res = await request(app)
       .post("/ai/quick")
-      .set("X-API-Key", "test-key")
+      .set("Authorization", `Bearer ${token}`)
       .send({ model: "Claude", system: "s", prompt: "p" });
 
     expect(res.status).toBe(409);
@@ -73,7 +83,7 @@ describe("POST /ai/session", () => {
   it("returns 503 AI_NOT_CONFIGURED when no aiClient is configured", async () => {
     const app = appWithAiClient(undefined);
 
-    const res = await request(app).post("/ai/session").set("X-API-Key", "test-key").send({ goal: "evaluate X" });
+    const res = await request(app).post("/ai/session").set("Authorization", `Bearer ${token}`).send({ goal: "evaluate X" });
 
     expect(res.status).toBe(503);
     expect(res.body.error.code).toBe("AI_NOT_CONFIGURED");
@@ -83,7 +93,7 @@ describe("POST /ai/session", () => {
     const aiClient = { quickAsk: vi.fn(), runSession: vi.fn() } as unknown as AiClient;
     const app = appWithAiClient(aiClient);
 
-    const res = await request(app).post("/ai/session").set("X-API-Key", "test-key").send({});
+    const res = await request(app).post("/ai/session").set("Authorization", `Bearer ${token}`).send({});
 
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("AI_BAD_REQUEST");
@@ -96,7 +106,7 @@ describe("POST /ai/session", () => {
     } as unknown as AiClient;
     const app = appWithAiClient(aiClient);
 
-    const res = await request(app).post("/ai/session").set("X-API-Key", "test-key").send({ goal: "evaluate X" });
+    const res = await request(app).post("/ai/session").set("Authorization", `Bearer ${token}`).send({ goal: "evaluate X" });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true, session_id: "abc123", synthesis: { decision: "go" } });
@@ -110,7 +120,7 @@ describe("POST /ai/session", () => {
     } as unknown as AiClient;
     const app = appWithAiClient(aiClient);
 
-    const res = await request(app).post("/ai/session").set("X-API-Key", "test-key").send({ goal: "evaluate X" });
+    const res = await request(app).post("/ai/session").set("Authorization", `Bearer ${token}`).send({ goal: "evaluate X" });
 
     expect(res.status).toBe(502);
     expect(res.body).toEqual({ error: { code: "AI_UNREACHABLE", message: "down" } });

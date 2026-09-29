@@ -9,7 +9,14 @@ import { loadConfig } from "../src/config.js";
 describe("GET /ready (integration)", () => {
   const config = loadConfig();
   const pool = createPool(config.databaseUrl);
-  const app = createApp({ pool, version: "0.1.0", commit: "test", acceleratorApiKey: "test-key" });
+  const app = createApp({
+    pool,
+    version: "0.1.0",
+    commit: "test",
+    adminUsername: "admin",
+    adminPasswordHash: "test-hash",
+    authTokenSecret: "test-secret",
+  });
 
   afterAll(async () => {
     await pool.end();

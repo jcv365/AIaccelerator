@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import request from "supertest";
 import { Pool } from "pg";
 import { createApp } from "../src/app.js";
+import { signToken } from "../src/auth.js";
 
 describe("error handling", () => {
   it("returns a structured 503 body from /ready when the DB is unreachable, and never leaks a stack trace", async () => {
@@ -10,7 +11,14 @@ describe("error handling", () => {
         throw new Error("boom");
       },
     } as unknown as Pool;
-    const app = createApp({ pool: throwingPool, version: "0.1.0", commit: "test", acceleratorApiKey: "test-key" });
+    const app = createApp({
+      pool: throwingPool,
+      version: "0.1.0",
+      commit: "test",
+      adminUsername: "admin",
+      adminPasswordHash: "test-hash",
+      authTokenSecret: "test-secret",
+    });
 
     const res = await request(app).get("/ready");
 
@@ -23,7 +31,14 @@ describe("error handling", () => {
 
   it("attaches an X-Request-Id header to every response", async () => {
     const fakePool = {} as Pool;
-    const app = createApp({ pool: fakePool, version: "0.1.0", commit: "test", acceleratorApiKey: "test-key" });
+    const app = createApp({
+      pool: fakePool,
+      version: "0.1.0",
+      commit: "test",
+      adminUsername: "admin",
+      adminPasswordHash: "test-hash",
+      authTokenSecret: "test-secret",
+    });
 
     const res = await request(app).get("/health");
 
@@ -32,7 +47,14 @@ describe("error handling", () => {
 
   it("routes a thrown/malformed-body error through errorHandler with a structured 500 and no stack trace leak", async () => {
     const fakePool = {} as Pool;
-    const app = createApp({ pool: fakePool, version: "0.1.0", commit: "test", acceleratorApiKey: "test-key" });
+    const app = createApp({
+      pool: fakePool,
+      version: "0.1.0",
+      commit: "test",
+      adminUsername: "admin",
+      adminPasswordHash: "test-hash",
+      authTokenSecret: "test-secret",
+    });
 
     const res = await request(app)
       .post("/health")
@@ -48,9 +70,18 @@ describe("error handling", () => {
 
   it("returns a structured 404 body for unknown routes", async () => {
     const fakePool = {} as Pool;
-    const app = createApp({ pool: fakePool, version: "0.1.0", commit: "test", acceleratorApiKey: "test-key" });
+    const app = createApp({
+      pool: fakePool,
+      version: "0.1.0",
+      commit: "test",
+      adminUsername: "admin",
+      adminPasswordHash: "test-hash",
+      authTokenSecret: "test-secret",
+    });
 
-    const res = await request(app).get("/nope").set("X-API-Key", "test-key");
+    const res = await request(app)
+      .get("/nope")
+      .set("Authorization", "Bearer " + signToken("test-secret", "admin"));
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({

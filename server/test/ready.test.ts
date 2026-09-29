@@ -6,7 +6,14 @@ import { createApp } from "../src/app.js";
 describe("GET /ready", () => {
   it("returns 200 when the database is reachable", async () => {
     const pool = { query: vi.fn().mockResolvedValue({ rows: [{ ok: 1 }] }) } as unknown as Pool;
-    const app = createApp({ pool, version: "0.1.0", commit: "test", acceleratorApiKey: "test-key" });
+    const app = createApp({
+      pool,
+      version: "0.1.0",
+      commit: "test",
+      adminUsername: "admin",
+      adminPasswordHash: "test-hash",
+      authTokenSecret: "test-secret",
+    });
 
     const res = await request(app).get("/ready");
 
@@ -18,7 +25,14 @@ describe("GET /ready", () => {
     const pool = {
       query: vi.fn().mockRejectedValue(new Error("connection refused")),
     } as unknown as Pool;
-    const app = createApp({ pool, version: "0.1.0", commit: "test", acceleratorApiKey: "test-key" });
+    const app = createApp({
+      pool,
+      version: "0.1.0",
+      commit: "test",
+      adminUsername: "admin",
+      adminPasswordHash: "test-hash",
+      authTokenSecret: "test-secret",
+    });
 
     const res = await request(app).get("/ready");
 

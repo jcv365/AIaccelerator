@@ -2,7 +2,8 @@ import express, { Express, Response, NextFunction } from "express";
 import type { Pool } from "pg";
 import { checkDbConnection } from "./db.js";
 import { requestIdMiddleware, requestLoggingMiddleware, errorHandler } from "./errors.js";
-import { requireAccelApiKey } from "./auth.js";
+import { requireAuth } from "./auth.js";
+import { createAuthRouter } from "./domain/authRoutes.js";
 import type { AiClient } from "./ai/client.js";
 import { AiClientError, type AiErrorCode } from "./ai/errors.js";
 import { createOpportunitiesRouter } from "./domain/opportunities.js";
@@ -11,7 +12,9 @@ export interface AppDeps {
   pool: Pool;
   version: string;
   commit: string;
-  acceleratorApiKey: string;
+  adminUsername: string;
+  adminPasswordHash: string;
+  authTokenSecret: string;
   prisma?: import("@prisma/client").PrismaClient;
   aiClient?: AiClient;
 }
@@ -73,7 +76,15 @@ export function createApp(deps: AppDeps): Express {
     res.status(200).json({ version: deps.version, commit: deps.commit });
   });
 
-  app.use(requireAccelApiKey(deps.acceleratorApiKey));
+  app.use(
+    "/auth",
+    createAuthRouter({
+      adminUsername: deps.adminUsername,
+      adminPasswordHash: deps.adminPasswordHash,
+      authTokenSecret: deps.authTokenSecret,
+    })
+  );
+  app.use(requireAuth(deps.authTokenSecret));
 
   app.post("/ai/quick", async (req, res, next) => {
     const aiClient = requireAiClient(deps, res);

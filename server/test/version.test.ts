@@ -6,7 +6,14 @@ import { createApp } from "../src/app.js";
 describe("GET /version", () => {
   it("returns the configured version and commit", async () => {
     const fakePool = {} as Pool;
-    const app = createApp({ pool: fakePool, version: "0.1.0", commit: "abc1234", acceleratorApiKey: "test-key" });
+    const app = createApp({
+      pool: fakePool,
+      version: "0.1.0",
+      commit: "abc1234",
+      adminUsername: "admin",
+      adminPasswordHash: "test-hash",
+      authTokenSecret: "test-secret",
+    });
 
     const res = await request(app).get("/version");
 

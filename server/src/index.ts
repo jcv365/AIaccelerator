@@ -21,7 +21,9 @@ const app = createApp({
   pool,
   version: pkg.version,
   commit: process.env.GIT_SHA ?? "dev",
-  acceleratorApiKey: config.acceleratorApiKey,
+  adminUsername: config.adminUsername,
+  adminPasswordHash: config.adminPasswordHash,
+  authTokenSecret: config.authTokenSecret,
   aiClient,
   prisma,
 });
