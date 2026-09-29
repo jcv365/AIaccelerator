@@ -5,7 +5,7 @@ import { requestIdMiddleware, requestLoggingMiddleware, errorHandler } from "./e
 import { requireAuth } from "./auth.js";
 import { createAuthRouter } from "./domain/authRoutes.js";
 import type { AiClient } from "./ai/client.js";
-import { AiClientError, aiErrorStatus, type AiErrorCode } from "./ai/errors.js";
+import { AiClientError, aiErrorStatus } from "./ai/errors.js";
 import { createOpportunitiesRouter } from "./domain/opportunities.js";
 
 export interface AppDeps {
