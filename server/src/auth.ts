@@ -1,16 +1,27 @@
-import { timingSafeEqual } from "node:crypto";
+import jwt from "jsonwebtoken";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 
-export function requireAccelApiKey(expectedKey: string): RequestHandler {
-  const expectedBuf = Buffer.from(expectedKey);
+export function signToken(secret: string, username: string): string {
+  return jwt.sign({ sub: username }, secret, { expiresIn: "7d" });
+}
 
+export function verifyToken(secret: string, token: string): boolean {
+  try {
+    jwt.verify(token, secret);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function requireAuth(secret: string): RequestHandler {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const provided = req.header("X-API-Key") ?? "";
-    const providedBuf = Buffer.from(provided);
-    const isValid = providedBuf.length === expectedBuf.length && timingSafeEqual(expectedBuf, providedBuf);
+    const header = req.header("Authorization") ?? "";
+    const match = /^Bearer (.+)$/.exec(header);
+    const token = match?.[1] ?? "";
 
-    if (!isValid) {
-      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Missing or invalid X-API-Key" } });
+    if (!token || !verifyToken(secret, token)) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "Missing or invalid authorization token" } });
       return;
     }
     next();
