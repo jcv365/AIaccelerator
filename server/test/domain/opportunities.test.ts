@@ -41,6 +41,17 @@ describe("POST /opportunities", () => {
     expect(prisma.opportunity.create).not.toHaveBeenCalled();
   });
 
+  it("returns 400 VALIDATION_ERROR when a field has the wrong type", async () => {
+    const prisma = { opportunity: { create: vi.fn() } };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).post("/opportunities").send({ title: "x", description: 42 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    expect(prisma.opportunity.create).not.toHaveBeenCalled();
+  });
+
   it("creates an opportunity and returns 201", async () => {
     const created = { id: "1", title: "New idea", status: "DISCOVERED" };
     const prisma = { opportunity: { create: vi.fn().mockResolvedValue(created) } };

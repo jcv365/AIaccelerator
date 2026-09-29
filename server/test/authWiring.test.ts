@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import request from "supertest";
 import { Pool } from "pg";
 import { createApp } from "../src/app.js";
@@ -47,5 +47,20 @@ describe("API key gating", () => {
       .send({ model: "Claude", system: "s", prompt: "p" });
 
     expect(res.status).toBe(503);
+  });
+
+  it("requires a key for /opportunities", async () => {
+    const fakePrisma = { opportunity: { findMany: vi.fn() } };
+    const app = createApp({
+      pool: fakePool,
+      version: "0.1.0",
+      commit: "test",
+      acceleratorApiKey: "secret",
+      prisma: fakePrisma as never,
+    });
+
+    const res = await request(app).get("/opportunities");
+
+    expect(res.status).toBe(401);
   });
 });

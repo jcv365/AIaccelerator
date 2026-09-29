@@ -16,12 +16,18 @@ const EDITABLE_FIELDS = [
   "hypothesis",
 ] as const;
 
-function pickEditableFields(body: Record<string, unknown>): Record<string, unknown> {
+function pickEditableFields(body: Record<string, unknown>): { data: Record<string, unknown>; error?: string } {
   const result: Record<string, unknown> = {};
   for (const field of EDITABLE_FIELDS) {
-    if (field in body) result[field] = body[field];
+    if (field in body) {
+      const value = body[field];
+      if (value !== undefined && typeof value !== "string") {
+        return { data: {}, error: `${field} must be a string` };
+      }
+      result[field] = value;
+    }
   }
-  return result;
+  return { data: result };
 }
 
 export function createOpportunitiesRouter(prisma: PrismaClient): Router {
@@ -46,8 +52,13 @@ export function createOpportunitiesRouter(prisma: PrismaClient): Router {
         res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "title is required" } });
         return;
       }
+      const picked = pickEditableFields(body);
+      if (picked.error) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: picked.error } });
+        return;
+      }
       const opportunity = await prisma.opportunity.create({
-        data: pickEditableFields(body) as { title: string },
+        data: picked.data as { title: string },
       });
       res.status(201).json(opportunity);
     })
@@ -77,9 +88,14 @@ export function createOpportunitiesRouter(prisma: PrismaClient): Router {
         return;
       }
       const body = (req.body ?? {}) as Record<string, unknown>;
+      const picked = pickEditableFields(body);
+      if (picked.error) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: picked.error } });
+        return;
+      }
       const updated = await prisma.opportunity.update({
         where: { id: req.params.id },
-        data: pickEditableFields(body),
+        data: picked.data,
       });
       res.status(200).json(updated);
     })
@@ -135,6 +151,10 @@ export function createOpportunitiesRouter(prisma: PrismaClient): Router {
         });
         return;
       }
+      if (body.confidence !== undefined && typeof body.confidence !== "number") {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "confidence must be a number" } });
+        return;
+      }
       const evidence = await prisma.evidence.create({
         data: {
           opportunityId: req.params.id,
@@ -161,6 +181,10 @@ export function createOpportunitiesRouter(prisma: PrismaClient): Router {
       const body = (req.body ?? {}) as Record<string, unknown>;
       if (typeof body.decision !== "string" || body.decision.trim() === "") {
         res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "decision is required" } });
+        return;
+      }
+      if (body.confidence !== undefined && typeof body.confidence !== "number") {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "confidence must be a number" } });
         return;
       }
       const decision = await prisma.decision.create({

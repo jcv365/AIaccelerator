@@ -65,32 +65,47 @@ export default function OpportunityDetail() {
   if (!opportunity) return <main>Loading...</main>;
 
   async function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    await apiFetch(`/opportunities/${id}/status`, {
+    const res = await apiFetch(`/opportunities/${id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: e.target.value }),
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error?.message ?? "Failed to update status");
+      return;
+    }
     reload();
   }
 
   async function handleAddEvidence(e: React.FormEvent) {
     e.preventDefault();
-    await apiFetch(`/opportunities/${id}/evidence`, {
+    const res = await apiFetch(`/opportunities/${id}/evidence`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ claim, type: evidenceType }),
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error?.message ?? "Failed to add evidence");
+      return;
+    }
     setClaim("");
     reload();
   }
 
   async function handleAddDecision(e: React.FormEvent) {
     e.preventDefault();
-    await apiFetch(`/opportunities/${id}/decisions`, {
+    const res = await apiFetch(`/opportunities/${id}/decisions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ decision: decisionText }),
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error?.message ?? "Failed to add decision");
+      return;
+    }
     setDecisionText("");
     reload();
   }
