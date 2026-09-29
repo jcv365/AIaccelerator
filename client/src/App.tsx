@@ -3,16 +3,22 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import OpportunityList from "./pages/OpportunityList";
 import NewOpportunity from "./pages/NewOpportunity";
 import OpportunityDetail from "./pages/OpportunityDetail";
-import { getApiKey, setApiKey } from "./api";
+import { getToken, login } from "./api";
 
-function ApiKeyPrompt({ onSubmit }: { onSubmit: (key: string) => void }) {
-  const [key, setKey] = useState("");
+function LoginForm({ onSuccess }: { onSuccess: () => void }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (key.trim() === "") return;
-    setApiKey(key.trim());
-    onSubmit(key.trim());
+    setError(null);
+    const ok = await login(username, password);
+    if (ok) {
+      onSuccess();
+    } else {
+      setError("Invalid username or password");
+    }
   }
 
   return (
@@ -20,16 +26,16 @@ function ApiKeyPrompt({ onSubmit }: { onSubmit: (key: string) => void }) {
       <h1>AI Accelerator</h1>
       <form onSubmit={handleSubmit}>
         <label>
-          API Key
-          <input
-            type="password"
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            required
-          />
+          Username
+          <input value={username} onChange={(e) => setUsername(e.target.value)} required />
         </label>
-        <button type="submit">Continue</button>
+        <label>
+          Password
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </label>
+        <button type="submit">Log in</button>
       </form>
+      {error && <p role="alert">{error}</p>}
     </main>
   );
 }
@@ -48,21 +54,18 @@ function BackendStatus() {
 }
 
 export default function App() {
-  const [hasKey, setHasKey] = useState(() => getApiKey() !== null);
+  const [hasToken, setHasToken] = useState(() => getToken() !== null);
 
-  // Poll for the key being cleared (e.g. by a 401 response elsewhere in the
-  // app, via apiFetch's clearApiKey() call) so the prompt reappears without
-  // requiring a full page reload.
   useEffect(() => {
     const interval = setInterval(() => {
-      const present = getApiKey() !== null;
-      setHasKey((prev) => (prev !== present ? present : prev));
+      const present = getToken() !== null;
+      setHasToken((prev) => (prev !== present ? present : prev));
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  if (!hasKey) {
-    return <ApiKeyPrompt onSubmit={() => setHasKey(true)} />;
+  if (!hasToken) {
+    return <LoginForm onSuccess={() => setHasToken(true)} />;
   }
 
   return (
