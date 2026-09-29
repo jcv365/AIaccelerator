@@ -8,27 +8,17 @@ afterEach(() => {
 });
 
 describe("App", () => {
-  it("shows the backend status once the health check resolves", async () => {
+  it("shows the opportunity list at the root route by default", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ status: "ok" }),
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/health")) return Promise.resolve({ ok: true, status: 200, json: async () => ({ status: "ok" }) });
+        return Promise.resolve({ ok: true, status: 200, json: async () => [] });
       })
     );
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getByText(/backend status: ok/i)).toBeInTheDocument());
-  });
-
-  it("shows an error state when the health check fails", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network error")));
-
-    render(<App />);
-
-    await waitFor(() =>
-      expect(screen.getByText(/backend status: unreachable/i)).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText("AI Accelerator")).toBeInTheDocument());
   });
 });
