@@ -21,15 +21,23 @@
 - [x] ACCELERATOR_API_KEY required, protects all non-health routes including /ai/*
 - [x] Three UI screens: list, detail, new-opportunity form
 
+## Phase 4 — Real Login + AI-Generated Opportunity Report (complete)
+
+- [x] POST /auth/login: real username/password against a bcrypt-hashed, env-configured single local account
+- [x] JWT-based requireAuth replaces the shared ACCELERATOR_API_KEY everywhere
+- [x] POST /opportunities/:id/report: AI-synthesized report via the conclave, using the opportunity's evidence and decisions
+- [x] Client: real login form, Generate Report button
+
 ## Not yet implemented
 
 - Experiment and Learning entities (deferred from Phase 3's domain model)
 - Evidence <-> Decision linkage (deferred from Phase 3)
-- AI-assisted reasoning wiring into the Opportunity/Evidence/Decision flow (deferred from Phase 3; /ai/quick and /ai/session exist but are not yet called from the domain UI)
-- Mutation-error UI feedback (status transition / evidence / decision failures are not surfaced to the user in the UI; deferred from Phase 3)
-- UI styling pass (current three screens are functional/unstyled; deferred from Phase 3)
+- UI styling pass (current screens are functional/unstyled; deferred from Phase 3)
 - apiFetch Headers-instance support (client API helper does not yet accept a `Headers` instance for custom headers; deferred from Phase 3)
-- Phase 4: Frontend operational views (portfolio, evidence, reasoning, decisions, experiments, results, learning)
+- Generated reports are not persisted to the database (displayed on screen only; deferred from Phase 4)
+- No multi-user support (single local admin account only, by design; deferred from Phase 4)
+- No refresh-token rotation or logout-everywhere (fixed-expiry JWT only; deferred from Phase 4)
+- Real conclave-backed report generation (a 200 response with actual AI-authored text) has not been verified in this development environment — only the graceful 503 AI_NOT_CONFIGURED fallback path has been live-tested, since COUNCIL_BASE_URL/COUNCIL_API_KEY were not available here
 - Phase 5: Observability, security hardening, prompt-injection tests, e2e smoke test
 
 ## Risks
