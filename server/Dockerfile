@@ -17,6 +17,7 @@ COPY package.json package-lock.json* ./
 RUN npm install --omit=dev
 COPY --from=build /app/dist ./dist
 COPY prisma ./prisma
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 RUN addgroup -S app && adduser -S app -G app
 USER app
 EXPOSE 4000
