@@ -13,15 +13,24 @@ export function clearToken(): void {
 }
 
 export async function login(username: string, password: string): Promise<boolean> {
-  const res = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
+  let res: Response;
+  try {
+    res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+  } catch {
+    return false;
+  }
   if (!res.ok) return false;
-  const body = (await res.json()) as { token: string };
-  setToken(body.token);
-  return true;
+  try {
+    const body = (await res.json()) as { token: string };
+    setToken(body.token);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {

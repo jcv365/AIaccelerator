@@ -47,6 +47,32 @@ describe("login", () => {
     expect(result).toBe(false);
     expect(getToken()).toBeNull();
   });
+
+  it("returns false and stores nothing when fetch rejects (server unreachable)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network error")));
+
+    const result = await login("admin", "correct-password");
+
+    expect(result).toBe(false);
+    expect(getToken()).toBeNull();
+  });
+
+  it("returns false when the response body is not valid JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => {
+          throw new Error("invalid json");
+        },
+      })
+    );
+
+    const result = await login("admin", "correct-password");
+
+    expect(result).toBe(false);
+    expect(getToken()).toBeNull();
+  });
 });
 
 describe("apiFetch", () => {

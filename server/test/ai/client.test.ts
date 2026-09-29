@@ -91,6 +91,16 @@ describe("createAiClient.quickAsk", () => {
       code: "AI_UPSTREAM_ERROR",
     });
   });
+
+  it("respects an optional timeoutMs override when signalling the abort timeout", async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+    mockFetchOnce({ ok: true, json: async () => ({ ok: true, model: "Claude", response: "hi" }) });
+    const client = createAiClient(config);
+
+    await client.quickAsk("Claude", "sys", "prompt", 90_000);
+
+    expect(timeoutSpy).toHaveBeenCalledWith(90_000);
+  });
 });
 
 describe("createAiClient.runSession", () => {

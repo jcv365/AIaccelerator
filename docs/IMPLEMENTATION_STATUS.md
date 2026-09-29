@@ -38,6 +38,8 @@
 - No multi-user support (single local admin account only, by design; deferred from Phase 4)
 - No refresh-token rotation or logout-everywhere (fixed-expiry JWT only; deferred from Phase 4)
 - Real conclave-backed report generation (a 200 response with actual AI-authored text) has not been verified in this development environment — only the graceful 503 AI_NOT_CONFIGURED fallback path has been live-tested, since COUNCIL_BASE_URL/COUNCIL_API_KEY were not available here
+- No rate limiting or lockout on POST /auth/login (deferred to Phase 5's security hardening)
+- Opportunity title/description/evidence are interpolated directly into the AI report prompt with no sanitization beyond the system prompt's own instructions — prompt-injection hardening deferred to Phase 5
 - Phase 5: Observability, security hardening, prompt-injection tests, e2e smoke test
 
 ## Risks

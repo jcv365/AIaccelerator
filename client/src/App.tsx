@@ -3,21 +3,24 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import OpportunityList from "./pages/OpportunityList";
 import NewOpportunity from "./pages/NewOpportunity";
 import OpportunityDetail from "./pages/OpportunityDetail";
-import { getToken, login } from "./api";
+import { getToken, clearToken, login } from "./api";
 
 function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setLoading(true);
     const ok = await login(username, password);
+    setLoading(false);
     if (ok) {
       onSuccess();
     } else {
-      setError("Invalid username or password");
+      setError("Invalid username or password, or the server is unreachable");
     }
   }
 
@@ -33,14 +36,16 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
           Password
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </label>
-        <button type="submit">Log in</button>
+        <button type="submit" disabled={loading}>
+          {loading ? "Logging in..." : "Log in"}
+        </button>
       </form>
       {error && <p role="alert">{error}</p>}
     </main>
   );
 }
 
-function BackendStatus() {
+function BackendStatus({ onLogout }: { onLogout: () => void }) {
   const [status, setStatus] = useState<"loading" | "ok" | "unreachable">("loading");
 
   useEffect(() => {
@@ -50,7 +55,16 @@ function BackendStatus() {
       .catch(() => setStatus("unreachable"));
   }, []);
 
-  return <footer>Backend status: {status}</footer>;
+  function handleLogout() {
+    clearToken();
+    onLogout();
+  }
+
+  return (
+    <footer>
+      Backend status: {status} <button onClick={handleLogout}>Log out</button>
+    </footer>
+  );
 }
 
 export default function App() {
@@ -75,7 +89,7 @@ export default function App() {
         <Route path="/opportunities/new" element={<NewOpportunity />} />
         <Route path="/opportunities/:id" element={<OpportunityDetail />} />
       </Routes>
-      <BackendStatus />
+      <BackendStatus onLogout={() => setHasToken(false)} />
     </BrowserRouter>
   );
 }

@@ -243,7 +243,7 @@ ${decisionLines}
 
 Write a concise report (3-5 paragraphs) summarizing the opportunity, the strength of the evidence, and the decisions made so far.`;
       try {
-        const result = await aiClient.quickAsk("Claude", system, prompt);
+        const result = await aiClient.quickAsk("Claude", system, prompt, 90_000);
         res.status(200).json({ report: result.response });
       } catch (err) {
         if (err instanceof AiClientError) {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import express from "express";
 import request from "supertest";
+import jwt from "jsonwebtoken";
 import { signToken, verifyToken, requireAuth } from "../src/auth.js";
 
 describe("signToken/verifyToken", () => {
@@ -16,6 +17,11 @@ describe("signToken/verifyToken", () => {
 
   it("rejects garbage input", () => {
     expect(verifyToken("secret", "not-a-token")).toBe(false);
+  });
+
+  it("rejects an expired token", () => {
+    const expiredToken = jwt.sign({ sub: "admin" }, "secret", { expiresIn: "-1s" });
+    expect(verifyToken("secret", expiredToken)).toBe(false);
   });
 });
 

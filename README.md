@@ -2,10 +2,20 @@
 
 ## Quickstart
 
+### First-run setup
+
+1. `cd server && npm install` (needed once, so `hash-password.mjs` has its `bcryptjs` dependency)
+2. `cp .env.example .env` (from the repo root)
+3. Generate a password hash: `node server/scripts/hash-password.mjs <your-password>`, then paste the output into `ADMIN_PASSWORD_HASH` in `.env`
+4. Set `ADMIN_USERNAME` in `.env` (default `admin` is fine) and generate `AUTH_TOKEN_SECRET` with `openssl rand -hex 32` (or any long random string)
+5. `docker compose up -d --build`
+
 ```bash
 git clone <this-repo>
 cd AIaccelerator
+cd server && npm install && cd ..
 cp .env.example .env
+# edit .env: set ADMIN_PASSWORD_HASH and AUTH_TOKEN_SECRET (see steps above)
 docker compose up -d --build
 ```
 

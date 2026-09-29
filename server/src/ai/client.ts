@@ -18,7 +18,7 @@ export interface SessionResult {
 }
 
 export interface AiClient {
-  quickAsk(model: string, system: string, prompt: string): Promise<QuickAskResult>;
+  quickAsk(model: string, system: string, prompt: string, timeoutMs?: number): Promise<QuickAskResult>;
   runSession(goal: string): Promise<SessionResult>;
 }
 
@@ -52,12 +52,12 @@ function mapStatusToError(status: number): AiClientError {
 
 export function createAiClient(config: AiClientConfig): AiClient {
   return {
-    async quickAsk(model, system, prompt) {
+    async quickAsk(model, system, prompt, timeoutMs = 30_000) {
       const res = await postJson(
         `${config.baseUrl}/api/external/quick`,
         config.apiKey,
         { model, system, prompt },
-        30_000
+        timeoutMs
       );
       if (!res.ok) throw mapStatusToError(res.status);
       const body = (await parseJson(res)) as { ok?: boolean; model?: unknown; response?: unknown };

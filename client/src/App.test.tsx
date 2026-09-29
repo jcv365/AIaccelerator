@@ -69,4 +69,38 @@ describe("App", () => {
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/invalid/i));
   });
+
+  it("shows an error message when the server is unreachable", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network error")));
+
+    render(<App />);
+
+    fireEvent.change(await screen.findByLabelText(/username/i), { target: { value: "admin" } });
+    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "correct-password" } });
+    fireEvent.click(screen.getByRole("button", { name: /log in/i }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/unreachable/i));
+  });
+
+  it("logs out and returns to the login form", async () => {
+    localStorage.setItem("aiaccelerator_auth_token", "existing-token");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/health")) {
+          return Promise.resolve({ ok: true, status: 200, json: async () => ({ status: "ok" }) });
+        }
+        return Promise.resolve({ ok: true, status: 200, json: async () => [] });
+      })
+    );
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText("+ New")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /log out/i }));
+
+    expect(await screen.findByRole("button", { name: /log in/i })).toBeInTheDocument();
+    expect(localStorage.getItem("aiaccelerator_auth_token")).toBeNull();
+  });
 });

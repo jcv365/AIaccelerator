@@ -295,7 +295,12 @@ describe("POST /opportunities/:id/report", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ report: "A generated report." });
-    expect(quickAsk).toHaveBeenCalledWith("Claude", expect.any(String), expect.stringContaining("Volume is high"));
+    expect(quickAsk).toHaveBeenCalledWith(
+      "Claude",
+      expect.any(String),
+      expect.stringContaining("Volume is high"),
+      90_000
+    );
   });
 
   it("maps an AiClientError to the matching HTTP status", async () => {

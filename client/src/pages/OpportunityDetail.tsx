@@ -121,7 +121,7 @@ export default function OpportunityDetail() {
       alert(body?.error?.message ?? "Failed to generate report");
       return;
     }
-    const body = await res.json();
+    const body = (await res.json()) as { report: string };
     setReport(body.report);
   }
 

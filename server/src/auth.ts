@@ -7,7 +7,7 @@ export function signToken(secret: string, username: string): string {
 
 export function verifyToken(secret: string, token: string): boolean {
   try {
-    jwt.verify(token, secret);
+    jwt.verify(token, secret, { algorithms: ["HS256"] });
     return true;
   } catch {
     return false;
