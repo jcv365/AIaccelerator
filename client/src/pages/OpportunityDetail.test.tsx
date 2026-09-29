@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import "@testing-library/jest-dom";
 import OpportunityDetail from "./OpportunityDetail";
@@ -58,5 +58,26 @@ describe("OpportunityDetail", () => {
     const select = screen.getByLabelText(/status/i) as HTMLSelectElement;
     const options = Array.from(select.options).map((o) => o.value);
     expect(options).toEqual(["PROVING", "PROVEN", "REJECTED"]);
+  });
+
+  it("generates and displays a report", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/report")) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ report: "A generated report." }) });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: "1", title: "X", status: "PROVING", evidence: [], decisions: [] }),
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderAtId("1");
+
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
+
+    await waitFor(() => expect(screen.getByText("A generated report.")).toBeInTheDocument());
   });
 });

@@ -50,6 +50,8 @@ export default function OpportunityDetail() {
   const [claim, setClaim] = useState("");
   const [evidenceType, setEvidenceType] = useState("FACT");
   const [decisionText, setDecisionText] = useState("");
+  const [report, setReport] = useState<string | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
 
   function reload() {
     apiFetch(`/opportunities/${id}`)
@@ -110,6 +112,19 @@ export default function OpportunityDetail() {
     reload();
   }
 
+  async function handleGenerateReport() {
+    setReportLoading(true);
+    const res = await apiFetch(`/opportunities/${id}/report`, { method: "POST" });
+    setReportLoading(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error?.message ?? "Failed to generate report");
+      return;
+    }
+    const body = await res.json();
+    setReport(body.report);
+  }
+
   const nextStatuses = TRANSITIONS[opportunity.status];
 
   return (
@@ -156,6 +171,12 @@ export default function OpportunityDetail() {
         <input value={decisionText} onChange={(e) => setDecisionText(e.target.value)} placeholder="Decision" required />
         <button type="submit">Add</button>
       </form>
+
+      <h2>Report</h2>
+      <button onClick={handleGenerateReport} disabled={reportLoading}>
+        {reportLoading ? "Generating..." : "Generate Report"}
+      </button>
+      {report && <pre>{report}</pre>}
     </main>
   );
 }
