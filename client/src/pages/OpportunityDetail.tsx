@@ -60,7 +60,6 @@ export default function OpportunityDetail() {
 
   useEffect(() => {
     reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (!opportunity) return <main>Loading...</main>;
