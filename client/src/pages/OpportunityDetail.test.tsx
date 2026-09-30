@@ -215,7 +215,7 @@ describe("OpportunityDetail Learnings tab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Learnings" }));
 
     expect(screen.getByText(/Automation saves 2 days/)).toBeInTheDocument();
-    expect(screen.getAllByText(/Try automation/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/\(Try automation\)/)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/experiment/i), { target: { value: "e1" } });
     fireEvent.change(screen.getByPlaceholderText("Insight"), { target: { value: "New insight" } });
