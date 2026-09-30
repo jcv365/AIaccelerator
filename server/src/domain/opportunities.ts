@@ -32,6 +32,47 @@ function pickEditableFields(body: Record<string, unknown>): { data: Record<strin
   return { data: result };
 }
 
+const EXPERIMENT_STATUSES = ["PLANNED", "RUNNING", "COMPLETE", "ABANDONED"];
+
+function pickExperimentUpdateFields(body: Record<string, unknown>): { data: Record<string, unknown>; error?: string } {
+  const result: Record<string, unknown> = {};
+  if ("title" in body) {
+    if (typeof body.title !== "string") return { data: {}, error: "title must be a string" };
+    result.title = body.title;
+  }
+  if ("method" in body) {
+    if (typeof body.method !== "string") return { data: {}, error: "method must be a string" };
+    result.method = body.method;
+  }
+  if ("status" in body) {
+    if (typeof body.status !== "string" || !EXPERIMENT_STATUSES.includes(body.status)) {
+      return { data: {}, error: `status must be one of ${EXPERIMENT_STATUSES.join(", ")}` };
+    }
+    result.status = body.status;
+  }
+  if ("resultSummary" in body) {
+    if (body.resultSummary !== undefined && typeof body.resultSummary !== "string") {
+      return { data: {}, error: "resultSummary must be a string" };
+    }
+    result.resultSummary = body.resultSummary;
+  }
+  if ("success" in body) {
+    if (body.success !== undefined && typeof body.success !== "boolean") {
+      return { data: {}, error: "success must be a boolean" };
+    }
+    result.success = body.success;
+  }
+  if ("startedAt" in body) {
+    if (typeof body.startedAt !== "string") return { data: {}, error: "startedAt must be an ISO date string" };
+    result.startedAt = new Date(body.startedAt);
+  }
+  if ("completedAt" in body) {
+    if (typeof body.completedAt !== "string") return { data: {}, error: "completedAt must be an ISO date string" };
+    result.completedAt = new Date(body.completedAt);
+  }
+  return { data: result };
+}
+
 export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiClient): Router {
   const router = Router();
 
@@ -252,6 +293,50 @@ Write a concise report (3-5 paragraphs) summarizing the opportunity, the strengt
         }
         next(err);
       }
+    })
+  );
+
+  router.post(
+    "/:id/experiments",
+    asyncHandler(async (req, res) => {
+      const existing = await prisma.opportunity.findUnique({ where: { id: req.params.id } });
+      if (!existing) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Opportunity not found" } });
+        return;
+      }
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      if (typeof body.title !== "string" || body.title.trim() === "" || typeof body.method !== "string" || body.method.trim() === "") {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "title and method are required" } });
+        return;
+      }
+      const experiment = await prisma.experiment.create({
+        data: { opportunityId: req.params.id, title: body.title, method: body.method },
+      });
+      res.status(201).json(experiment);
+    })
+  );
+
+  router.patch(
+    "/:id/experiments/:experimentId",
+    asyncHandler(async (req, res) => {
+      const existing = await prisma.experiment.findFirst({
+        where: { id: req.params.experimentId, opportunityId: req.params.id },
+      });
+      if (!existing) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Experiment not found" } });
+        return;
+      }
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const picked = pickExperimentUpdateFields(body);
+      if (picked.error) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: picked.error } });
+        return;
+      }
+      const updated = await prisma.experiment.update({
+        where: { id: req.params.experimentId },
+        data: picked.data,
+      });
+      res.status(200).json(updated);
     })
   );
 

@@ -316,3 +316,107 @@ describe("POST /opportunities/:id/report", () => {
     expect(res.body.error.code).toBe("AI_BUSY");
   });
 });
+
+describe("POST /opportunities/:id/experiments", () => {
+  it("returns 404 NOT_FOUND when the opportunity doesn't exist", async () => {
+    const prisma = { opportunity: { findUnique: vi.fn().mockResolvedValue(null) } };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).post("/opportunities/nope/experiments").send({ title: "T", method: "M" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 400 VALIDATION_ERROR when title or method is missing", async () => {
+    const prisma = {
+      opportunity: { findUnique: vi.fn().mockResolvedValue({ id: "1" }) },
+      experiment: { create: vi.fn() },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).post("/opportunities/1/experiments").send({ title: "T" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    expect(prisma.experiment.create).not.toHaveBeenCalled();
+  });
+
+  it("creates an experiment with status PLANNED", async () => {
+    const created = { id: "e1", opportunityId: "1", title: "T", method: "M", status: "PLANNED" };
+    const prisma = {
+      opportunity: { findUnique: vi.fn().mockResolvedValue({ id: "1" }) },
+      experiment: { create: vi.fn().mockResolvedValue(created) },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).post("/opportunities/1/experiments").send({ title: "T", method: "M" });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual(created);
+    expect(prisma.experiment.create).toHaveBeenCalledWith({
+      data: { opportunityId: "1", title: "T", method: "M" },
+    });
+  });
+});
+
+describe("PATCH /opportunities/:id/experiments/:experimentId", () => {
+  it("returns 404 NOT_FOUND when the experiment doesn't exist or doesn't belong to the opportunity", async () => {
+    const prisma = {
+      experiment: { findFirst: vi.fn().mockResolvedValue(null), update: vi.fn() },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).patch("/opportunities/1/experiments/nope").send({ status: "RUNNING" });
+
+    expect(res.status).toBe(404);
+    expect(prisma.experiment.update).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 VALIDATION_ERROR for an invalid status value", async () => {
+    const prisma = {
+      experiment: { findFirst: vi.fn().mockResolvedValue({ id: "e1", opportunityId: "1" }), update: vi.fn() },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).patch("/opportunities/1/experiments/e1").send({ status: "NOT_A_STATUS" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    expect(prisma.experiment.update).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 VALIDATION_ERROR when success is not a boolean", async () => {
+    const prisma = {
+      experiment: { findFirst: vi.fn().mockResolvedValue({ id: "e1", opportunityId: "1" }), update: vi.fn() },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).patch("/opportunities/1/experiments/e1").send({ success: "yes" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    expect(prisma.experiment.update).not.toHaveBeenCalled();
+  });
+
+  it("updates the experiment with valid fields", async () => {
+    const updated = { id: "e1", opportunityId: "1", status: "COMPLETE", resultSummary: "Worked", success: true };
+    const prisma = {
+      experiment: {
+        findFirst: vi.fn().mockResolvedValue({ id: "e1", opportunityId: "1" }),
+        update: vi.fn().mockResolvedValue(updated),
+      },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app)
+      .patch("/opportunities/1/experiments/e1")
+      .send({ status: "COMPLETE", resultSummary: "Worked", success: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(updated);
+    expect(prisma.experiment.update).toHaveBeenCalledWith({
+      where: { id: "e1" },
+      data: { status: "COMPLETE", resultSummary: "Worked", success: true },
+    });
+  });
+});
