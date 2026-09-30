@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
 import "@testing-library/jest-dom";
 import OpportunityDetail from "./OpportunityDetail";
 
@@ -18,66 +18,108 @@ function renderAtId(id: string) {
   );
 }
 
-describe("OpportunityDetail", () => {
-  it("renders the opportunity, its evidence, and its decisions", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          id: "1",
-          title: "Contract renewals",
-          status: "QUALIFIED",
-          evidence: [{ id: "e1", claim: "Renewal volume is high", type: "FACT" }],
-          decisions: [{ id: "d1", decision: "Proceed to hypothesis phase" }],
-        }),
-      })
-    );
+const baseOpportunity = {
+  id: "1",
+  title: "X",
+  status: "DISCOVERED",
+  hypothesis: null,
+  evidence: [],
+  decisions: [],
+  experiments: [],
+};
 
-    renderAtId("1");
-
-    await waitFor(() => expect(screen.getByText("Contract renewals")).toBeInTheDocument());
-    expect(screen.getByText(/Renewal volume is high/)).toBeInTheDocument();
-    expect(screen.getByText("Proceed to hypothesis phase")).toBeInTheDocument();
-  });
-
-  it("only offers valid next statuses in the transition select", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ id: "1", title: "X", status: "PROVING", evidence: [], decisions: [] }),
-      })
-    );
+describe("OpportunityDetail tabs", () => {
+  it("shows the Overview tab by default with tab buttons for all sections", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => baseOpportunity }));
 
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
-    const select = screen.getByLabelText(/status/i) as HTMLSelectElement;
-    const options = Array.from(select.options).map((o) => o.value);
-    expect(options).toEqual(["PROVING", "PROVEN", "REJECTED"]);
+    expect(screen.getByRole("button", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Evidence" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reasoning" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Decisions" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Experiments" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Learnings" })).toBeInTheDocument();
   });
 
-  it("generates and displays a report", async () => {
+  it("switches to the Evidence tab and shows evidence content", async () => {
+    const opp = { ...baseOpportunity, evidence: [{ id: "ev1", claim: "A claim", type: "FACT" }] };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => opp }));
+
+    renderAtId("1");
+
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Evidence" }));
+
+    expect(screen.getByText(/A claim/)).toBeInTheDocument();
+  });
+
+  it("switches to the Reasoning tab, shows hypothesis and the Generate Report button", async () => {
+    const opp = { ...baseOpportunity, hypothesis: "This will save time" };
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => opp });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderAtId("1");
+
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Reasoning" }));
+
+    expect(screen.getByDisplayValue("This will save time")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate Report" })).toBeInTheDocument();
+  });
+
+  it("switches to the Decisions tab and shows decision content", async () => {
+    const opp = { ...baseOpportunity, decisions: [{ id: "d1", decision: "Proceed" }] };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => opp }));
+
+    renderAtId("1");
+
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Decisions" }));
+
+    expect(screen.getByText("Proceed")).toBeInTheDocument();
+  });
+
+  it("generates and displays a report from the Reasoning tab", async () => {
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (url.includes("/report")) {
         return Promise.resolve({ ok: true, status: 200, json: async () => ({ report: "A generated report." }) });
       }
-      return Promise.resolve({
-        ok: true,
-        status: 200,
-        json: async () => ({ id: "1", title: "X", status: "PROVING", evidence: [], decisions: [] }),
-      });
+      return Promise.resolve({ ok: true, status: 200, json: async () => baseOpportunity });
     });
     vi.stubGlobal("fetch", fetchMock);
 
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Reasoning" }));
     fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
 
     await waitFor(() => expect(screen.getByText("A generated report.")).toBeInTheDocument());
+  });
+
+  it("updates the hypothesis field via PATCH", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === "PATCH") {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ ...baseOpportunity, hypothesis: "New hypothesis" }) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => baseOpportunity });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderAtId("1");
+
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Reasoning" }));
+    fireEvent.change(screen.getByLabelText(/hypothesis/i), { target: { value: "New hypothesis" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/opportunities/1"),
+        expect.objectContaining({ method: "PATCH" })
+      )
+    );
   });
 });
