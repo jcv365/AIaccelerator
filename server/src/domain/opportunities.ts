@@ -112,7 +112,7 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
     asyncHandler(async (req, res) => {
       const opportunity = await prisma.opportunity.findUnique({
         where: { id: req.params.id },
-        include: { evidence: true, decisions: true },
+        include: { evidence: true, decisions: true, experiments: { include: { learnings: true } } },
       });
       if (!opportunity) {
         res.status(404).json({ error: { code: "NOT_FOUND", message: "Opportunity not found" } });
@@ -337,6 +337,28 @@ Write a concise report (3-5 paragraphs) summarizing the opportunity, the strengt
         data: picked.data,
       });
       res.status(200).json(updated);
+    })
+  );
+
+  router.post(
+    "/:id/experiments/:experimentId/learnings",
+    asyncHandler(async (req, res) => {
+      const experiment = await prisma.experiment.findFirst({
+        where: { id: req.params.experimentId, opportunityId: req.params.id },
+      });
+      if (!experiment) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Experiment not found" } });
+        return;
+      }
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      if (typeof body.insight !== "string" || body.insight.trim() === "") {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "insight is required" } });
+        return;
+      }
+      const learning = await prisma.learning.create({
+        data: { experimentId: req.params.experimentId, insight: body.insight },
+      });
+      res.status(201).json(learning);
     })
   );
 

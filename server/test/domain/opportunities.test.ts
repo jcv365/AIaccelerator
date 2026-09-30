@@ -84,7 +84,7 @@ describe("GET /opportunities/:id", () => {
   });
 
   it("returns the opportunity with nested evidence/decisions", async () => {
-    const found = { id: "1", title: "A", evidence: [], decisions: [] };
+    const found = { id: "1", title: "A", evidence: [], decisions: [], experiments: [] };
     const prisma = { opportunity: { findUnique: vi.fn().mockResolvedValue(found) } };
     const app = appWithPrisma(prisma);
 
@@ -92,9 +92,10 @@ describe("GET /opportunities/:id", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual(found);
-    expect(prisma.opportunity.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: "1" }, include: { evidence: true, decisions: true } })
-    );
+    expect(prisma.opportunity.findUnique).toHaveBeenCalledWith({
+      where: { id: "1" },
+      include: { evidence: true, decisions: true, experiments: { include: { learnings: true } } },
+    });
   });
 });
 
@@ -417,6 +418,77 @@ describe("PATCH /opportunities/:id/experiments/:experimentId", () => {
     expect(prisma.experiment.update).toHaveBeenCalledWith({
       where: { id: "e1" },
       data: { status: "COMPLETE", resultSummary: "Worked", success: true },
+    });
+  });
+});
+
+describe("POST /opportunities/:id/experiments/:experimentId/learnings", () => {
+  it("returns 404 NOT_FOUND when the experiment doesn't exist or doesn't belong to the opportunity", async () => {
+    const prisma = {
+      experiment: { findFirst: vi.fn().mockResolvedValue(null) },
+      learning: { create: vi.fn() },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app)
+      .post("/opportunities/1/experiments/nope/learnings")
+      .send({ insight: "Something" });
+
+    expect(res.status).toBe(404);
+    expect(prisma.learning.create).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 VALIDATION_ERROR when insight is missing", async () => {
+    const prisma = {
+      experiment: { findFirst: vi.fn().mockResolvedValue({ id: "e1", opportunityId: "1" }) },
+      learning: { create: vi.fn() },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).post("/opportunities/1/experiments/e1/learnings").send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    expect(prisma.learning.create).not.toHaveBeenCalled();
+  });
+
+  it("creates a learning linked to the experiment", async () => {
+    const created = { id: "l1", experimentId: "e1", insight: "It worked" };
+    const prisma = {
+      experiment: { findFirst: vi.fn().mockResolvedValue({ id: "e1", opportunityId: "1" }) },
+      learning: { create: vi.fn().mockResolvedValue(created) },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app)
+      .post("/opportunities/1/experiments/e1/learnings")
+      .send({ insight: "It worked" });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toEqual(created);
+    expect(prisma.learning.create).toHaveBeenCalledWith({ data: { experimentId: "e1", insight: "It worked" } });
+  });
+});
+
+describe("GET /opportunities/:id (experiments include)", () => {
+  it("includes experiments with nested learnings", async () => {
+    const opportunity = {
+      id: "1",
+      title: "X",
+      evidence: [],
+      decisions: [],
+      experiments: [{ id: "e1", title: "T", learnings: [{ id: "l1", insight: "It worked" }] }],
+    };
+    const prisma = { opportunity: { findUnique: vi.fn().mockResolvedValue(opportunity) } };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).get("/opportunities/1");
+
+    expect(res.status).toBe(200);
+    expect(res.body.experiments).toEqual(opportunity.experiments);
+    expect(prisma.opportunity.findUnique).toHaveBeenCalledWith({
+      where: { id: "1" },
+      include: { evidence: true, decisions: true, experiments: { include: { learnings: true } } },
     });
   });
 });
