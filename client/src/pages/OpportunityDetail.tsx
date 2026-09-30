@@ -75,6 +75,8 @@ export default function OpportunityDetail() {
   const [hypothesisDraft, setHypothesisDraft] = useState("");
   const [experimentTitle, setExperimentTitle] = useState("");
   const [experimentMethod, setExperimentMethod] = useState("");
+  const [learningExperimentId, setLearningExperimentId] = useState("");
+  const [learningInsight, setLearningInsight] = useState("");
 
   function reload() {
     apiFetch(`/opportunities/${id}`)
@@ -166,6 +168,22 @@ export default function OpportunityDetail() {
       alert(body?.error?.message ?? "Failed to update experiment");
       return;
     }
+    reload();
+  }
+
+  async function handleAddLearning(e: React.FormEvent) {
+    e.preventDefault();
+    const res = await apiFetch(`/opportunities/${id}/experiments/${learningExperimentId}/learnings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ insight: learningInsight }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error?.message ?? "Failed to add learning");
+      return;
+    }
+    setLearningInsight("");
     reload();
   }
 
@@ -311,6 +329,38 @@ export default function OpportunityDetail() {
             <input value={experimentMethod} onChange={(e) => setExperimentMethod(e.target.value)} placeholder="Method" required />
             <button type="submit">Add Experiment</button>
           </form>
+        </section>
+      )}
+
+      {activeTab === "learnings" && (
+        <section>
+          <h2>Learnings</h2>
+          <ul>
+            {opportunity.experiments.flatMap((exp) =>
+              exp.learnings.map((l) => (
+                <li key={l.id}>
+                  {l.insight} <em>({exp.title})</em>
+                </li>
+              ))
+            )}
+          </ul>
+          {opportunity.experiments.length > 0 && (
+            <form onSubmit={handleAddLearning}>
+              <label>
+                Experiment
+                <select value={learningExperimentId} onChange={(e) => setLearningExperimentId(e.target.value)} required>
+                  <option value="">Select an experiment</option>
+                  {opportunity.experiments.map((exp) => (
+                    <option key={exp.id} value={exp.id}>
+                      {exp.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <input value={learningInsight} onChange={(e) => setLearningInsight(e.target.value)} placeholder="Insight" required />
+              <button type="submit">Add Learning</button>
+            </form>
+          )}
         </section>
       )}
     </main>

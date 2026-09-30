@@ -192,3 +192,51 @@ describe("OpportunityDetail Experiments tab", () => {
     );
   });
 });
+
+describe("OpportunityDetail Learnings tab", () => {
+  it("lists learnings across experiments and adds a new one", async () => {
+    const opp = {
+      ...baseOpportunity,
+      experiments: [
+        { id: "e1", title: "Try automation", method: "Script it", status: "COMPLETE", resultSummary: "Worked", success: true, learnings: [{ id: "l1", insight: "Automation saves 2 days" }] },
+      ],
+    };
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === "POST" && url.includes("/learnings")) {
+        return Promise.resolve({ ok: true, status: 201, json: async () => ({ id: "l2", experimentId: "e1", insight: "New insight" }) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => opp });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderAtId("1");
+
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Learnings" }));
+
+    expect(screen.getByText(/Automation saves 2 days/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Try automation/).length).toBeGreaterThan(0);
+
+    fireEvent.change(screen.getByLabelText(/experiment/i), { target: { value: "e1" } });
+    fireEvent.change(screen.getByPlaceholderText("Insight"), { target: { value: "New insight" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add Learning" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/opportunities/1/experiments/e1/learnings"),
+        expect.objectContaining({ method: "POST" })
+      )
+    );
+  });
+
+  it("hides the add-learning form when there are no experiments yet", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => baseOpportunity }));
+
+    renderAtId("1");
+
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Learnings" }));
+
+    expect(screen.queryByPlaceholderText("Insight")).not.toBeInTheDocument();
+  });
+});
