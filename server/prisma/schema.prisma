@@ -27,6 +27,13 @@ enum EvidenceType {
   AI_HYPOTHESIS
 }
 
+enum ExperimentStatus {
+  PLANNED
+  RUNNING
+  COMPLETE
+  ABANDONED
+}
+
 model Opportunity {
   id              String            @id @default(cuid())
   title           String
@@ -44,6 +51,7 @@ model Opportunity {
   updatedAt       DateTime          @updatedAt
   evidence        Evidence[]
   decisions       Decision[]
+  experiments     Experiment[]
 }
 
 model Evidence {
@@ -71,4 +79,28 @@ model Decision {
   risks                  String?
   owner                  String?
   decidedAt              DateTime    @default(now())
+}
+
+model Experiment {
+  id            String           @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity      @relation(fields: [opportunityId], references: [id])
+  title         String
+  method        String
+  status        ExperimentStatus @default(PLANNED)
+  resultSummary String?
+  success       Boolean?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  learnings     Learning[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model Learning {
+  id           String     @id @default(cuid())
+  experimentId String
+  experiment   Experiment @relation(fields: [experimentId], references: [id])
+  insight      String
+  createdAt    DateTime   @default(now())
 }
