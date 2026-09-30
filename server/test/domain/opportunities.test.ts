@@ -94,7 +94,11 @@ describe("GET /opportunities/:id", () => {
     expect(res.body).toEqual(found);
     expect(prisma.opportunity.findUnique).toHaveBeenCalledWith({
       where: { id: "1" },
-      include: { evidence: true, decisions: true, experiments: { include: { learnings: true } } },
+      include: {
+        evidence: true,
+        decisions: true,
+        experiments: { orderBy: { createdAt: "asc" }, include: { learnings: { orderBy: { createdAt: "asc" } } } },
+      },
     });
   });
 });
@@ -415,10 +419,26 @@ describe("PATCH /opportunities/:id/experiments/:experimentId", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual(updated);
+    expect(prisma.experiment.findFirst).toHaveBeenCalledWith({
+      where: { id: "e1", opportunityId: "1" },
+    });
     expect(prisma.experiment.update).toHaveBeenCalledWith({
       where: { id: "e1" },
       data: { status: "COMPLETE", resultSummary: "Worked", success: true },
     });
+  });
+
+  it("returns 400 VALIDATION_ERROR when startedAt is not a parseable date", async () => {
+    const prisma = {
+      experiment: { findFirst: vi.fn().mockResolvedValue({ id: "e1", opportunityId: "1" }), update: vi.fn() },
+    };
+    const app = appWithPrisma(prisma);
+
+    const res = await request(app).patch("/opportunities/1/experiments/e1").send({ startedAt: "not-a-date" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    expect(prisma.experiment.update).not.toHaveBeenCalled();
   });
 });
 
@@ -466,6 +486,9 @@ describe("POST /opportunities/:id/experiments/:experimentId/learnings", () => {
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual(created);
+    expect(prisma.experiment.findFirst).toHaveBeenCalledWith({
+      where: { id: "e1", opportunityId: "1" },
+    });
     expect(prisma.learning.create).toHaveBeenCalledWith({ data: { experimentId: "e1", insight: "It worked" } });
   });
 });
@@ -488,7 +511,11 @@ describe("GET /opportunities/:id (experiments include)", () => {
     expect(res.body.experiments).toEqual(opportunity.experiments);
     expect(prisma.opportunity.findUnique).toHaveBeenCalledWith({
       where: { id: "1" },
-      include: { evidence: true, decisions: true, experiments: { include: { learnings: true } } },
+      include: {
+        evidence: true,
+        decisions: true,
+        experiments: { orderBy: { createdAt: "asc" }, include: { learnings: { orderBy: { createdAt: "asc" } } } },
+      },
     });
   });
 });

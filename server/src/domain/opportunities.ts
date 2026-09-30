@@ -64,11 +64,15 @@ function pickExperimentUpdateFields(body: Record<string, unknown>): { data: Reco
   }
   if ("startedAt" in body) {
     if (typeof body.startedAt !== "string") return { data: {}, error: "startedAt must be an ISO date string" };
-    result.startedAt = new Date(body.startedAt);
+    const startedAt = new Date(body.startedAt);
+    if (Number.isNaN(startedAt.getTime())) return { data: {}, error: "startedAt must be a valid ISO date string" };
+    result.startedAt = startedAt;
   }
   if ("completedAt" in body) {
     if (typeof body.completedAt !== "string") return { data: {}, error: "completedAt must be an ISO date string" };
-    result.completedAt = new Date(body.completedAt);
+    const completedAt = new Date(body.completedAt);
+    if (Number.isNaN(completedAt.getTime())) return { data: {}, error: "completedAt must be a valid ISO date string" };
+    result.completedAt = completedAt;
   }
   return { data: result };
 }
@@ -112,7 +116,11 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
     asyncHandler(async (req, res) => {
       const opportunity = await prisma.opportunity.findUnique({
         where: { id: req.params.id },
-        include: { evidence: true, decisions: true, experiments: { include: { learnings: true } } },
+        include: {
+          evidence: true,
+          decisions: true,
+          experiments: { orderBy: { createdAt: "asc" }, include: { learnings: { orderBy: { createdAt: "asc" } } } },
+        },
       });
       if (!opportunity) {
         res.status(404).json({ error: { code: "NOT_FOUND", message: "Opportunity not found" } });

@@ -48,6 +48,10 @@
 - No rate limiting or lockout on POST /auth/login (deferred to Phase 5's security hardening)
 - Opportunity title/description/evidence are interpolated directly into the AI report prompt with no sanitization beyond the system prompt's own instructions — prompt-injection hardening deferred to Phase 5
 - Phase 5: Observability, security hardening, prompt-injection tests, e2e smoke test
+- No edit or delete of individual experiments/learnings once created (only status/resultSummary/success can be updated on an experiment; nothing can be removed)
+- Experiment status values are duplicated across the Prisma enum, the server's validation list, and the client's `<select>` options with no single source of truth — a future status addition requires three synchronized edits
+- Experiment/Learning fields cannot be explicitly cleared back to `null` once set (the update validation only accepts the field's proper type, not `null`)
+- Portfolio view has no empty-state message when there are zero opportunities, and would silently omit any opportunity whose status isn't one of the 9 known values (not currently reachable since the database enum constrains status, but worth noting if the enum is ever extended without updating Portfolio's `STATUS_ORDER`)
 
 ## Risks
 

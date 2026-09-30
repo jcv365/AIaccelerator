@@ -84,6 +84,9 @@ export default function OpportunityDetail() {
       .then((data: OpportunityDetailData) => {
         setOpportunity(data);
         setHypothesisDraft(data.hypothesis ?? "");
+        setExperimentTitle("");
+        setExperimentMethod("");
+        setLearningExperimentId("");
       })
       .catch(() => setOpportunity(null));
   }
@@ -171,6 +174,24 @@ export default function OpportunityDetail() {
     reload();
   }
 
+  async function handleExperimentFieldChange(
+    experimentId: string,
+    field: "resultSummary" | "success",
+    value: string | boolean
+  ) {
+    const res = await apiFetch(`/opportunities/${id}/experiments/${experimentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error?.message ?? "Failed to update experiment");
+      return;
+    }
+    reload();
+  }
+
   async function handleAddLearning(e: React.FormEvent) {
     e.preventDefault();
     const res = await apiFetch(`/opportunities/${id}/experiments/${learningExperimentId}/learnings`, {
@@ -220,13 +241,25 @@ export default function OpportunityDetail() {
   return (
     <main>
       <h1>{opportunity.title}</h1>
-      <nav>
-        <button onClick={() => setActiveTab("overview")}>Overview</button>
-        <button onClick={() => setActiveTab("evidence")}>Evidence</button>
-        <button onClick={() => setActiveTab("reasoning")}>Reasoning</button>
-        <button onClick={() => setActiveTab("decisions")}>Decisions</button>
-        <button onClick={() => setActiveTab("experiments")}>Experiments</button>
-        <button onClick={() => setActiveTab("learnings")}>Learnings</button>
+      <nav role="tablist">
+        <button role="tab" aria-selected={activeTab === "overview"} onClick={() => setActiveTab("overview")}>
+          Overview
+        </button>
+        <button role="tab" aria-selected={activeTab === "evidence"} onClick={() => setActiveTab("evidence")}>
+          Evidence
+        </button>
+        <button role="tab" aria-selected={activeTab === "reasoning"} onClick={() => setActiveTab("reasoning")}>
+          Reasoning
+        </button>
+        <button role="tab" aria-selected={activeTab === "decisions"} onClick={() => setActiveTab("decisions")}>
+          Decisions
+        </button>
+        <button role="tab" aria-selected={activeTab === "experiments"} onClick={() => setActiveTab("experiments")}>
+          Experiments
+        </button>
+        <button role="tab" aria-selected={activeTab === "learnings"} onClick={() => setActiveTab("learnings")}>
+          Learnings
+        </button>
       </nav>
 
       {activeTab === "overview" && (
@@ -320,7 +353,27 @@ export default function OpportunityDetail() {
                     <option value="ABANDONED">ABANDONED</option>
                   </select>
                 </label>
-                {exp.resultSummary && <p>{exp.resultSummary}</p>}
+                <label>
+                  Result summary
+                  <input
+                    type="text"
+                    defaultValue={exp.resultSummary ?? ""}
+                    placeholder="Result summary"
+                    onBlur={(e) => {
+                      if (e.target.value !== (exp.resultSummary ?? "")) {
+                        handleExperimentFieldChange(exp.id, "resultSummary", e.target.value);
+                      }
+                    }}
+                  />
+                </label>
+                <label>
+                  Success
+                  <input
+                    type="checkbox"
+                    checked={exp.success === true}
+                    onChange={(e) => handleExperimentFieldChange(exp.id, "success", e.target.checked)}
+                  />
+                </label>
               </li>
             ))}
           </ul>

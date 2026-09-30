@@ -35,12 +35,12 @@ describe("OpportunityDetail tabs", () => {
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Overview" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Evidence" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reasoning" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Decisions" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Experiments" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Learnings" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Overview" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Evidence" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Reasoning" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Decisions" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Experiments" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Learnings" })).toBeInTheDocument();
   });
 
   it("switches to the Evidence tab and shows evidence content", async () => {
@@ -50,7 +50,7 @@ describe("OpportunityDetail tabs", () => {
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Evidence" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Evidence" }));
 
     expect(screen.getByText(/A claim/)).toBeInTheDocument();
   });
@@ -63,7 +63,7 @@ describe("OpportunityDetail tabs", () => {
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Reasoning" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Reasoning" }));
 
     expect(screen.getByDisplayValue("This will save time")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Generate Report" })).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe("OpportunityDetail tabs", () => {
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Decisions" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Decisions" }));
 
     expect(screen.getByText("Proceed")).toBeInTheDocument();
   });
@@ -93,7 +93,7 @@ describe("OpportunityDetail tabs", () => {
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Reasoning" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Reasoning" }));
     fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
 
     await waitFor(() => expect(screen.getByText("A generated report.")).toBeInTheDocument());
@@ -111,7 +111,7 @@ describe("OpportunityDetail tabs", () => {
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Reasoning" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Reasoning" }));
     fireEvent.change(screen.getByLabelText(/hypothesis/i), { target: { value: "New hypothesis" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
@@ -147,7 +147,7 @@ describe("OpportunityDetail Experiments tab", () => {
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Experiments" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Experiments" }));
 
     expect(screen.getByText("Try automation")).toBeInTheDocument();
 
@@ -181,13 +181,81 @@ describe("OpportunityDetail Experiments tab", () => {
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Experiments" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Experiments" }));
     fireEvent.change(screen.getByLabelText(/experiment status/i), { target: { value: "RUNNING" } });
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/opportunities/1/experiments/e1"),
         expect.objectContaining({ method: "PATCH" })
+      )
+    );
+  });
+
+  it("updates an experiment's resultSummary via PATCH on blur", async () => {
+    const opp = {
+      ...baseOpportunity,
+      experiments: [
+        { id: "e1", title: "Try automation", method: "Script it", status: "PLANNED", resultSummary: null, success: null, learnings: [] },
+      ],
+    };
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === "PATCH" && url.includes("/experiments/e1")) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ ...opp.experiments[0], resultSummary: "Worked well" }) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => opp });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderAtId("1");
+
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("tab", { name: "Experiments" }));
+
+    const input = screen.getByPlaceholderText("Result summary");
+    fireEvent.change(input, { target: { value: "Worked well" } });
+    fireEvent.blur(input);
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/opportunities/1/experiments/e1"),
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ resultSummary: "Worked well" }),
+        })
+      )
+    );
+  });
+
+  it("toggles an experiment's success via checkbox PATCH", async () => {
+    const opp = {
+      ...baseOpportunity,
+      experiments: [
+        { id: "e1", title: "Try automation", method: "Script it", status: "PLANNED", resultSummary: null, success: null, learnings: [] },
+      ],
+    };
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === "PATCH" && url.includes("/experiments/e1")) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ ...opp.experiments[0], success: true }) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => opp });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderAtId("1");
+
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("tab", { name: "Experiments" }));
+
+    fireEvent.click(screen.getByLabelText(/success/i));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/opportunities/1/experiments/e1"),
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ success: true }),
+        })
       )
     );
   });
@@ -212,7 +280,7 @@ describe("OpportunityDetail Learnings tab", () => {
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Learnings" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Learnings" }));
 
     expect(screen.getByText(/Automation saves 2 days/)).toBeInTheDocument();
     expect(screen.getByText(/\(Try automation\)/)).toBeInTheDocument();
@@ -235,7 +303,7 @@ describe("OpportunityDetail Learnings tab", () => {
     renderAtId("1");
 
     await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Learnings" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Learnings" }));
 
     expect(screen.queryByPlaceholderText("Insight")).not.toBeInTheDocument();
   });
