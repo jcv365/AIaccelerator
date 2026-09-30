@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import OpportunityList from "./pages/OpportunityList";
+import Portfolio from "./pages/Portfolio";
 import NewOpportunity from "./pages/NewOpportunity";
 import OpportunityDetail from "./pages/OpportunityDetail";
 import { getToken, clearToken, login } from "./api";
@@ -85,7 +85,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<OpportunityList />} />
+        <Route path="/" element={<Portfolio />} />
         <Route path="/opportunities/new" element={<NewOpportunity />} />
         <Route path="/opportunities/:id" element={<OpportunityDetail />} />
       </Routes>
