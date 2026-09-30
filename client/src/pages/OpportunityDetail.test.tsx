@@ -123,3 +123,72 @@ describe("OpportunityDetail tabs", () => {
     );
   });
 });
+
+describe("OpportunityDetail Experiments tab", () => {
+  it("lists experiments and adds a new one", async () => {
+    const opp = {
+      ...baseOpportunity,
+      experiments: [
+        { id: "e1", title: "Try automation", method: "Script the workflow", status: "PLANNED", resultSummary: null, success: null, learnings: [] },
+      ],
+    };
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === "POST" && url.includes("/experiments")) {
+        return Promise.resolve({
+          ok: true,
+          status: 201,
+          json: async () => ({ id: "e2", title: "New one", method: "M", status: "PLANNED", resultSummary: null, success: null, learnings: [] }),
+        });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => opp });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderAtId("1");
+
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Experiments" }));
+
+    expect(screen.getByText("Try automation")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText("Title"), { target: { value: "New one" } });
+    fireEvent.change(screen.getByPlaceholderText("Method"), { target: { value: "M" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add Experiment" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/opportunities/1/experiments"),
+        expect.objectContaining({ method: "POST" })
+      )
+    );
+  });
+
+  it("updates an experiment's status via PATCH", async () => {
+    const opp = {
+      ...baseOpportunity,
+      experiments: [
+        { id: "e1", title: "Try automation", method: "Script it", status: "PLANNED", resultSummary: null, success: null, learnings: [] },
+      ],
+    };
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === "PATCH" && url.includes("/experiments/e1")) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ ...opp.experiments[0], status: "RUNNING" }) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => opp });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderAtId("1");
+
+    await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Experiments" }));
+    fireEvent.change(screen.getByLabelText(/experiment status/i), { target: { value: "RUNNING" } });
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/opportunities/1/experiments/e1"),
+        expect.objectContaining({ method: "PATCH" })
+      )
+    );
+  });
+});

@@ -73,6 +73,8 @@ export default function OpportunityDetail() {
   const [report, setReport] = useState<string | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [hypothesisDraft, setHypothesisDraft] = useState("");
+  const [experimentTitle, setExperimentTitle] = useState("");
+  const [experimentMethod, setExperimentMethod] = useState("");
 
   function reload() {
     apiFetch(`/opportunities/${id}`)
@@ -133,6 +135,37 @@ export default function OpportunityDetail() {
       return;
     }
     setDecisionText("");
+    reload();
+  }
+
+  async function handleAddExperiment(e: React.FormEvent) {
+    e.preventDefault();
+    const res = await apiFetch(`/opportunities/${id}/experiments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: experimentTitle, method: experimentMethod }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error?.message ?? "Failed to add experiment");
+      return;
+    }
+    setExperimentTitle("");
+    setExperimentMethod("");
+    reload();
+  }
+
+  async function handleExperimentStatusChange(experimentId: string, status: string) {
+    const res = await apiFetch(`/opportunities/${id}/experiments/${experimentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error?.message ?? "Failed to update experiment");
+      return;
+    }
     reload();
   }
 
@@ -246,6 +279,37 @@ export default function OpportunityDetail() {
           <form onSubmit={handleAddDecision}>
             <input value={decisionText} onChange={(e) => setDecisionText(e.target.value)} placeholder="Decision" required />
             <button type="submit">Add</button>
+          </form>
+        </section>
+      )}
+
+      {activeTab === "experiments" && (
+        <section>
+          <h2>Experiments</h2>
+          <ul>
+            {opportunity.experiments.map((exp) => (
+              <li key={exp.id}>
+                <strong>{exp.title}</strong> — {exp.method}
+                <label>
+                  Experiment status
+                  <select
+                    value={exp.status}
+                    onChange={(e) => handleExperimentStatusChange(exp.id, e.target.value)}
+                  >
+                    <option value="PLANNED">PLANNED</option>
+                    <option value="RUNNING">RUNNING</option>
+                    <option value="COMPLETE">COMPLETE</option>
+                    <option value="ABANDONED">ABANDONED</option>
+                  </select>
+                </label>
+                {exp.resultSummary && <p>{exp.resultSummary}</p>}
+              </li>
+            ))}
+          </ul>
+          <form onSubmit={handleAddExperiment}>
+            <input value={experimentTitle} onChange={(e) => setExperimentTitle(e.target.value)} placeholder="Title" required />
+            <input value={experimentMethod} onChange={(e) => setExperimentMethod(e.target.value)} placeholder="Method" required />
+            <button type="submit">Add Experiment</button>
           </form>
         </section>
       )}
