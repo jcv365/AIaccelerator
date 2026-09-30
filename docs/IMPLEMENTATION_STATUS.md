@@ -28,9 +28,16 @@
 - [x] POST /opportunities/:id/report: AI-synthesized report via the conclave, using the opportunity's evidence and decisions
 - [x] Client: real login form, Generate Report button
 
+## Frontend Operational Views — Experiment/Learning + Portfolio/Tabs (complete)
+
+- [x] Experiment/Learning Prisma models, migrated
+- [x] POST/PATCH experiment routes, POST learning route, GET /opportunities/:id includes both
+- [x] Portfolio view groups opportunities by status
+- [x] OpportunityDetail restructured into 6 tabs (Overview/Evidence/Reasoning/Decisions/Experiments/Learnings)
+- [x] Hypothesis field is now editable (previously had no UI at all)
+
 ## Not yet implemented
 
-- Experiment and Learning entities (deferred from Phase 3's domain model)
 - Evidence <-> Decision linkage (deferred from Phase 3)
 - UI styling pass (current screens are functional/unstyled; deferred from Phase 3)
 - apiFetch Headers-instance support (client API helper does not yet accept a `Headers` instance for custom headers; deferred from Phase 3)
