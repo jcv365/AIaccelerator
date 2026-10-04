@@ -94,7 +94,7 @@ export function createAiClient(config: AiClientConfig): AiClient {
         `${config.baseUrl}/api/external/session`,
         config.apiKey,
         { goal, web_research: webResearch, config_path: "/app/experts.yaml" },
-        5 * 60_000
+        20 * 60_000
       );
       if (!res.ok) throw mapStatusToError(res.status);
       const body = (await parseJson(res)) as {
