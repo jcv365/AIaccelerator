@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<!-- product-atlas direction mockup for AI Accelerator — REVISED 2026-10-01, expanded to all
+     19 SCREENS.md entries at the user's request (direction.md's default is 2-3 representative
+     screens; this is a deliberate broader pass). Static, dependency-free, tokens only. -->
+<html lang="en" data-surface="app">
+<head>
+<meta charset="utf-8" />
+<title>AI Accelerator — full design direction (2026-10-01)</title>
+<style>
+  :root {
+    --color-bg: #0b1120;
+    --color-surface: #141b2e;
+    --color-surface-raised: #1b2438;
+    --color-border: #2a3348;
+    --color-text: #e8ecf5;
+    --color-text-muted: #8993ab;
+    --color-on-accent: #ffffff;
+    --color-accent-blue: #3b82f6;
+    --color-accent-cyan: #22d3ee;
+    --color-accent-purple: #a78bfa;
+    --color-accent-orange: #fb923c;
+    --color-accent-green: #34d399;
+    --color-accent-red: #f87171;
+    --color-accent: var(--color-accent-blue);
+    --color-danger: var(--color-accent-red);
+    --color-caution: var(--color-accent-orange);
+    --color-success: var(--color-accent-green);
+    --font-family: "Inter", system-ui, sans-serif;
+    --text-body-size: 13px;
+    --text-heading-size: 22px;
+    --space-1: 4px; --space-2: 8px; --space-3: 16px; --space-4: 24px;
+    --radius: 10px;
+    --motion-duration: 120ms;
+  }
+  [data-surface="site"] { --text-body-size: 16px; }
+  [data-surface="app"] { --text-body-size: 13px; }
+
+  /* Neutral elevation shadows — depth without color. Distinct from the banned
+     "colored glow shadow" pattern: no hue, no blur-bloom, just physical lift. */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
+  --shadow-md: 0 1px 2px rgba(0,0,0,0.30), 0 6px 16px -4px rgba(0,0,0,0.35);
+  --shadow-lg: 0 2px 4px rgba(0,0,0,0.30), 0 16px 32px -8px rgba(0,0,0,0.45);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  * { box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-family); font-size: var(--text-body-size); line-height: 1.55; }
+  h1 { font-size: var(--text-heading-size); font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; margin: 0 0 var(--space-3); }
+  h2 { font-size: 16px; font-weight: 600; margin: 0 0 var(--space-1); color: var(--color-text); }
+  h3 { font-size: 11px; font-weight: 600; margin: 0 0 var(--space-2); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  p.muted { color: var(--color-text-muted); line-height: 1.6; margin: var(--space-1) 0 var(--space-3); }
+  a { color: inherit; }
+  .screen { padding: var(--space-4) var(--space-4) calc(var(--space-4) * 1.4); border-bottom: 1px solid var(--color-border); }
+  .screen-label { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--color-text-muted); border: 1px solid var(--color-border); border-radius: 6px; padding: 3px var(--space-2); margin-bottom: var(--space-3); }
+  .screen-label::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--color-accent-blue); flex-shrink: 0; }
+
+  .specimen-row { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; }
+  .swatch { width: 56px; height: 56px; border-radius: var(--radius); border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: var(--space-2) var(--space-3); border-radius: 8px; border: 1px solid var(--color-accent); background: var(--color-accent); color: var(--color-on-accent); font-family: var(--font-family); font-size: var(--text-body-size); font-weight: 500; text-decoration: none; cursor: pointer; box-shadow: var(--shadow-sm); transition: transform 150ms var(--ease), box-shadow 150ms var(--ease), filter 150ms var(--ease); }
+  .btn:hover { filter: brightness(1.08); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); filter: brightness(0.96); }
+  .btn:focus-visible { outline: 2px solid var(--color-accent-cyan); outline-offset: 2px; }
+  .btn--outline { background: var(--color-surface); color: var(--color-text); border-color: var(--color-border); box-shadow: none; }
+  .btn--outline:hover { background: var(--color-surface-raised); filter: none; }
+  .btn--disabled { background: var(--color-surface); border-color: var(--color-border); color: var(--color-text-muted); cursor: not-allowed; box-shadow: none; }
+  .btn--disabled:hover { filter: none; transform: none; box-shadow: none; }
+
+  /* --- Site --- */
+  .hero { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: calc(var(--space-4) * 1.6); display: flex; justify-content: space-between; align-items: center; gap: calc(var(--space-4) * 1.5); box-shadow: var(--shadow-lg); }
+  .hero .eyebrow { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-accent-cyan); margin-bottom: var(--space-3); }
+  .hero h1 { font-size: 40px; max-width: 480px; }
+  .hero .accent-text { color: var(--color-accent-blue); }
+  .hero p.muted { max-width: 420px; font-size: 16px; }
+  .hero .cta-row { display: flex; gap: var(--space-3); align-items: center; margin-top: var(--space-4); }
+  .hero .cta-row .link { font-size: 14px; color: var(--color-text-muted); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 150ms var(--ease), color 150ms var(--ease); }
+  .hero .cta-row .link:hover { color: var(--color-text); border-color: var(--color-border); }
+  .hero-art { width: 260px; height: 200px; border-radius: var(--radius); background: var(--color-surface-raised); border: 1px solid var(--color-border); flex-shrink: 0; position: relative; box-shadow: var(--shadow-md); overflow: hidden; }
+  .hero-art::before { content: ""; position: absolute; top: 20px; left: 20px; right: 20px; height: 10px; border-radius: 4px; background: var(--color-border); }
+  .hero-art::after { content: ""; position: absolute; top: 44px; left: 20px; width: 60%; height: 10px; border-radius: 4px; background: var(--color-accent-blue); opacity: 0.6; }
+  .hero-art .bars { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; align-items: flex-end; gap: 8px; height: 90px; }
+  .hero-art .bars i { display: block; flex: 1; border-radius: 3px 3px 0 0; background: var(--color-accent-cyan); opacity: 0.5; }
+  .signin-card { max-width: 380px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: calc(var(--space-4) * 1.3); box-shadow: var(--shadow-lg); }
+  .sso-row { display: flex; gap: var(--space-2); margin: var(--space-3) 0; }
+
+  /* --- Shared form field --- */
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3); }
+  .field label { font-size: 12px; font-weight: 500; color: var(--color-text-muted); }
+  .field input, .field textarea, .field select { font-family: var(--font-family); font-size: var(--text-body-size); padding: var(--space-2) var(--space-3); border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease); }
+  .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--color-accent-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.18); }
+  .field input::placeholder, .field textarea::placeholder { color: var(--color-text-muted); opacity: 0.7; }
+
+  /* --- App shell layout --- */
+  .app-shell { display: flex; }
+  .app-sidebar { width: 216px; flex-shrink: 0; background: var(--color-surface); border-right: 1px solid var(--color-border); padding: var(--space-3); min-height: 100%; }
+  .app-sidebar .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; letter-spacing: -0.01em; padding: 0 var(--space-2); margin-bottom: var(--space-4); }
+  .app-sidebar .brand .mark { width: 22px; height: 22px; border-radius: 6px; background: var(--color-accent-blue); flex-shrink: 0; }
+  .app-sidebar nav { display: flex; flex-direction: column; gap: 1px; }
+  .app-sidebar nav a { display: flex; align-items: center; gap: 10px; padding: 7px var(--space-2); color: var(--color-text-muted); text-decoration: none; font-size: var(--text-body-size); font-weight: 500; border-radius: 7px; transition: background 120ms var(--ease), color 120ms var(--ease); }
+  .app-sidebar nav a svg { width: 15px; height: 15px; opacity: 0.85; flex-shrink: 0; }
+  .app-sidebar nav a:hover { background: var(--color-surface-raised); color: var(--color-text); }
+  .app-sidebar nav a.active { background: var(--color-surface-raised); color: var(--color-text); box-shadow: inset 2px 0 0 var(--color-accent-blue); }
+  .app-main { flex: 1; min-width: 0; }
+  .app-topbar { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); background: var(--color-bg); }
+  .company-switcher { font-size: 12px; font-weight: 500; padding: 6px var(--space-2); border-radius: 7px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); cursor: pointer; }
+
+  /* --- KPI + donut (Dashboard) --- */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); margin-bottom: var(--space-4); }
+  .kpi-tile { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3); box-shadow: var(--shadow-sm); transition: box-shadow 150ms var(--ease), transform 150ms var(--ease); }
+  .kpi-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .kpi-tile .value { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .kpi-tile .label { color: var(--color-text-muted); font-size: 12px; margin-top: 2px; }
+  .kpi-tile .delta { font-size: 11px; font-weight: 600; margin-top: var(--space-2); }
+  .kpi-tile .delta--up { color: var(--color-accent-green); }
+  .donut-row { display: flex; gap: calc(var(--space-4) * 1.2); align-items: center; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-4); box-shadow: var(--shadow-sm); }
+  .donut-ring { flex-shrink: 0; }
+  .donut-ring text { font-family: var(--font-family); font-variant-numeric: tabular-nums; }
+  .donut-table { font-size: var(--text-body-size); border-collapse: collapse; }
+  .donut-table td { padding: 5px var(--space-2); color: var(--color-text-muted); }
+  .donut-table td:first-child { position: relative; padding-left: calc(var(--space-2) + 14px); }
+  .donut-table td:first-child::before { content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 8px; height: 8px; border-radius: 2px; }
+  .donut-table tr:nth-child(1) td:first-child::before { background: var(--color-accent-blue); }
+  .donut-table tr:nth-child(2) td:first-child::before { background: var(--color-accent-cyan); }
+  .donut-table tr:nth-child(3) td:first-child::before { background: var(--color-accent-purple); }
+  .donut-table tr:nth-child(4) td:first-child::before { background: var(--color-accent-orange); }
+  .donut-table td:last-child { color: var(--color-text); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  /* --- Tables --- */
+  table.data { width: 100%; border-collapse: collapse; font-size: var(--text-body-size); font-variant-numeric: tabular-nums; }
+  table.data th, table.data td { text-align: left; padding: 10px var(--space-3); border-bottom: 1px solid var(--color-border); }
+  table.data th { color: var(--color-text-muted); font-weight: 500; font-size: 12px; letter-spacing: 0.01em; }
+  table.data tbody tr { transition: background 100ms var(--ease); }
+  table.data tbody tr:hover { background: var(--color-surface); }
+  table.data td:first-child { font-weight: 500; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px var(--space-2); border-radius: 6px; border: 1px solid var(--color-border); font-size: 11.5px; font-weight: 500; }
+  .badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .badge--blue { color: var(--color-accent-blue); border-color: color-mix(in srgb, var(--color-accent-blue) 45%, var(--color-border)); background: color-mix(in srgb, var(--color-accent-blue) 12%, transparent); }
+  .badge--blue::before { background: var(--color-accent-blue); }
+  .badge--orange { color: var(--color-accent-orange); border-color: color-mix(in srgb, var(--color-accent-orange) 45%, var(--color-border)); background: color-mix(in srgb, var(--color-accent-orange) 12%, transparent); }
+  .badge--orange::before { background: var(--color-accent-orange); }
+  .badge--purple { color: var(--color-accent-purple); border-color: color-mix(in srgb, var(--color-accent-purple) 45%, var(--color-border)); background: color-mix(in srgb, var(--color-accent-purple) 12%, transparent); }
+  .badge--purple::before { background: var(--color-accent-purple); }
+  .badge--green { color: var(--color-accent-green); border-color: color-mix(in srgb, var(--color-accent-green) 45%, var(--color-border)); background: color-mix(in srgb, var(--color-accent-green) 12%, transparent); }
+  .badge--green::before { background: var(--color-accent-green); }
+  .tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px var(--space-2); border-radius: 6px; border: 1px solid var(--color-border); font-size: 11.5px; font-weight: 500; color: var(--color-text-muted); }
+
+  /* --- Tabs (opportunity workspace tabs / pipeline tabs) --- */
+  .tabs { display: flex; gap: var(--space-4); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-3); }
+  .tabs .tab { padding: var(--space-2) 0; color: var(--color-text-muted); font-size: var(--text-body-size); font-weight: 500; border-bottom: 2px solid transparent; cursor: pointer; transition: color 120ms var(--ease); }
+  .tabs .tab:hover { color: var(--color-text); }
+  .tabs .tab.active { color: var(--color-text); border-bottom-color: var(--color-accent-blue); }
+
+  /* --- Harmonized gauge grid (Start Analysis) --- */
+  .gauge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
+  .gauge { border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-4) var(--space-3); display: flex; flex-direction: column; align-items: center; background: var(--color-surface); box-shadow: var(--shadow-sm); }
+  .gauge .reading { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .gauge .track { width: 100%; height: 4px; border-radius: 2px; background: var(--color-border); margin-top: var(--space-2); overflow: hidden; }
+  .gauge .track span { display: block; height: 100%; border-radius: 2px; }
+  .gauge .label { color: var(--color-text-muted); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.03em; margin-top: var(--space-2); }
+  .gauge--blue .reading { color: var(--color-accent-blue); } .gauge--blue .track span { background: var(--color-accent-blue); }
+  .gauge--cyan .reading { color: var(--color-accent-cyan); } .gauge--cyan .track span { background: var(--color-accent-cyan); }
+  .gauge--purple .reading { color: var(--color-accent-purple); } .gauge--purple .track span { background: var(--color-accent-purple); }
+  .gauge--orange .reading { color: var(--color-accent-orange); } .gauge--orange .track span { background: var(--color-accent-orange); }
+  .gauge--nodata .reading { color: var(--color-text-muted); font-size: 13px; font-weight: 500; letter-spacing: 0.03em; } .gauge--nodata .track span { background: var(--color-border); width: 0%; }
+
+  /* --- Report list --- */
+  .report-row { display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); }
+  .report-row .name { font-size: var(--text-body-size); font-weight: 500; }
+  .report-row .desc { color: var(--color-text-muted); font-size: 12px; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+  <section class="screen">
+    <h1>Token specimen — revised 2026-10-01</h1>
+    <p class="muted">Dark navy base, multi-accent (blue/cyan/purple/orange/green), 10px radius. No gradients, no glow, no glassmorphism; list data still uses real tables. All 19 SCREENS.md entries below.</p>
+    <div class="specimen-row">
+      <div class="swatch" style="background: var(--color-bg)"></div>
+      <div class="swatch" style="background: var(--color-surface)"></div>
+      <div class="swatch" style="background: var(--color-accent-blue)"></div>
+      <div class="swatch" style="background: var(--color-accent-cyan)"></div>
+      <div class="swatch" style="background: var(--color-accent-purple)"></div>
+      <div class="swatch" style="background: var(--color-accent-orange)"></div>
+      <div class="swatch" style="background: var(--color-accent-green)"></div>
+      <a class="btn" href="#">Primary button</a>
+      <a class="btn btn--outline" href="#">Secondary</a>
+      <a class="btn btn--disabled" href="#">Disabled / not yet available</a>
+    </div>
+  </section>
+
+  <!-- ============ SITE SURFACE ============ -->
+
+  <section class="screen" data-surface="site">
+    <span class="screen-label">SITE-01 · Public Landing Page</span>
+    <div class="hero">
+      <div>
+        <span class="eyebrow">Evidence-based AI adoption</span>
+        <h1>Turn AI potential into<br /><span class="accent-text">measurable business value.</span></h1>
+        <p class="muted">A practical, evidence-based framework to discover, validate and scale AI opportunities — from first hypothesis to a proven 14-day pilot.</p>
+        <div class="cta-row">
+          <a class="btn" href="#">Book a Demo</a>
+          <a class="link" href="#">See how it works →</a>
+        </div>
+      </div>
+      <div class="hero-art"><div class="bars"><i style="height:45%"></i><i style="height:70%"></i><i style="height:55%"></i><i style="height:85%"></i><i style="height:60%"></i></div></div>
+    </div>
+  </section>
+
+  <section class="screen" data-surface="site">
+    <span class="screen-label">SITE-02 · Sign In</span>
+    <div class="signin-card">
+      <h2>Sign in</h2>
+      <p class="muted">Access your AI Accelerator workspace.</p>
+      <div class="field"><label>Email address</label><input type="email" placeholder="you@company.com" /></div>
+      <div class="field"><label>Password</label><input type="password" /></div>
+      <a class="btn" href="#" style="width: 100%; display: flex; justify-content: center; margin-bottom: var(--space-3);">Sign in</a>
+      <p class="muted">or continue with</p>
+      <div class="sso-row">
+        <a class="btn btn--disabled" href="#" style="flex:1; display:flex; justify-content:center;">Microsoft (coming soon)</a>
+        <a class="btn btn--disabled" href="#" style="flex:1; display:flex; justify-content:center;">Google (coming soon)</a>
+      </div>
+      <p class="muted">SSO has no backend integration yet — buttons are visibly disabled, not a faked flow.</p>
+    </div>
+  </section>
+
+  <!-- ============ APP SURFACE (wrapped in the APP-00 shell) ============ -->
+
+  <div class="app-shell">
+    <aside class="app-sidebar">
+      <div class="brand"><span class="mark"></span>AI Accelerator</div>
+      <span class="screen-label" style="margin-bottom: var(--space-3); display:block;">APP-00 · App Shell</span>
+      <nav>
+        <a class="active" href="#dash"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="1.5" width="6" height="6" rx="1"/><rect x="8.5" y="1.5" width="6" height="9" rx="1"/><rect x="1.5" y="9.5" width="6" height="5" rx="1"/></svg>Dashboard</a>
+        <a href="#portfolio"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="13" height="11" rx="1"/><path d="M1.5 6h13"/></svg>Opportunity Portfolio</a>
+        <a href="#evidence"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg>Evidence Explorer</a>
+        <a href="#hypothesis"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 1.5h4M8 1.5v3.2a3.5 3.5 0 0 0 .7 2.1l1.6 2.2a3 3 0 0 1 .6 1.8v1.7a1 1 0 0 1-1 1H6.1a1 1 0 0 1-1-1V10.8a3 3 0 0 1 .6-1.8l1.6-2.2A3.5 3.5 0 0 0 8 4.7"/></svg>Hypothesis Engine</a>
+        <a href="#pov"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>14-Day PoV Pipeline</a>
+        <a href="#noai"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5.5 5.5l5 5"/></svg>No-AI Opportunities</a>
+        <a href="#reports"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h7l3 3v9H3z"/><path d="M6 8.5h4M6 11h4"/></svg>Reports &amp; Export</a>
+        <a href="#settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.2"/><path d="M8 2v1.6M8 12.4V14M2 8h1.6M12.4 8H14M3.8 3.8l1.2 1.2M11 11l1.2 1.2M3.8 12.2L5 11M11 5l1.2-1.2"/></svg>Settings</a>
+      </nav>
+    </aside>
+    <div class="app-main">
+      <div class="app-topbar">
+        <select class="company-switcher"><option>ABC Manufacturing</option></select>
+      </div>
+
+      <section class="screen" id="dash">
+        <span class="screen-label">APP-DASH · Dashboard</span>
+        <div class="kpi-row">
+          <div class="kpi-tile"><div class="value">32</div><div class="label">Opportunities</div><div class="delta delta--up">+4 this month</div></div>
+          <div class="kpi-tile"><div class="value">24</div><div class="label">Evidence Sources</div><div class="delta delta--up">+9 this month</div></div>
+          <div class="kpi-tile"><div class="value">6</div><div class="label">Active 14-Day PoVs</div><div class="delta delta--up">2 completing this week</div></div>
+          <div class="kpi-tile"><div class="value">R4.2M</div><div class="label">Estimated Annual Value</div><div class="delta delta--up">+R680K this month</div></div>
+        </div>
+        <div class="donut-row">
+          <svg class="donut-ring" width="112" height="112" viewBox="0 0 112 112">
+            <circle cx="56" cy="56" r="46" fill="none" stroke="var(--color-border)" stroke-width="12" />
+            <circle cx="56" cy="56" r="46" fill="none" stroke="var(--color-accent-blue)" stroke-width="12"
+              stroke-dasharray="289 400" stroke-dashoffset="0" stroke-linecap="round"
+              transform="rotate(-90 56 56)" />
+            <text x="56" y="61" text-anchor="middle" fill="var(--color-text)" font-size="20" font-weight="600">72%</text>
+          </svg>
+          <table class="donut-table">
+            <tr><td>Strategy &amp; Governance</td><td>80%</td></tr>
+            <tr><td>Data &amp; Infrastructure</td><td>65%</td></tr>
+            <tr><td>People &amp; Skills</td><td>70%</td></tr>
+            <tr><td>Risk &amp; Compliance</td><td>75%</td></tr>
+          </table>
+        </div>
+        <p class="muted" style="margin-top: var(--space-2);">AI-readiness score — composite of the four dimensions at right (text/table equivalent alongside the ring, per accessibility rule).</p>
+      </section>
+
+      <section class="screen" id="portfolio">
+        <span class="screen-label">APP-01 · Opportunity Portfolio</span>
+        <table class="data">
+          <thead><tr><th>Opportunity</th><th>Business Value</th><th>Evidence Score</th><th>Priority</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>AP Invoice Processing</td><td>R 1.8M</td><td>92%</td><td><span class="badge badge--blue">High</span></td><td>Active</td></tr>
+            <tr><td>Network Config Analysis</td><td>R 1.2M</td><td>85%</td><td><span class="badge badge--blue">High</span></td><td>Analysis</td></tr>
+            <tr><td>Sales Proposal Generation</td><td>R 430K</td><td>78%</td><td><span class="badge badge--orange">Medium</span></td><td>PoV</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="screen">
+        <span class="screen-label">APP-02 · New Opportunity (manual entry)</span>
+        <div class="field"><label>Title</label><input type="text" placeholder="e.g. Invoice Processing Automation" /></div>
+        <div class="field"><label>Business problem</label><textarea rows="2"></textarea></div>
+        <a class="btn" href="#">Save Opportunity</a>
+      </section>
+
+      <section class="screen">
+        <span class="screen-label">APP-03 · Start Analysis — six-gauge grammar, harmonized 2026-10-01 (no glow/cockpit look)</span>
+        <div class="field" style="max-width: 400px;"><label>Company name</label><input type="text" placeholder="e.g. Acme Manufacturing" /></div>
+        <a class="btn" href="#" style="margin-bottom: var(--space-3); display:inline-block;">Generate Intelligence</a>
+        <div class="gauge-grid">
+          <div class="gauge gauge--blue"><div class="reading">0.71</div><div class="track"><span style="width:71%"></span></div><div class="label">Evidence Strength</div></div>
+          <div class="gauge gauge--cyan"><div class="reading">0.58</div><div class="track"><span style="width:58%"></span></div><div class="label">Source Coverage</div></div>
+          <div class="gauge gauge--purple"><div class="reading">0.66</div><div class="track"><span style="width:66%"></span></div><div class="label">AI Confidence</div></div>
+          <div class="gauge gauge--nodata"><div class="reading">NO DATA</div><div class="track"><span></span></div><div class="label">Risk</div></div>
+          <div class="gauge gauge--nodata"><div class="reading">NO DATA</div><div class="track"><span></span></div><div class="label">Feasibility</div></div>
+          <div class="gauge gauge--nodata"><div class="reading">NO DATA</div><div class="track"><span></span></div><div class="label">Value</div></div>
+        </div>
+      </section>
+
+      <section class="screen">
+        <span class="screen-label">APP-04 · Opportunity Workspace — Overview</span>
+        <div class="tabs">
+          <span class="tab active">Overview</span><span class="tab">Reasoning</span><span class="tab">Evidence</span><span class="tab">Connectors</span><span class="tab">Experiments</span><span class="tab">Decision</span>
+        </div>
+        <p class="muted">AP Invoice Processing — <span class="badge badge--blue">QUALIFIED</span></p>
+        <a class="btn btn--outline" href="#">Advance status →</a>
+      </section>
+
+      <section class="screen">
+        <span class="screen-label">APP-04R · Opportunity Workspace — Reasoning</span>
+        <div class="field"><label>Hypothesis</label><textarea rows="2">Automating invoice line-item matching reduces processing time by 60-80%.</textarea></div>
+        <a class="btn" href="#">Generate Report</a>
+      </section>
+
+      <section class="screen">
+        <span class="screen-label">APP-05 · Opportunity Workspace — Evidence</span>
+        <table class="data">
+          <thead><tr><th>Claim</th><th>Type</th><th>Confidence</th></tr></thead>
+          <tbody>
+            <tr><td>Invoice volume grew 34% YoY</td><td><span class="tag">FACT</span></td><td>—</td></tr>
+            <tr><td>Manual matching error rate could drop 50%</td><td><span class="tag">AI_HYPOTHESIS</span></td><td>0.62</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="screen">
+        <span class="screen-label">APP-06 · Opportunity Workspace — Connectors</span>
+        <p class="muted">No data-source backend exists yet — placeholder contract.</p>
+        <table class="data">
+          <thead><tr><th>Source</th><th>Status</th><th></th></tr></thead>
+          <tbody><tr><td>ERP export (CSV)</td><td><span class="badge">Not connected</span></td><td><a class="btn btn--outline" href="#">Connect</a></td></tr></tbody>
+        </table>
+        <a class="btn btn--disabled" href="#" style="margin-top: var(--space-3); display:inline-block;">Re-analyse (needs a connected source)</a>
+      </section>
+
+      <section class="screen" id="evidence">
+        <span class="screen-label">APP-EVID · Evidence Explorer (cross-opportunity)</span>
+        <div class="field" style="max-width: 320px;"><input type="text" placeholder="Search evidence…" /></div>
+        <table class="data">
+          <thead><tr><th>Claim</th><th>Opportunity</th><th>Credibility</th><th>Recency</th></tr></thead>
+          <tbody>
+            <tr><td>Microsoft: AI in Finance ROI Study</td><td>AP Invoice Processing</td><td><span class="badge badge--green">High</span></td><td>Sep 2026</td></tr>
+            <tr><td>Gartner: Generative AI at Scale</td><td>Network Config Analysis</td><td><span class="badge badge--green">High</span></td><td>Aug 2026</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="screen" id="hypothesis">
+        <span class="screen-label">APP-HYP · Hypothesis Engine &amp; Decision Centre</span>
+        <div class="field"><label>Hypothesis statement</label><textarea rows="2">Automating invoice line-item matching reduces processing time by 60-80%.</textarea></div>
+        <h3>Decision recommendation (placeholder-contract — no scoring backend yet)</h3>
+        <p class="muted">Confidence: High · Estimated value: R1.8M annually · Effort: Medium · Risk: Low</p>
+        <a class="btn" href="#">Record Decision</a>
+      </section>
+
+      <section class="screen">
+        <span class="screen-label">APP-07 · Opportunity Workspace — Experiments (PoV)</span>
+        <table class="data">
+          <thead><tr><th>Experiment</th><th>Status</th></tr></thead>
+          <tbody><tr><td>3-week pilot, Finance team</td><td><span class="badge badge--orange">RUNNING</span></td></tr></tbody>
+        </table>
+      </section>
+
+      <section class="screen">
+        <span class="screen-label">APP-08 · Experiment Detail — Results &amp; Learnings</span>
+        <div class="field"><label>Result summary</label><textarea rows="2">5 days in: 62% reduction in manual matching time so far.</textarea></div>
+        <a class="btn btn--outline" href="#">Add Learning</a>
+      </section>
+
+      <section class="screen" id="pov">
+        <span class="screen-label">APP-POV · 14-Day PoV Pipeline (cross-opportunity)</span>
+        <div class="tabs">
+          <span class="tab active">All (6)</span><span class="tab">In Progress (2)</span><span class="tab">Pending (1)</span><span class="tab">Completed (2)</span><span class="tab">Stopped (1)</span>
+        </div>
+        <table class="data">
+          <thead><tr><th>Opportunity</th><th>Days left</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>AP Invoice Processing</td><td>9</td><td><span class="badge badge--orange">In Progress</span></td></tr>
+            <tr><td>Network Config Analysis</td><td>11</td><td><span class="badge badge--orange">In Progress</span></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="screen">
+        <span class="screen-label">APP-09 · Opportunity Workspace — Decision</span>
+        <div class="field"><label>Decision</label><textarea rows="2">Proceed to scale — pilot exceeded the 50% reduction target.</textarea></div>
+        <a class="btn" href="#">Save Decision</a>
+      </section>
+
+      <section class="screen" id="noai">
+        <span class="screen-label">APP-NOAI · No-AI Opportunities</span>
+        <table class="data">
+          <thead><tr><th>Opportunity</th><th>Reason</th><th>Decision</th></tr></thead>
+          <tbody><tr><td>Rebrand Website</td><td>Core transactional process, not AI-suited</td><td>26 Sep 2026</td></tr></tbody>
+        </table>
+      </section>
+
+      <section class="screen" id="reports">
+        <span class="screen-label">APP-REPORTS · Reports &amp; Exports</span>
+        <div class="report-row">
+          <div><div class="name">Opportunity Report (narrative)</div><div class="desc">POST /opportunities/:id/report — real endpoint</div></div>
+          <a class="btn btn--outline" href="#">Generate</a>
+        </div>
+        <div class="report-row">
+          <div><div class="name">Portfolio Summary</div><div class="desc">No backend yet</div></div>
+          <a class="btn btn--disabled" href="#">Not yet available</a>
+        </div>
+        <div class="report-row">
+          <div><div class="name">ROI &amp; Business Case Export</div><div class="desc">No backend yet</div></div>
+          <a class="btn btn--disabled" href="#">Not yet available</a>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN SURFACE ============ -->
+
+  <section class="screen" data-surface="admin">
+    <span class="screen-label">ADM-01 · System Health</span>
+    <table class="data">
+      <thead><tr><th>Check</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>/health</td><td><span class="badge badge--green">OK</span></td></tr>
+        <tr><td>/ready</td><td><span class="badge badge--green">OK</span></td></tr>
+        <tr><td>/version</td><td>0.1.0</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</body>
+</html>

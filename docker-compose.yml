@@ -20,6 +20,8 @@ services:
       context: ./server
       args:
         GIT_SHA: ${GIT_SHA:-dev}
+    env_file:
+      - .env
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgres://accelerator:accelerator@postgres:5432/accelerator}
       PORT: ${PORT:-4000}

@@ -19,19 +19,41 @@ export interface SessionResult {
 
 export interface AiClient {
   quickAsk(model: string, system: string, prompt: string, timeoutMs?: number): Promise<QuickAskResult>;
-  runSession(goal: string): Promise<SessionResult>;
+  runSession(goal: string, webResearch?: boolean): Promise<SessionResult>;
+}
+
+async function delay(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function postJson(url: string, apiKey: string, body: unknown, timeoutMs: number): Promise<Response> {
-  try {
-    return await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-  } catch {
-    throw new AiClientError("AI_UNREACHABLE", "Could not reach the conclave");
+  let attempt = 0;
+  const maxAttempts = 3;
+
+  while (true) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (res.status === 409 && attempt < maxAttempts - 1) {
+        attempt += 1;
+        await delay(500 * attempt);
+        continue;
+      }
+
+      return res;
+    } catch {
+      if (attempt < maxAttempts - 1) {
+        attempt += 1;
+        await delay(500 * attempt);
+        continue;
+      }
+      throw new AiClientError("AI_UNREACHABLE", "Could not reach the conclave");
+    }
   }
 }
 
@@ -67,11 +89,11 @@ export function createAiClient(config: AiClientConfig): AiClient {
       return { ok: true, model: body.model, response: body.response };
     },
 
-    async runSession(goal) {
+    async runSession(goal, webResearch = false) {
       const res = await postJson(
         `${config.baseUrl}/api/external/session`,
         config.apiKey,
-        { goal },
+        { goal, web_research: webResearch, config_path: "/app/experts.yaml" },
         5 * 60_000
       );
       if (!res.ok) throw mapStatusToError(res.status);

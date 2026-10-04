@@ -292,7 +292,7 @@ ${decisionLines}
 
 Write a concise report (3-5 paragraphs) summarizing the opportunity, the strength of the evidence, and the decisions made so far.`;
       try {
-        const result = await aiClient.quickAsk("Claude", system, prompt, 90_000);
+        const result = await aiClient.quickAsk("Fusion", system, prompt, 90_000);
         res.status(200).json({ report: result.response });
       } catch (err) {
         if (err instanceof AiClientError) {
@@ -367,6 +367,155 @@ Write a concise report (3-5 paragraphs) summarizing the opportunity, the strengt
         data: { experimentId: req.params.experimentId, insight: body.insight },
       });
       res.status(201).json(learning);
+    })
+  );
+
+  // POST /analyze - Generate AI opportunity analysis for a company
+  // This endpoint calls the conclave with web_research enabled to research
+  // a company and generate structured opportunity/evidence data
+  router.post(
+    "/analyze",
+    asyncHandler(async (req, res, next) => {
+      if (!aiClient) {
+        res.status(503).json({ error: { code: "AI_NOT_CONFIGURED", message: "AI backend is not configured" } });
+        return;
+      }
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const companyName = body.companyName as string | undefined;
+      if (!companyName || typeof companyName !== "string" || companyName.trim() === "") {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "companyName is required" } });
+        return;
+      }
+
+      // Build the goal for the conclave session
+      const goal = `Research the company "${companyName}" and identify AI opportunities. 
+For each opportunity found, provide:
+1. A clear title
+2. A description of the AI use case
+3. The business problem it addresses
+4. Evidence supporting this opportunity (facts, inferences, assumptions, or AI hypotheses)
+5. A confidence score (0-1) for each piece of evidence
+
+Return the results as a JSON object with this exact structure:
+{
+  "opportunities": [
+    {
+      "title": "string",
+      "description": "string",
+      "businessProblem": "string",
+      "evidence": [
+        {
+          "claim": "string",
+          "type": "FACT|INFERENCE|ASSUMPTION|AI_HYPOTHESIS",
+          "confidence": number,
+          "source": "string",
+          "excerpt": "string"
+        }
+      ]
+    }
+  ]
+}
+
+Only return valid JSON. Do not include any explanatory text.`;
+
+      try {
+        const result = await aiClient.runSession(goal, true); // webResearch = true
+        const synthesis = result.synthesis as string;
+        
+        // Parse the JSON from the synthesis
+        let parsed: { opportunities: Array<{
+          title: string;
+          description: string;
+          businessProblem: string;
+          evidence: Array<{
+            claim: string;
+            type: string;
+            confidence: number;
+            source?: string;
+            excerpt?: string;
+          }>;
+        }> };
+        
+        try {
+          // Try to extract JSON from the response (it might be wrapped in markdown code fences)
+          const jsonMatch = synthesis.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            parsed = JSON.parse(jsonMatch[0]);
+          } else {
+            parsed = JSON.parse(synthesis);
+          }
+        } catch (parseErr) {
+          console.error("Failed to parse conclave response as JSON:", synthesis);
+          res.status(500).json({ 
+            error: { 
+              code: "AI_UPSTREAM_ERROR", 
+              message: "AI returned an unparseable response" 
+            } 
+          });
+          return;
+        }
+
+        // Validate the parsed structure
+        if (!parsed.opportunities || !Array.isArray(parsed.opportunities)) {
+          res.status(500).json({ 
+            error: { 
+              code: "AI_UPSTREAM_ERROR", 
+              message: "AI response missing opportunities array" 
+            } 
+          });
+          return;
+        }
+
+        // Create opportunities and evidence in the database
+        const createdOpportunities = [];
+        
+        for (const opp of parsed.opportunities) {
+          // Validate required fields
+          if (!opp.title || !opp.description || !opp.businessProblem) {
+            continue; // Skip invalid opportunities
+          }
+
+          const opportunity = await prisma.opportunity.create({
+            data: {
+              title: opp.title,
+              description: opp.description,
+              businessProblem: opp.businessProblem,
+              status: "DISCOVERED",
+            },
+          });
+
+          // Create evidence for this opportunity
+          if (opp.evidence && Array.isArray(opp.evidence)) {
+            for (const ev of opp.evidence) {
+              if (ev.claim && ev.type && ["FACT", "INFERENCE", "ASSUMPTION", "AI_HYPOTHESIS"].includes(ev.type)) {
+                await prisma.evidence.create({
+                  data: {
+                    opportunityId: opportunity.id,
+                    claim: ev.claim,
+                    type: ev.type as import("@prisma/client").EvidenceType,
+                    confidence: typeof ev.confidence === "number" ? ev.confidence : undefined,
+                    source: ev.source,
+                    excerpt: ev.excerpt,
+                  },
+                });
+              }
+            }
+          }
+
+          createdOpportunities.push(opportunity);
+        }
+
+        res.status(201).json({
+          opportunitiesFound: createdOpportunities.length,
+          opportunities: createdOpportunities,
+        });
+      } catch (err) {
+        if (err instanceof AiClientError) {
+          res.status(aiErrorStatus(err.code)).json({ error: { code: err.code, message: err.message } });
+          return;
+        }
+        next(err);
+      }
     })
   );
 

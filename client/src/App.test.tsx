@@ -32,7 +32,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getByText("+ New")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument());
   });
 
   it("logs in successfully and reveals the app", async () => {
@@ -55,7 +55,7 @@ describe("App", () => {
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "correct-password" } });
     fireEvent.click(screen.getByRole("button", { name: /log in/i }));
 
-    await waitFor(() => expect(screen.getByText("+ New")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument());
   });
 
   it("shows an error message on failed login", async () => {
@@ -96,7 +96,7 @@ describe("App", () => {
 
     render(<App />);
 
-    await waitFor(() => expect(screen.getByText("+ New")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole("button", { name: /log out/i }));
 

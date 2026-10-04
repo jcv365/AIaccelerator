@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Dashboard from "./pages/app/Dashboard";
 import Portfolio from "./pages/Portfolio";
 import NewOpportunity from "./pages/NewOpportunity";
 import OpportunityDetail from "./pages/OpportunityDetail";
+import ExperimentDetail from "./pages/ExperimentDetail";
+import StartAnalysis from "./pages/StartAnalysis";
+import { AppShell } from "./components/app/AppShell";
 import { getToken, clearToken, login } from "./api";
 
 function LoginForm({ onSuccess }: { onSuccess: () => void }) {
@@ -45,28 +49,6 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-function BackendStatus({ onLogout }: { onLogout: () => void }) {
-  const [status, setStatus] = useState<"loading" | "ok" | "unreachable">("loading");
-
-  useEffect(() => {
-    fetch("/api/health")
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("not ok"))))
-      .then(() => setStatus("ok"))
-      .catch(() => setStatus("unreachable"));
-  }, []);
-
-  function handleLogout() {
-    clearToken();
-    onLogout();
-  }
-
-  return (
-    <footer>
-      Backend status: {status} <button onClick={handleLogout}>Log out</button>
-    </footer>
-  );
-}
-
 export default function App() {
   const [hasToken, setHasToken] = useState(() => getToken() !== null);
 
@@ -84,12 +66,27 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Portfolio />} />
-        <Route path="/opportunities/new" element={<NewOpportunity />} />
-        <Route path="/opportunities/:id" element={<OpportunityDetail />} />
-      </Routes>
-      <BackendStatus onLogout={() => setHasToken(false)} />
+      <AppShell
+        onLogout={() => {
+          clearToken();
+          setHasToken(false);
+        }}
+      >
+        <Routes>
+          {/* "/" has no built site surface routed here yet (SITE-01/02 exist in
+              SCREENS.md but aren't wired into this router pass) — once
+              authenticated, landing on "/" still reaches the app rather than
+              rendering nothing. */}
+          <Route path="/" element={<Navigate to="/app" replace />} />
+          <Route path="/app" element={<Dashboard />} />
+          <Route path="/app/portfolio" element={<Portfolio />} />
+          <Route path="/app/analyze" element={<StartAnalysis />} />
+          <Route path="/app/opportunities/new" element={<NewOpportunity />} />
+          <Route path="/app/opportunities/:id" element={<OpportunityDetail />} />
+          <Route path="/app/opportunities/:id/experiments/:experimentId" element={<ExperimentDetail />} />
+          <Route path="*" element={<Navigate to="/app" replace />} />
+        </Routes>
+      </AppShell>
     </BrowserRouter>
   );
 }

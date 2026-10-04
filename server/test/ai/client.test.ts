@@ -116,7 +116,11 @@ describe("createAiClient.runSession", () => {
     expect(result).toEqual({ ok: true, sessionId: "abc123", synthesis: { decision: "proceed" } });
     const [url, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(url).toBe("http://conclave.test/api/external/session");
-    expect(JSON.parse(init.body)).toEqual({ goal: "evaluate X" });
+    expect(JSON.parse(init.body)).toEqual({
+      goal: "evaluate X",
+      web_research: false,
+      config_path: "/app/experts.yaml",
+    });
   });
 
   it("throws AI_UPSTREAM_ERROR when the conclave returns ok:false in a 200 response", async () => {
@@ -127,6 +131,24 @@ describe("createAiClient.runSession", () => {
     const client = createAiClient(config);
 
     await expect(client.runSession("evaluate X")).rejects.toMatchObject({ code: "AI_UPSTREAM_ERROR" });
+  });
+
+  it("retries once when the conclave responds busy and then succeeds", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({}) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true, session_id: "abc123", synthesis: "done" }) })
+    );
+    const client = createAiClient(config);
+
+    await expect(client.runSession("evaluate X")).resolves.toMatchObject({
+      ok: true,
+      sessionId: "abc123",
+      synthesis: "done",
+    });
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(2);
   });
 
   it("maps a non-JSON 2xx response to AI_UPSTREAM_ERROR", async () => {

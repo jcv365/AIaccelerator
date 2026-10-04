@@ -1,0 +1,67 @@
+/* Design tokens — mirrors DESIGN.md exactly. Do not hardcode a value here that
+   duplicates a token; extend DESIGN.md first, then this file.
+   Revised 2026-10-01 to the multi-accent direction (DESIGN.md's base tokens). */
+:root {
+  /* Palette primitives */
+  --color-bg: #0b1120;
+  --color-surface: #141b2e;
+  --color-surface-raised: #1b2438;
+  --color-border: #2a3348;
+  --color-text: #e8ecf5;
+  --color-text-muted: #8993ab;
+  --color-on-accent: #ffffff;
+
+  /* Accents — multi-accent by explicit 2026-10-01 override (was single-accent) */
+  --color-accent-blue: #3b82f6;
+  --color-accent-cyan: #22d3ee;
+  --color-accent-purple: #a78bfa;
+  --color-accent-orange: #fb923c;
+  --color-accent-green: #34d399;
+  --color-accent-red: #f87171;
+
+  /* Semantic aliases */
+  --color-accent: var(--color-accent-blue);
+  --color-danger: var(--color-accent-red);
+  --color-caution: var(--color-accent-orange);
+  --color-success: var(--color-accent-green);
+
+  /* Type */
+  --font-family: "Inter", system-ui, sans-serif;
+  --font-family-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --text-body-size: 13px;
+  --text-heading-size: 22px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+
+  /* Shape — 10px, above the normal 8px cap; approved project-wide 2026-10-01 */
+  --radius: 10px;
+
+  /* Motion */
+  --motion-duration: 120ms;
+
+  /* Elevation — neutral shadows, no color; distinct from the banned "colored
+     glow shadow" pattern. Introduced during the 2026-10-01 mockup polish pass. */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px -4px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.3), 0 16px 32px -8px rgba(0, 0, 0, 0.45);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+[data-surface="site"] {
+  --text-body-size: 16px;
+  --motion-duration: 240ms;
+}
+
+[data-surface="app"] {
+  --text-body-size: 13px;
+  --motion-duration: 120ms;
+}
+
+[data-surface="admin"] {
+  --text-body-size: 13px;
+  --motion-duration: 0ms;
+}

@@ -31,7 +31,11 @@ Runs inside the existing AIaccelerator Docker Compose stack (React/Vite client b
 
 ## Evidence on Hand
 
-None yet for this specific feature. The referenced mockup image (public marketing site + dashboard screens, SSO sign-in, multi-page nav) is the user's own reference for the eventual full two-phase product, not an approved design for this Phase-1-only build — it's explicitly called out as not matching what should actually be built now (internal tool, not public SaaS).
+None yet for this specific feature. The referenced mockup image (public marketing site + dashboard screens, SSO sign-in, multi-page nav) is the user's own reference for the eventual full two-phase product, not an approved design for this Phase-1-only build — it's explicitly called out as not matching what should actually be built now (internal tool, not public SaaS). Its IA doesn't apply (no public site, no SSO, no multi-tenant switcher), but its visual craft/polish level is the pinned bar — see Brand Commitments.
+
+## Brand Commitments
+
+**Standing visual direction (pinned 2026-09-30):** category-standard, high-craft B2B SaaS dashboard aesthetic — the "canon," not an unconventional/bold world. An earlier attempt at a distinctive visual world (a cockpit-instrument-panel metaphor, produced via Impeccable's concept-seed dice roll) was explicitly rejected as not matching the user's intent; the user wants the polish level of their own reference screenshot, restructured around the actual product IA (internal tool, Portfolio + Opportunity/Evidence, no public marketing site or SSO), not the screenshot's specific navigation/pages. Craft bar named by the user: **Linear, Stripe Dashboard, Vercel** — dark theme, clean geometric sans (Inter), restrained single accent color, subtle 1px borders over heavy shadows, dense-but-legible data density. This is a durable preference for all future UI work on this feature, not a one-off choice for a single screen.
 
 ## Product Principles
 
