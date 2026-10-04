@@ -164,4 +164,34 @@ describe("createAiClient.runSession", () => {
       code: "AI_UPSTREAM_ERROR",
     });
   });
+
+  it("sends a custom config_path and uses a custom timeout when given options", async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout");
+    mockFetchOnce({ ok: true, json: async () => ({ ok: true, session_id: "s1", synthesis: "done" }) });
+    const client = createAiClient(config);
+
+    await client.runSession("evaluate X", true, { configPath: "/code/x.yaml", timeoutMs: 1_800_000 });
+
+    const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ goal: "evaluate X", web_research: true, config_path: "/code/x.yaml" });
+    expect(timeoutSpy).toHaveBeenCalledWith(1_800_000);
+  });
+
+  it("passes a dispatcher whose header/body timeouts cover the session timeout (Node's fetch defaults to 300s)", async () => {
+    mockFetchOnce({ ok: true, json: async () => ({ ok: true, session_id: "s1", synthesis: "done" }) });
+    const client = createAiClient(config);
+
+    await client.runSession("evaluate X", true, { timeoutMs: 1_800_000 });
+
+    const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(init.dispatcher).toBeDefined();
+  });
+
+  it("does NOT re-POST after a timeout/network failure (the conclave may still be running the first request)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("aborted")));
+    const client = createAiClient(config);
+
+    await expect(client.runSession("evaluate X")).rejects.toMatchObject({ code: "AI_UNREACHABLE" });
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
+  });
 });

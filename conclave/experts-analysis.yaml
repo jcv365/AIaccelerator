@@ -1,0 +1,63 @@
+# Roster used by AIaccelerator's Start Analysis (POST /opportunities/analyze).
+# A deliberately small subset of Council-of-ai-experts' experts.yaml: the full
+# 9-expert roster takes 35+ minutes per web-research round (Nemotron Ultra
+# repeatedly hits freellmapi's 180s abort). Read by the Conclave container via
+# its mount of the Code folder at /code/all-projects - no secrets here, only
+# env var names.
+#
+# Fusion / Nemotron / GPT-OSS route through freellmapi and are the experts that
+# receive the web_search tool. Claude / ChatGPT (subscription CLIs) get no web
+# tools; they critique and refine what the others found.
+originator: Nemotron
+originator_rotates: false
+moderator: Fusion
+mode: brainstorm
+brainstorm_blind: true
+anonymize_synthesis: true
+
+experts:
+  - name: Fusion
+    provider: local
+    base_url: http://localhost:3010/v1
+    api_key_env: FREELLMAPI_API_KEY
+    model: fusion
+    # Fusion is also the chairman, who writes the final JSON for every opportunity. The Council roster's
+    # 600 truncated it mid-string (live run 2026-10-05), so it needs a large budget here.
+    max_tokens: 8192
+    persona: >
+      A broad, research-minded voice. You bring in outside context about the
+      company's industry, competitors and prior AI adoption that others missed.
+
+  - name: Nemotron
+    provider: local
+    base_url: http://localhost:3010/v1
+    api_key_env: FREELLMAPI_API_KEY
+    model: nemotron-3-super-120b
+    max_tokens: 4096
+    persona: >
+      A blunt, high-throughput researcher. You search the web for concrete,
+      citable facts about the company and propose AI use cases grounded in them.
+
+  - name: GPT-OSS
+    provider: local
+    base_url: http://localhost:3010/v1
+    api_key_env: FREELLMAPI_API_KEY
+    model: gpt-oss-20b
+    max_tokens: 4096
+    persona: >
+      A technically sharp, cost-conscious engineer. You challenge use cases for
+      feasibility, hidden cost and over-engineering, and verify claims by search.
+
+  - name: Claude
+    provider: claude-code-cli
+    model: sonnet
+    persona: >
+      A rigorous, structured thinker. You check each opportunity for logical
+      gaps and unsupported evidence, and keep the final JSON well-formed.
+
+  - name: ChatGPT
+    provider: codex-cli
+    model: gpt-6-astra
+    persona: >
+      A commercially pragmatic voice. You challenge opportunities for market
+      and execution viability: adoption friction, customer realism, business risk.

@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
-// Mock the api module
 vi.mock("../api", () => ({
   api: {
     post: vi.fn(),
@@ -14,87 +13,107 @@ vi.mock("../api", () => ({
 import StartAnalysis from "./StartAnalysis";
 import { api } from "../api";
 
+const STORAGE_KEY = "startAnalysis.job";
+
+function submit(company: string) {
+  const input = screen.getByLabelText(/company name/i);
+  fireEvent.change(input, { target: { value: company } });
+  const form = input.closest("form");
+  if (!form) throw new Error("Form not found");
+  form.noValidate = true;
+  fireEvent.submit(form);
+}
+
+const running = { id: "job1", status: "RUNNING", opportunitiesFound: 0, error: null };
+
+beforeEach(() => {
+  sessionStorage.clear();
+});
+
 afterEach(() => {
+  cleanup();
   vi.clearAllMocks();
 });
 
 describe("StartAnalysis", () => {
-  beforeEach(() => {
-    vi.mocked(api.post).mockResolvedValue({ opportunitiesFound: 3 });
-  });
-
-  it("shows NO DATA for all six gauges before any analysis runs", () => {
-    render(<StartAnalysis />);
-
-    expect(screen.getAllByText("NO DATA")).toHaveLength(6);
-    expect(screen.getByText("Evidence Strength")).toBeInTheDocument();
-    expect(screen.getByText("Risk")).toBeInTheDocument();
-  });
-
-  it("renders the component with heading", () => {
+  it("renders the heading and shows NO DATA for all six gauges (no scoring backend yet)", () => {
     render(<StartAnalysis />);
     expect(screen.getByRole("heading", { name: /start analysis/i })).toBeInTheDocument();
-  });
-
-  it("streams the three evidence gauges and shows a success message with opportunity count", async () => {
-    render(<StartAnalysis />);
-
-    const companyNameInput = screen.getByLabelText(/company name/i);
-    fireEvent.change(companyNameInput, { target: { value: "Acme Manufacturing" } });
-    
-    const form = companyNameInput.closest('form');
-    if (!form) throw new Error("Form not found");
-    form.noValidate = true;
-    fireEvent.submit(form);
-
-    // Wait for the simulated streaming to complete (3 gauges * 500ms each + API call)
-    // The success alert has variant="info" which renders with role="status"
-    // Use getByText to find the specific success message
-    await waitFor(() => expect(screen.getByText(/Analysis complete — found/i)).toBeInTheDocument(), { timeout: 20000 });
-    
-    // The gauges should show simulated values (50-80%)
-    const gaugeReadings = screen.getAllByText(/\d+%/);
-    expect(gaugeReadings.length).toBeGreaterThanOrEqual(3);
-
-    // Risk/Feasibility/Value are never populated (no decision-scoring backend)
-    expect(screen.getAllByText("NO DATA")).toHaveLength(3);
-
-    expect(await screen.findByText(/found 3 opportunities/i)).toBeInTheDocument();
-    expect(screen.getByText(/View in Opportunity Portfolio/i)).toBeInTheDocument();
+    expect(screen.getAllByText("NO DATA")).toHaveLength(6);
   });
 
   it("shows an inline error when the company name is blank on submit", async () => {
     render(<StartAnalysis />);
-
-    // Explicitly ensure companyName is empty
-    const companyNameInput = screen.getByLabelText(/company name/i);
-    fireEvent.input(companyNameInput, { target: { value: "" } });
-    
-    // Get the form by finding the closest form element from the input
-    const form = companyNameInput.closest('form');
-    if (!form) throw new Error("Form not found");
-    
-    // Disable validation
-    form.noValidate = true;
-    
-    fireEvent.submit(form);
-
+    submit("");
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/company name is required/i));
+    expect(api.post).not.toHaveBeenCalled();
   });
 
-  it("shows an inline error when the API call fails", async () => {
-    vi.mocked(api.post).mockRejectedValue(new Error("Network error"));
-    
+  it("starts a job, shows progress while it runs, then reports success and never shows fake gauge values", async () => {
+    vi.mocked(api.post).mockResolvedValue({ jobId: "job1", status: "QUEUED" });
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(running)
+      .mockResolvedValue({ id: "job1", status: "SUCCEEDED", opportunitiesFound: 3, error: null });
+
+    render(<StartAnalysis pollIntervalMs={10} />);
+    submit("Acme Manufacturing");
+
+    expect(await screen.findByText(/researching acme manufacturing/i)).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledWith("/opportunities/analyze", { companyName: "Acme Manufacturing" });
+
+    expect(await screen.findByText(/found 3 opportunities/i)).toBeInTheDocument();
+    expect(screen.getByText(/View in Opportunity Portfolio/i)).toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledWith("/opportunities/analyze/job1");
+    expect(screen.getAllByText("NO DATA")).toHaveLength(6);
+    expect(screen.queryByText(/\d+%/)).not.toBeInTheDocument();
+    expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it("shows the server's message when the job fails", async () => {
+    vi.mocked(api.post).mockResolvedValue({ jobId: "job1", status: "QUEUED" });
+    vi.mocked(api.get).mockResolvedValue({
+      id: "job1",
+      status: "FAILED",
+      opportunitiesFound: 0,
+      error: { code: "AI_BUSY", message: "Conclave is busy with another session" },
+    });
+
+    render(<StartAnalysis pollIntervalMs={10} />);
+    submit("Acme");
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/conclave is busy/i));
+    expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it("shows an inline error when starting the job fails (e.g. another analysis is running)", async () => {
+    vi.mocked(api.post).mockRejectedValue(new Error("Another analysis is already running."));
     render(<StartAnalysis />);
+    submit("Acme");
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/already running/i));
+    expect(api.get).not.toHaveBeenCalled();
+  });
 
-    const companyNameInput = screen.getByLabelText(/company name/i);
-    fireEvent.change(companyNameInput, { target: { value: "Acme Manufacturing" } });
-    
-    const form = companyNameInput.closest('form');
-    if (!form) throw new Error("Form not found");
-    form.noValidate = true;
-    fireEvent.submit(form);
+  it("resumes polling a job stored in sessionStorage after leaving and returning to the page", async () => {
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ jobId: "job9", companyName: "Maersk", startedAtMs: Date.now() - 90_000 })
+    );
+    vi.mocked(api.get).mockResolvedValue({ id: "job9", status: "SUCCEEDED", opportunitiesFound: 1, error: null });
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/network error/i), { timeout: 20000 });
+    render(<StartAnalysis pollIntervalMs={10} />);
+
+    expect(await screen.findByText(/found 1 opportunity/i)).toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledWith("/opportunities/analyze/job9");
+    expect(api.post).not.toHaveBeenCalled();
+  });
+
+  it("stops and shows an error if the stored job no longer exists", async () => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ jobId: "gone", companyName: "Maersk", startedAtMs: Date.now() }));
+    vi.mocked(api.get).mockRejectedValue(new Error("Analysis job not found"));
+
+    render(<StartAnalysis pollIntervalMs={10} />);
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/not found/i));
+    expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 });

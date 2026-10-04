@@ -96,6 +96,19 @@ The main remaining dependency issue is not app auth — it is live upstream avai
 - **Gotcha:** while a session runs, `/api/external/session` returns 409 and any client timeout leaves the slot held. Probe with `GET /api/sessions/live` (read-only, `X-API-Key`) — do NOT probe by POSTing a dummy session, it starts a real one when the slot is free.
 - **Recommended next steps (needs a design decision):** (a) make `/opportunities/analyze` asynchronous (202 + job id, client polls) — a synchronous request cannot reasonably span 20-40 min; (b) speed up the Conclave side for this use: a lighter `config_path` (fewer experts, drop Nemotron Ultra or lower its prompt size) or use `/api/external/quick` with web research; (c) then re-run live E2E and check `Opportunity`+`Evidence` persistence and the Start Analysis UI.
 
+### Async Start Analysis — built 2026-10-05 (user-approved plan)
+- **DONE & tested (server 14 files, client 7 files green; tsc clean):**
+  - `client/nginx.conf` regression fixed: the `/api/` rewrite doubled `/opportunities`, so every UI call 404'd. Restored `proxy_pass http://server:4000/`.
+  - `POST /opportunities/analyze` is now a background job: returns **202 `{jobId}` in ~0.1s**; `GET /opportunities/analyze/:jobId` polls it. New Prisma model `AnalysisJob` (+ migration `20261004210000_add_analysis_job`). One job at a time (409 `ANALYSIS_IN_PROGRESS`); jobs left QUEUED/RUNNING by a restart are marked FAILED/INTERRUPTED at boot; opportunities+evidence are persisted in one transaction. Code: `server/src/domain/analysis.ts`.
+  - **5-expert roster** `conclave/experts-analysis.yaml` (Fusion chairman, Nemotron, GPT-OSS, Claude, ChatGPT; no Nemotron Ultra), read by the Conclave at `/code/all-projects/AIaccelerator/conclave/experts-analysis.yaml` (override with `COUNCIL_ANALYSIS_CONFIG_PATH`). Fusion needs `max_tokens: 8192` — it is also the chairman; the Council roster's 600 truncated the final JSON mid-string.
+  - `AiClient.runSession(goal, webResearch, { configPath, timeoutMs })`; no re-POST on network/timeout (a retry only hit 409). **Node's fetch has a hardcoded 300s headers timeout that `AbortSignal.timeout` cannot raise** — sessions now use an `undici` `Agent` with matching header/body timeouts (new dependency `undici@^6`). This was the real cause of the repeated "failed at exactly 5:00" runs.
+  - Parser extracts the fenced ```json block (then first balanced `{...}`) — the Conclave appends `---` notes that can contain braces.
+  - UI (`StartAnalysis.tsx`): polls every 5s, shows "Researching <company>… m:ss elapsed", resumes via `sessionStorage` after navigating away; the random fake gauge values are gone (all six gauges honestly read NO DATA until a scoring backend exists).
+  - Stale test fixed (`/report` uses model `Fusion`, test still said `Claude`).
+- **Observed timing:** a full 5-expert web-research deliberation takes **22–35 min** (run 1: 22 min; run 2: >30 min). Job timeout is therefore 60 min. Speed-up lever if wanted: `skip_critique: true` on the session (supported by `/api/external/session`, not yet wired) — trades away the adversarial critique round, so it is a product decision.
+- **Live E2E status:** run 1 reached a finished session (pipeline proven) but the chairman JSON was truncated (fixed above). Run 2 hit our then-30-min timeout (raised to 60). A final live run with all fixes was started 2026-10-05 ~01:00; result recorded below once known.
+- **Gotcha (still true):** while a session runs, `/api/external/session` returns 409. Probe idleness with `GET /api/sessions/live` (read-only), never by POSTing a dummy session.
+
 ### Important note for future agents
 Do not re-litigate the auth issue; that is already fixed. Treat NVIDIA rate limiting in `freellmapi` as a per-key quota problem, not a single shared bucket problem. Each NVIDIA key should be bounded to its own account-level limit (40 RPM) unless a different override is explicitly set.
 

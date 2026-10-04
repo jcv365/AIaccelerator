@@ -97,6 +97,25 @@ model Experiment {
   updatedAt     DateTime         @updatedAt
 }
 
+enum AnalysisJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model AnalysisJob {
+  id             String            @id @default(cuid())
+  companyName    String
+  status         AnalysisJobStatus @default(QUEUED)
+  opportunityIds String[]
+  errorCode      String?
+  errorMessage   String?
+  createdAt      DateTime          @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+}
+
 model Learning {
   id           String     @id @default(cuid())
   experimentId String

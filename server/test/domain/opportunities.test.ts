@@ -301,7 +301,7 @@ describe("POST /opportunities/:id/report", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ report: "A generated report." });
     expect(quickAsk).toHaveBeenCalledWith(
-      "Claude",
+      "Fusion",
       expect.any(String),
       expect.stringContaining("Volume is high"),
       90_000

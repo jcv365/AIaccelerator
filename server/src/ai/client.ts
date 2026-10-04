@@ -1,3 +1,4 @@
+import { Agent } from "undici";
 import { AiClientError } from "./errors.js";
 
 export interface AiClientConfig {
@@ -17,16 +18,31 @@ export interface SessionResult {
   synthesis: unknown;
 }
 
+export interface SessionOptions {
+  /** Conclave-side path of the experts roster to use (default: the full /app/experts.yaml). */
+  configPath?: string;
+  timeoutMs?: number;
+}
+
 export interface AiClient {
   quickAsk(model: string, system: string, prompt: string, timeoutMs?: number): Promise<QuickAskResult>;
-  runSession(goal: string, webResearch?: boolean): Promise<SessionResult>;
+  runSession(goal: string, webResearch?: boolean, opts?: SessionOptions): Promise<SessionResult>;
 }
 
 async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function postJson(url: string, apiKey: string, body: unknown, timeoutMs: number): Promise<Response> {
+// retryOnNetworkError must be false for long-running session posts: a timeout abort leaves the
+// conclave still running the first request, so a re-POST would only hit 409 and muddy the error.
+async function postJson(
+  url: string,
+  apiKey: string,
+  body: unknown,
+  timeoutMs: number,
+  retryOnNetworkError = true,
+  dispatcher?: Agent
+): Promise<Response> {
   let attempt = 0;
   const maxAttempts = 3;
 
@@ -37,7 +53,9 @@ async function postJson(url: string, apiKey: string, body: unknown, timeoutMs: n
         headers: { "Content-Type": "application/json", "X-API-Key": apiKey },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(timeoutMs),
-      });
+        // Node's fetch has its own 300s headers/body timeout that AbortSignal cannot raise.
+        ...(dispatcher ? { dispatcher } : {}),
+      } as RequestInit);
 
       if (res.status === 409 && attempt < maxAttempts - 1) {
         attempt += 1;
@@ -47,7 +65,7 @@ async function postJson(url: string, apiKey: string, body: unknown, timeoutMs: n
 
       return res;
     } catch {
-      if (attempt < maxAttempts - 1) {
+      if (retryOnNetworkError && attempt < maxAttempts - 1) {
         attempt += 1;
         await delay(500 * attempt);
         continue;
@@ -89,24 +107,32 @@ export function createAiClient(config: AiClientConfig): AiClient {
       return { ok: true, model: body.model, response: body.response };
     },
 
-    async runSession(goal, webResearch = false) {
-      const res = await postJson(
-        `${config.baseUrl}/api/external/session`,
-        config.apiKey,
-        { goal, web_research: webResearch, config_path: "/app/experts.yaml" },
-        20 * 60_000
-      );
-      if (!res.ok) throw mapStatusToError(res.status);
-      const body = (await parseJson(res)) as {
-        ok: boolean;
-        session_id: string;
-        synthesis?: unknown;
-        error?: unknown;
-      };
-      if (!body.ok) {
-        throw new AiClientError("AI_UPSTREAM_ERROR", `Conclave session failed: ${JSON.stringify(body.error)}`);
+    async runSession(goal, webResearch = false, opts = {}) {
+      const timeoutMs = opts.timeoutMs ?? 5 * 60_000;
+      const dispatcher = new Agent({ headersTimeout: timeoutMs, bodyTimeout: timeoutMs });
+      try {
+        const res = await postJson(
+          `${config.baseUrl}/api/external/session`,
+          config.apiKey,
+          { goal, web_research: webResearch, config_path: opts.configPath ?? "/app/experts.yaml" },
+          timeoutMs,
+          false,
+          dispatcher
+        );
+        if (!res.ok) throw mapStatusToError(res.status);
+        const body = (await parseJson(res)) as {
+          ok: boolean;
+          session_id: string;
+          synthesis?: unknown;
+          error?: unknown;
+        };
+        if (!body.ok) {
+          throw new AiClientError("AI_UPSTREAM_ERROR", `Conclave session failed: ${JSON.stringify(body.error)}`);
+        }
+        return { ok: true, sessionId: body.session_id, synthesis: body.synthesis };
+      } finally {
+        void dispatcher.close();
       }
-      return { ok: true, sessionId: body.session_id, synthesis: body.synthesis };
     },
   };
 }
