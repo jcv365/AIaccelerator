@@ -5,6 +5,12 @@ import { isValidTransition, validTransitionsFrom, type OpportunityStatus } from 
 import type { AiClient } from "../ai/client.js";
 import { AiClientError, aiErrorStatus } from "../ai/errors.js";
 import { createAnalysisRouter } from "./analysis.js";
+import { DATA_NOTICE, dataBlock } from "../ai/promptSafety.js";
+
+// Bounds for text placed into the report prompt (keeps prompts small and limits what injected text can carry).
+const REPORT_FIELD_CHARS = 2000;
+const REPORT_ITEM_CHARS = 1000;
+const REPORT_MAX_ITEMS = 50;
 
 const EDITABLE_FIELDS = [
   "title",
@@ -273,19 +279,26 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
         res.status(503).json({ error: { code: "AI_NOT_CONFIGURED", message: "AI backend is not configured" } });
         return;
       }
-      const system =
-        "You are a business analyst producing a concise report on an AI opportunity. Base your report only on the information given below. Clearly distinguish established facts from inferences or assumptions. Do not invent information not present in the input.";
+      const system = `You are a business analyst producing a concise report on an AI opportunity. Base your report only on the information given below. Clearly distinguish established facts from inferences or assumptions. Do not invent information not present in the input. ${DATA_NOTICE}`;
+      // Every user-entered or web-collected field is bounded and fenced (see ai/promptSafety.ts).
       const evidenceLines = opportunity.evidence.length
-        ? opportunity.evidence.map((e: { type: string; claim: string }) => `- [${e.type}] ${e.claim}`).join("\n")
+        ? opportunity.evidence
+            .slice(0, REPORT_MAX_ITEMS)
+            .map((e: { type: string; claim: string }) => dataBlock(`evidence ${e.type}`, e.claim, REPORT_ITEM_CHARS))
+            .join("\n")
         : "(none)";
       const decisionLines = opportunity.decisions.length
         ? opportunity.decisions
-            .map((d: { decision: string; rationale: string | null }) => `- ${d.decision}${d.rationale ? ` — ${d.rationale}` : ""}`)
+            .slice(0, REPORT_MAX_ITEMS)
+            .map((d: { decision: string; rationale: string | null }) =>
+              dataBlock("decision", `${d.decision}${d.rationale ? ` — ${d.rationale}` : ""}`, REPORT_ITEM_CHARS)
+            )
             .join("\n")
         : "(none)";
-      const prompt = `Opportunity: ${opportunity.title}
-Description: ${opportunity.description ?? "—"}
-Business problem: ${opportunity.businessProblem ?? "—"}
+      const prompt = `Opportunity:
+${dataBlock("title", opportunity.title, 300)}
+${dataBlock("description", opportunity.description ?? "—", REPORT_FIELD_CHARS)}
+${dataBlock("business problem", opportunity.businessProblem ?? "—", REPORT_FIELD_CHARS)}
 Status: ${opportunity.status}
 
 Evidence:

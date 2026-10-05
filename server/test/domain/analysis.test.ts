@@ -192,6 +192,44 @@ describe("runAnalysisJob", () => {
   });
 });
 
+describe("runAnalysisJob logging", () => {
+  function captured(spy: ReturnType<typeof vi.spyOn>) {
+    return spy.mock.calls.map((c) => JSON.parse(String(c[0])));
+  }
+
+  it("logs a start line and a finish line with job id, count and duration on success", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const prisma = makePrisma();
+    const aiClient = { runSession: vi.fn().mockResolvedValue({ ok: true, sessionId: "s", synthesis: GOOD_SYNTHESIS }) };
+
+    await runAnalysisJob(prisma as never, aiClient as never, "job1", "Maersk");
+
+    const lines = captured(log);
+    expect(lines[0]).toMatchObject({ level: "info", msg: "analysis started", jobId: "job1" });
+    expect(lines[lines.length - 1]).toMatchObject({
+      level: "info",
+      msg: "analysis succeeded",
+      jobId: "job1",
+      opportunities: 1,
+      durationMs: expect.any(Number),
+    });
+    log.mockRestore();
+  });
+
+  it("logs an error line with the error code when the job fails", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const prisma = makePrisma();
+    const aiClient = { runSession: vi.fn().mockRejectedValue(new AiClientError("AI_BUSY", "Conclave is busy")) };
+
+    await runAnalysisJob(prisma as never, aiClient as never, "job1", "Maersk");
+
+    expect(captured(error)[0]).toMatchObject({ level: "error", msg: "analysis failed", jobId: "job1", errorCode: "AI_BUSY" });
+    log.mockRestore();
+    error.mockRestore();
+  });
+});
+
 describe("reconcileInterruptedJobs", () => {
   it("marks QUEUED/RUNNING jobs FAILED/INTERRUPTED at boot", async () => {
     const prisma = makePrisma();
