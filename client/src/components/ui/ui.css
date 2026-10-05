@@ -55,7 +55,8 @@
   color: var(--color-text);
 }
 
-.text-field__input:invalid,
+/* :user-invalid (not :invalid) so an untouched empty required field is not red on page load. */
+.text-field__input:user-invalid,
 .text-field--error .text-field__input {
   border-color: var(--color-danger);
 }
