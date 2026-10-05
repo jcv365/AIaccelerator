@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Mockup 5 - Technical deck, sample slide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+<div class="caption">5 · Sample slide from the technical deck. Anything not backed by public evidence is tagged <span style="background:#fff3e0;color:#8a4b00;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700">ASSUMPTION</span> so it gets confirmed in discovery. <a href="index.html">All mockups</a> · <a href="04-slide-clevel.html">← C-level slide</a> · next: <a href="06-doc-clevel.html">C-level proposal page</a></div>
+<div class="slide">
+  <div class="eyebrow">Reference architecture · Opportunity 1</div>
+  <h1>Predictive maintenance: from asset signals to a ranked work-order queue</h1>
+  <div class="flow">
+    <div class="node"><b>1 · Data sources</b><span>[Telemetry, maintenance logs, work orders]</span><br><span class="tag">ASSUMPTION</span></div>
+    <div class="arrow">→</div>
+    <div class="node"><b>2 · Ingest &amp; store</b><span>[Streaming + batch landing zone, data quality checks]</span></div>
+    <div class="arrow">→</div>
+    <div class="node"><b>3 · Model &amp; features</b><span>[Failure-risk model per asset class, monitored for drift]</span></div>
+    <div class="arrow">→</div>
+    <div class="node"><b>4 · Action</b><span>[Alerts and ranked work orders in the existing maintenance system]</span></div>
+  </div>
+  <div class="two">
+    <div>
+      <h4>Data we need from you</h4>
+      <ul>
+        <li>[Sensor / telemetry history, 12–24 months] <span class="tag">TO CONFIRM</span></li>
+        <li>[Maintenance and failure records with timestamps]</li>
+        <li>[Asset register and hierarchy]</li>
+      </ul>
+    </div>
+    <div>
+      <h4>14-day proof of value</h4>
+      <ul>
+        <li>[Back-test on one asset class against known failures]</li>
+        <li>[Success metric agreed up front, e.g. recall at a fixed false-alarm rate]</li>
+        <li>[Go / no-go criteria written before the test]</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Sources: public company material · assumptions marked · AI-generated: verify before sharing</span><span>9</span></div>
+</div>
+</body>
+</html>
