@@ -52,6 +52,19 @@ model Opportunity {
   evidence        Evidence[]
   decisions       Decision[]
   experiments     Experiment[]
+  reports         OpportunityReport[]
+}
+
+// An AI-generated report for an opportunity. Every generation is kept; the newest is the one shown.
+model OpportunityReport {
+  id            String      @id @default(cuid())
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id])
+  content       String
+  model         String
+  createdAt     DateTime    @default(now())
+
+  @@index([opportunityId, createdAt])
 }
 
 model Evidence {

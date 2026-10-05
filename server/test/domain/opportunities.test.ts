@@ -299,7 +299,8 @@ describe("POST /opportunities/:id/report", () => {
     const res = await request(app).post("/opportunities/1/report").send({});
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ report: "A generated report." });
+    // createdAt is also returned now (null here: this mock has no report table to save into).
+    expect(res.body).toMatchObject({ report: "A generated report." });
     expect(quickAsk).toHaveBeenCalledWith(
       "Fusion",
       expect.any(String),

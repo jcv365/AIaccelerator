@@ -7,7 +7,7 @@ import { DecisionTab } from "../components/app/opportunity/DecisionTab";
 import { EvidenceTab } from "../components/app/opportunity/EvidenceTab";
 import { ExperimentsTab } from "../components/app/opportunity/ExperimentsTab";
 import { OverviewTab } from "../components/app/opportunity/OverviewTab";
-import { ReasoningTab } from "../components/app/opportunity/ReasoningTab";
+import { ReasoningTab, type ReportData } from "../components/app/opportunity/ReasoningTab";
 import type { OpportunityDetailData } from "../components/app/opportunity/types";
 
 type Tab = "overview" | "reasoning" | "evidence" | "connectors" | "experiments" | "decision";
@@ -78,13 +78,27 @@ export default function OpportunityDetail() {
     reload();
   }
 
-  async function handleGenerateReport(): Promise<string> {
+  async function handleGenerateReport(): Promise<ReportData> {
     const res = await apiFetch(`/opportunities/${id}/report`, { method: "POST" });
     if (!res.ok) {
       throw new Error(await readErrorMessage(res, "Failed to generate report"));
     }
-    const body = (await res.json()) as { report: string };
-    return body.report;
+    const body = (await res.json()) as { report: string; createdAt?: string | null };
+    return { report: body.report, createdAt: body.createdAt ?? null };
+  }
+
+  // The newest saved report, or null if there is none or it cannot be loaded - a missing report is
+  // normal (nothing generated yet) and must never surface as an error.
+  async function handleLoadSavedReport(): Promise<ReportData | null> {
+    try {
+      const res = await apiFetch(`/opportunities/${id}/report`);
+      if (!res.ok) return null;
+      const body = (await res.json()) as { report?: unknown; createdAt?: unknown };
+      if (typeof body.report !== "string") return null;
+      return { report: body.report, createdAt: typeof body.createdAt === "string" ? body.createdAt : null };
+    } catch {
+      return null;
+    }
   }
 
   async function handleAddEvidence(claim: string, type: string) {
@@ -154,6 +168,7 @@ export default function OpportunityDetail() {
           hypothesis={opportunity.hypothesis}
           onSaveHypothesis={handleSaveHypothesis}
           onGenerateReport={handleGenerateReport}
+          onLoadSavedReport={handleLoadSavedReport}
         />
       </TabPanel>
       <TabPanel id="evidence" activeId={activeTab}>

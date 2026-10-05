@@ -102,6 +102,71 @@ describe("OpportunityDetail tabs", () => {
     expect(screen.getByText("Proceed")).toBeInTheDocument();
   });
 
+  describe("saved reports", () => {
+    function stubFetch(reportGet: { ok: boolean; status: number; body?: unknown }, reportPost?: { report: string; createdAt: string | null }) {
+      const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (url.endsWith("/report")) {
+          if (init?.method === "POST") {
+            return Promise.resolve({ ok: true, status: 200, json: async () => reportPost });
+          }
+          return Promise.resolve({ ok: reportGet.ok, status: reportGet.status, json: async () => reportGet.body });
+        }
+        return Promise.resolve({ ok: true, status: 200, json: async () => baseOpportunity });
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      return fetchMock;
+    }
+
+    async function openReasoningTab() {
+      renderAtId("1");
+      await waitFor(() => expect(screen.getByText("X")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("tab", { name: "Reasoning" }));
+    }
+
+    it("shows the latest saved report, with when it was generated, without clicking Generate", async () => {
+      stubFetch({ ok: true, status: 200, body: { report: "Saved report text", model: "Fusion", createdAt: "2026-10-05T10:00:00.000Z" } });
+
+      await openReasoningTab();
+
+      expect(await screen.findByText("Saved report text")).toBeInTheDocument();
+      expect(screen.getByText(/generated/i, { selector: "p" })).toBeInTheDocument();
+    });
+
+    it("shows no report and no error when none has been generated yet (404)", async () => {
+      stubFetch({ ok: false, status: 404, body: { error: { code: "NOT_FOUND", message: "No report has been generated yet" } } });
+
+      await openReasoningTab();
+
+      expect(screen.getByRole("button", { name: "Generate Report" })).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(screen.queryByText(/saved report text/i)).not.toBeInTheDocument();
+    });
+
+    it("replaces the shown report with a freshly generated one", async () => {
+      stubFetch(
+        { ok: true, status: 200, body: { report: "Old report", model: "Fusion", createdAt: "2026-10-04T10:00:00.000Z" } },
+        { report: "Fresh report", createdAt: "2026-10-05T12:00:00.000Z" }
+      );
+
+      await openReasoningTab();
+      expect(await screen.findByText("Old report")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
+
+      expect(await screen.findByText("Fresh report")).toBeInTheDocument();
+      expect(screen.queryByText("Old report")).not.toBeInTheDocument();
+    });
+
+    it("warns that a generated report could not be saved (createdAt null)", async () => {
+      stubFetch({ ok: false, status: 404 }, { report: "Unsaved report", createdAt: null });
+
+      await openReasoningTab();
+      fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
+
+      expect(await screen.findByText("Unsaved report")).toBeInTheDocument();
+      expect(screen.getByText(/could not be saved/i)).toBeInTheDocument();
+    });
+  });
+
   it("generates and displays a report from the Reasoning tab", async () => {
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (url.includes("/report")) {

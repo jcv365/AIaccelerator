@@ -6,6 +6,7 @@ import type { AiClient } from "../ai/client.js";
 import { AiClientError, aiErrorStatus } from "../ai/errors.js";
 import { createAnalysisRouter } from "./analysis.js";
 import { EXPERIMENT_STATUSES } from "./experimentStatus.js";
+import { logJson } from "../logger.js";
 import { DATA_NOTICE, dataBlock } from "../ai/promptSafety.js";
 
 // Bounds for text placed into the report prompt (keeps prompts small and limits what injected text can carry).
@@ -314,7 +315,18 @@ ${decisionLines}
 Write a concise report (3-5 paragraphs) summarizing the opportunity, the strength of the evidence, and the decisions made so far.`;
       try {
         const result = await aiClient.quickAsk("Fusion", system, prompt, 90_000);
-        res.status(200).json({ report: result.response });
+        // Keep every generation so a page refresh doesn't lose a slow, paid-for AI answer. If saving
+        // fails the report is still returned (createdAt null) rather than thrown away.
+        let createdAt: Date | null = null;
+        try {
+          const saved = await prisma.opportunityReport.create({
+            data: { opportunityId: req.params.id, content: result.response, model: result.model },
+          });
+          createdAt = saved.createdAt;
+        } catch (saveErr) {
+          logJson("error", "could not save generated report", { opportunityId: req.params.id, err: String(saveErr) });
+        }
+        res.status(200).json({ report: result.response, createdAt });
       } catch (err) {
         if (err instanceof AiClientError) {
           res.status(aiErrorStatus(err.code)).json({ error: { code: err.code, message: err.message } });
@@ -322,6 +334,22 @@ Write a concise report (3-5 paragraphs) summarizing the opportunity, the strengt
         }
         next(err);
       }
+    })
+  );
+
+  // The most recent saved report for the opportunity (404 until one has been generated).
+  router.get(
+    "/:id/report",
+    asyncHandler(async (req, res) => {
+      const latest = await prisma.opportunityReport.findFirst({
+        where: { opportunityId: req.params.id },
+        orderBy: { createdAt: "desc" },
+      });
+      if (!latest) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "No report has been generated yet" } });
+        return;
+      }
+      res.status(200).json({ report: latest.content, model: latest.model, createdAt: latest.createdAt });
     })
   );
 

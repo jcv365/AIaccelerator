@@ -44,12 +44,11 @@
 - [x] Start Analysis runs as a background job (202 + poll), 5-expert Conclave roster, UI polling with resume
 - [x] Edit/delete experiments and learnings, clear-to-null, single-source experiment statuses (drift test), Portfolio empty-state test
 - [x] UI screens styled and built (product-atlas): landing, sign-in, dashboard, portfolio, evidence, hypothesis, PoV pipeline, no-AI, reports, health
+- [x] Generated reports are saved (OpportunityReport table; newest shown on the Reasoning tab with its timestamp; a failed save still returns the report with a warning); `apiFetch` accepts any HeadersInit (Headers instance / pairs / object) and never lets callers override Authorization
 
 ## Not yet implemented
 
 - Evidence <-> Decision linkage (deferred from Phase 3)
-- apiFetch Headers-instance support (client API helper does not yet accept a `Headers` instance for custom headers; deferred from Phase 3)
-- Generated reports are not persisted to the database (displayed on screen only; deferred from Phase 4)
 - No multi-user support (single local admin account only, by design; deferred from Phase 4)
 - No refresh-token rotation or logout-everywhere (fixed-expiry JWT only; deferred from Phase 4)
 - Real conclave-backed report generation (a 200 response with actual AI-authored text) has not been verified in this development environment — only the graceful 503 AI_NOT_CONFIGURED fallback path has been live-tested, since COUNCIL_BASE_URL/COUNCIL_API_KEY were not available here

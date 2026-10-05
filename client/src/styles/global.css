@@ -52,3 +52,9 @@ a {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
 }
+
+/* AI-generated report text: keep its line breaks but wrap long lines instead of overflowing the page. */
+.report-output {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

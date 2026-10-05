@@ -95,4 +95,38 @@ describe("apiFetch", () => {
 
     expect(getToken()).toBeNull();
   });
+
+  describe("custom headers", () => {
+    async function sentHeaders(headers: HeadersInit): Promise<Headers> {
+      setToken("my-token");
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+      vi.stubGlobal("fetch", fetchMock);
+      await apiFetch("/opportunities", { method: "POST", headers });
+      return new Headers(fetchMock.mock.calls[0][1].headers);
+    }
+
+    it("keeps custom headers given as a plain object", async () => {
+      const sent = await sentHeaders({ "Content-Type": "application/json" });
+      expect(sent.get("content-type")).toBe("application/json");
+      expect(sent.get("authorization")).toBe("Bearer my-token");
+    });
+
+    it("keeps custom headers given as a Headers instance (previously silently dropped)", async () => {
+      const sent = await sentHeaders(new Headers({ "Content-Type": "application/json", "X-Request-Source": "test" }));
+      expect(sent.get("content-type")).toBe("application/json");
+      expect(sent.get("x-request-source")).toBe("test");
+      expect(sent.get("authorization")).toBe("Bearer my-token");
+    });
+
+    it("keeps custom headers given as an array of pairs", async () => {
+      const sent = await sentHeaders([["X-Request-Source", "test"]]);
+      expect(sent.get("x-request-source")).toBe("test");
+      expect(sent.get("authorization")).toBe("Bearer my-token");
+    });
+
+    it("never lets a caller-supplied Authorization header replace the stored token", async () => {
+      const sent = await sentHeaders(new Headers({ Authorization: "Bearer attacker-token" }));
+      expect(sent.get("authorization")).toBe("Bearer my-token");
+    });
+  });
 });

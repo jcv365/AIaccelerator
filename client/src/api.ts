@@ -35,7 +35,12 @@ export async function login(username: string, password: string): Promise<boolean
 
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const token = getToken() ?? "";
-  const headers = { ...(init.headers as Record<string, string> | undefined), Authorization: `Bearer ${token}` };
+  // Normalise any HeadersInit (plain object, Headers instance or pair array - spreading a Headers
+  // instance used to drop every header). Headers lower-cases names, so remove any caller-supplied
+  // authorization first and set ours last: callers can never override or duplicate it.
+  const headers: Record<string, string> = Object.fromEntries(new Headers(init.headers).entries());
+  delete headers.authorization;
+  headers.Authorization = `Bearer ${token}`;
   const res = await fetch(`/api${path}`, { ...init, headers });
   if (res.status === 401) {
     clearToken();
