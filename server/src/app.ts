@@ -1,4 +1,5 @@
 import express, { Express, Response, NextFunction } from "express";
+import helmet from "helmet";
 import type { Pool } from "pg";
 import { checkDbConnection } from "./db.js";
 import { requestIdMiddleware, requestLoggingMiddleware, errorHandler } from "./errors.js";
@@ -38,6 +39,10 @@ function handleAiError(err: unknown, res: Response, next: NextFunction): void {
 
 export function createApp(deps: AppDeps): Express {
   const app = express();
+  // The server sits behind the client's nginx, which forwards the real client IP in X-Forwarded-For;
+  // trusting exactly one hop lets the login rate limiter count per client instead of per proxy.
+  app.set("trust proxy", 1);
+  app.use(helmet());
   app.use(requestIdMiddleware);
   app.use(requestLoggingMiddleware);
   app.use(express.json());
