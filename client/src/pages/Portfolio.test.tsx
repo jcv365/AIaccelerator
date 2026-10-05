@@ -9,6 +9,19 @@ afterEach(() => {
 });
 
 describe("Portfolio", () => {
+  it("shows a friendly message (and no status sections) when there are no opportunities", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] }));
+
+    render(
+      <MemoryRouter>
+        <Portfolio />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText(/no opportunities yet/i)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "DISCOVERED" })).not.toBeInTheDocument();
+  });
+
   it("groups opportunities into sections by status", async () => {
     vi.stubGlobal(
       "fetch",

@@ -36,22 +36,23 @@
 - [x] OpportunityDetail restructured into 6 tabs (Overview/Evidence/Reasoning/Decisions/Experiments/Learnings)
 - [x] Hypothesis field is now editable (previously had no UI at all)
 
+## Hardening and data features (complete, 2026-10-05)
+
+- [x] Login rate limiting (failed attempts per client IP, 429 RATE_LIMITED), helmet security headers, trusted client IP via nginx
+- [x] Prompt-injection hardening: untrusted text bounded, escaped and fenced in <data> blocks with a standing notice (report prompt and analyze goal) - mitigation, not a guarantee
+- [x] Observability basics: structured analysis start/finish/fail logs; `npm run smoke` live-stack check
+- [x] Start Analysis runs as a background job (202 + poll), 5-expert Conclave roster, UI polling with resume
+- [x] Edit/delete experiments and learnings, clear-to-null, single-source experiment statuses (drift test), Portfolio empty-state test
+- [x] UI screens styled and built (product-atlas): landing, sign-in, dashboard, portfolio, evidence, hypothesis, PoV pipeline, no-AI, reports, health
+
 ## Not yet implemented
 
 - Evidence <-> Decision linkage (deferred from Phase 3)
-- UI styling pass (current screens are functional/unstyled; deferred from Phase 3)
 - apiFetch Headers-instance support (client API helper does not yet accept a `Headers` instance for custom headers; deferred from Phase 3)
 - Generated reports are not persisted to the database (displayed on screen only; deferred from Phase 4)
 - No multi-user support (single local admin account only, by design; deferred from Phase 4)
 - No refresh-token rotation or logout-everywhere (fixed-expiry JWT only; deferred from Phase 4)
 - Real conclave-backed report generation (a 200 response with actual AI-authored text) has not been verified in this development environment — only the graceful 503 AI_NOT_CONFIGURED fallback path has been live-tested, since COUNCIL_BASE_URL/COUNCIL_API_KEY were not available here
-- No rate limiting or lockout on POST /auth/login (deferred to Phase 5's security hardening)
-- Opportunity title/description/evidence are interpolated directly into the AI report prompt with no sanitization beyond the system prompt's own instructions — prompt-injection hardening deferred to Phase 5
-- Phase 5: Observability, security hardening, prompt-injection tests, e2e smoke test
-- No edit or delete of individual experiments/learnings once created (only status/resultSummary/success can be updated on an experiment; nothing can be removed)
-- Experiment status values are duplicated across the Prisma enum, the server's validation list, and the client's `<select>` options with no single source of truth — a future status addition requires three synchronized edits
-- Experiment/Learning fields cannot be explicitly cleared back to `null` once set (the update validation only accepts the field's proper type, not `null`)
-- Portfolio view has no empty-state message when there are zero opportunities, and would silently omit any opportunity whose status isn't one of the 9 known values (not currently reachable since the database enum constrains status, but worth noting if the enum is ever extended without updating Portfolio's `STATUS_ORDER`)
 
 ## Risks
 

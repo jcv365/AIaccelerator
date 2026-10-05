@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../api";
 import { DataTable, InlineAlert, ProgressIndicator, StatusBadge, TabPanel, Tabs } from "../../components/ui";
+import type { ExperimentStatusValue } from "../../domain/experimentStatus";
 
 interface ExperimentRow {
   id: string;
@@ -13,12 +14,18 @@ interface ExperimentRow {
   _count?: { learnings: number };
 }
 
+// Keyed by the shared status type, so adding a status in domain/experimentStatus.ts is a compile error here
+// until it has a tab label. Key order is the tab order.
+const STATUS_LABELS: Record<ExperimentStatusValue, string> = {
+  RUNNING: "In progress",
+  PLANNED: "Planned",
+  COMPLETE: "Completed",
+  ABANDONED: "Stopped",
+};
+
 const TABS = [
   { id: "ALL", label: "All" },
-  { id: "RUNNING", label: "In progress" },
-  { id: "PLANNED", label: "Planned" },
-  { id: "COMPLETE", label: "Completed" },
-  { id: "ABANDONED", label: "Stopped" },
+  ...Object.entries(STATUS_LABELS).map(([id, label]) => ({ id, label })),
 ];
 
 export default function PovPipeline() {

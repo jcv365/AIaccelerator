@@ -5,6 +5,7 @@ import { isValidTransition, validTransitionsFrom, type OpportunityStatus } from 
 import type { AiClient } from "../ai/client.js";
 import { AiClientError, aiErrorStatus } from "../ai/errors.js";
 import { createAnalysisRouter } from "./analysis.js";
+import { EXPERIMENT_STATUSES } from "./experimentStatus.js";
 import { DATA_NOTICE, dataBlock } from "../ai/promptSafety.js";
 
 // Bounds for text placed into the report prompt (keeps prompts small and limits what injected text can carry).
@@ -30,7 +31,10 @@ function pickEditableFields(body: Record<string, unknown>): { data: Record<strin
   for (const field of EDITABLE_FIELDS) {
     if (field in body) {
       const value = body[field];
-      if (value !== undefined && typeof value !== "string") {
+      // null clears an optional field back to empty; the title is required and can never be cleared.
+      if (value === null) {
+        if (field === "title") return { data: {}, error: "title cannot be cleared" };
+      } else if (value !== undefined && typeof value !== "string") {
         return { data: {}, error: `${field} must be a string` };
       }
       result[field] = value;
@@ -39,7 +43,6 @@ function pickEditableFields(body: Record<string, unknown>): { data: Record<strin
   return { data: result };
 }
 
-const EXPERIMENT_STATUSES = ["PLANNED", "RUNNING", "COMPLETE", "ABANDONED"];
 
 function pickExperimentUpdateFields(body: Record<string, unknown>): { data: Record<string, unknown>; error?: string } {
   const result: Record<string, unknown> = {};
@@ -57,29 +60,30 @@ function pickExperimentUpdateFields(body: Record<string, unknown>): { data: Reco
     }
     result.status = body.status;
   }
+  // For the optional fields below, null clears the value back to empty.
   if ("resultSummary" in body) {
-    if (body.resultSummary !== undefined && typeof body.resultSummary !== "string") {
+    if (body.resultSummary !== undefined && body.resultSummary !== null && typeof body.resultSummary !== "string") {
       return { data: {}, error: "resultSummary must be a string" };
     }
     result.resultSummary = body.resultSummary;
   }
   if ("success" in body) {
-    if (body.success !== undefined && typeof body.success !== "boolean") {
+    if (body.success !== undefined && body.success !== null && typeof body.success !== "boolean") {
       return { data: {}, error: "success must be a boolean" };
     }
     result.success = body.success;
   }
-  if ("startedAt" in body) {
-    if (typeof body.startedAt !== "string") return { data: {}, error: "startedAt must be an ISO date string" };
-    const startedAt = new Date(body.startedAt);
-    if (Number.isNaN(startedAt.getTime())) return { data: {}, error: "startedAt must be a valid ISO date string" };
-    result.startedAt = startedAt;
-  }
-  if ("completedAt" in body) {
-    if (typeof body.completedAt !== "string") return { data: {}, error: "completedAt must be an ISO date string" };
-    const completedAt = new Date(body.completedAt);
-    if (Number.isNaN(completedAt.getTime())) return { data: {}, error: "completedAt must be a valid ISO date string" };
-    result.completedAt = completedAt;
+  for (const field of ["startedAt", "completedAt"] as const) {
+    if (!(field in body)) continue;
+    const value = body[field];
+    if (value === null) {
+      result[field] = null;
+      continue;
+    }
+    if (typeof value !== "string") return { data: {}, error: `${field} must be an ISO date string` };
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return { data: {}, error: `${field} must be a valid ISO date string` };
+    result[field] = date;
   }
   return { data: result };
 }
@@ -384,6 +388,70 @@ Write a concise report (3-5 paragraphs) summarizing the opportunity, the strengt
         data: { experimentId: req.params.experimentId, insight: body.insight },
       });
       res.status(201).json(learning);
+    })
+  );
+
+  router.delete(
+    "/:id/experiments/:experimentId",
+    asyncHandler(async (req, res) => {
+      const existing = await prisma.experiment.findFirst({
+        where: { id: req.params.experimentId, opportunityId: req.params.id },
+      });
+      if (!existing) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Experiment not found" } });
+        return;
+      }
+      // Learnings reference the experiment, so they go with it - atomically, never leaving orphans.
+      await prisma.$transaction([
+        prisma.learning.deleteMany({ where: { experimentId: req.params.experimentId } }),
+        prisma.experiment.delete({ where: { id: req.params.experimentId } }),
+      ]);
+      res.status(204).end();
+    })
+  );
+
+  // The learning lookup is scoped to the experiment AND its opportunity, so ids from another
+  // opportunity can never be edited or deleted through this URL.
+  const findScopedLearning = (req: { params: Record<string, string> }) =>
+    prisma.learning.findFirst({
+      where: {
+        id: req.params.learningId,
+        experimentId: req.params.experimentId,
+        experiment: { opportunityId: req.params.id },
+      },
+    });
+
+  router.patch(
+    "/:id/experiments/:experimentId/learnings/:learningId",
+    asyncHandler(async (req, res) => {
+      const existing = await findScopedLearning(req);
+      if (!existing) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Learning not found" } });
+        return;
+      }
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      if (typeof body.insight !== "string" || body.insight.trim() === "") {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "insight is required" } });
+        return;
+      }
+      const updated = await prisma.learning.update({
+        where: { id: req.params.learningId },
+        data: { insight: body.insight },
+      });
+      res.status(200).json(updated);
+    })
+  );
+
+  router.delete(
+    "/:id/experiments/:experimentId/learnings/:learningId",
+    asyncHandler(async (req, res) => {
+      const existing = await findScopedLearning(req);
+      if (!existing) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Learning not found" } });
+        return;
+      }
+      await prisma.learning.delete({ where: { id: req.params.learningId } });
+      res.status(204).end();
     })
   );
 

@@ -51,15 +51,18 @@ describe("StartAnalysis", () => {
 
   it("starts a job, shows progress while it runs, then reports success and never shows fake gauge values", async () => {
     vi.mocked(api.post).mockResolvedValue({ jobId: "job1", status: "QUEUED" });
-    vi.mocked(api.get)
-      .mockResolvedValueOnce(running)
-      .mockResolvedValue({ id: "job1", status: "SUCCEEDED", opportunitiesFound: 3, error: null });
+    // Hold the job in RUNNING until the progress text has been seen, so the check cannot race the poll timer.
+    let finished = false;
+    vi.mocked(api.get).mockImplementation(async () =>
+      finished ? { id: "job1", status: "SUCCEEDED", opportunitiesFound: 3, error: null } : running
+    );
 
     render(<StartAnalysis pollIntervalMs={10} />);
     submit("Acme Manufacturing");
 
     expect(await screen.findByText(/researching acme manufacturing/i)).toBeInTheDocument();
     expect(api.post).toHaveBeenCalledWith("/opportunities/analyze", { companyName: "Acme Manufacturing" });
+    finished = true;
 
     expect(await screen.findByText(/found 3 opportunities/i)).toBeInTheDocument();
     expect(screen.getByText(/View in Opportunity Portfolio/i)).toBeInTheDocument();
