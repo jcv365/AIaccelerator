@@ -11,8 +11,8 @@ impeccable_present: true
 locked_briefs: []
 direction_approved: 2026-10-01
 screens_total: 19
-screens_done: 5
-last_run: 2026-10-01
+screens_done: 19
+last_run: 2026-10-05
 ---
 ## Inventory notes
 
@@ -61,3 +61,8 @@ This is richer than the plan's initial read: the backend already covers report g
 - **APP-02 build+review** (2026-10-01): new `components/ui/TextAreaField.tsx` (textarea counterpart to TextField, same `.text-field` styling). `NewOpportunity.tsx` rebuilt on `TextField`/`TextAreaField`/`Button`/`InlineAlert` instead of raw `<input>`/`<textarea>`/`<button>`; added a try/catch with inline error states for both a non-ok response and a network failure, plus a loading/disabled submit state — none of which the original had. New `NewOpportunity.css`. Added 2 tests for the new error states. slop-scan clean, typecheck/lint clean, 37/37 tests pass. **review: pass.**
 - **APP-03 build+review** (2026-10-01): new `StartAnalysis.tsx`, `StartAnalysis.css`, and `startAnalysisPlaceholder.ts` (the named stand-in contract for the non-existent `POST /analyze`). Harmonized six-gauge grid: Evidence Strength/Source Coverage/AI Confidence stream in from the placeholder (0.71/0.58/0.66, fixed), Risk/Feasibility/Value stay permanently NO DATA (no scoring backend exists to feed them — not faked). `role=status aria-live=polite` announces each gauge and the final result. Success message explicitly states no real Opportunity was created, since there's no backend to create one. Route `/app/analyze` added to `App.tsx`. 3 new tests (empty state, full stream, blank-submit error). slop-scan clean, typecheck/lint clean, 40/40 tests pass. **review: pass.**
 - `screens_done: 5` (APP-00, APP-01, APP-DASH, APP-02, APP-03). 14 screens remain: SITE-01, SITE-02, APP-04, APP-04R, APP-05, APP-06, APP-EVID, APP-HYP, APP-07, APP-08, APP-POV, APP-NOAI, APP-REPORTS, ADM-01.
+- **Reconciliation** (2026-10-05): the log above stopped at `screens_done: 5`, but SCREENS.md already recorded APP-04, APP-04R, APP-05, APP-06, APP-07, APP-08 as `review: pass` (2026-10-01, tab split + ExperimentDetail). Those 6 plus the 5 above and the 8 below make all 19 done.
+- **Backend** (2026-10-05): `server/src/domain/crossLists.ts` adds read-only `GET /evidence` and `GET /experiments` (each row includes its opportunity `{id,title}`; experiments include `_count.learnings`), mounted behind `requireAuth` in `app.ts`. 2 new server tests; server 121/121.
+- **ADM-01, APP-NOAI, APP-EVID, APP-POV, APP-HYP, APP-REPORTS, SITE-01, SITE-02** (2026-10-05): built and reviewed pass. New pages under `client/src/pages/{admin,app,site}/`, routes wired in `App.tsx` (unauthenticated: `/` Landing, `/sign-in`; authenticated: `/app/*`, `/admin/health`), SidebarNav "Soon" items replaced with real links plus a System Health link. Placeholder contracts, stated in-UI rather than faked: evidence quality scoring, structured AI decision recommendations, the 6 non-narrative reports/exports, SSO, demo booking. `App.test.tsx` now starts at `/sign-in` and uses the "Sign in" label (same intent). 26 new client tests; client 66/66, typecheck/lint clean, slop-scan clean on all 12 touched UI files.
+- **Environment note**: removed 39 untracked, tsc-emitted `client/src/**/*.js` files (all had a `.ts/.tsx` sibling; none tracked). They shadowed the TypeScript source in Vite/Vitest resolution (a stale `App.js` made the new router invisible to tests) and tripped ESLint. Root cause: `client/tsconfig.json` has no `noEmit`/`outDir`, so any bare `tsc` run re-creates them. Not changed here.
+- `screens_done: 19` of 19. Backlog complete.

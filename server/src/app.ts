@@ -7,6 +7,7 @@ import { createAuthRouter } from "./domain/authRoutes.js";
 import type { AiClient } from "./ai/client.js";
 import { AiClientError, aiErrorStatus } from "./ai/errors.js";
 import { createOpportunitiesRouter } from "./domain/opportunities.js";
+import { createEvidenceListRouter, createExperimentsListRouter } from "./domain/crossLists.js";
 
 export interface AppDeps {
   pool: Pool;
@@ -106,6 +107,8 @@ export function createApp(deps: AppDeps): Express {
 
   if (deps.prisma) {
     app.use("/opportunities", createOpportunitiesRouter(deps.prisma, deps.aiClient));
+    app.use("/evidence", createEvidenceListRouter(deps.prisma));
+    app.use("/experiments", createExperimentsListRouter(deps.prisma));
   }
 
   app.use((_req, res) => {

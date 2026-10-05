@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { SidebarNav } from "./SidebarNav";
 import { CompanySwitcher } from "./CompanySwitcher";
 import { StatusIndicator } from "./StatusIndicator";
+import { PRODUCT_NAME } from "../../brand";
 import "./app.css";
 
 export interface AppShellProps {
@@ -24,7 +25,7 @@ export function AppShell({ onLogout, children }: AppShellProps) {
       <aside className="app-sidebar">
         <div className="app-sidebar__brand">
           <span className="app-sidebar__mark" aria-hidden="true" />
-          AI Accelerator
+          {PRODUCT_NAME}
         </div>
         <SidebarNav />
         <div className="app-sidebar__footer">

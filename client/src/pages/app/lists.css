@@ -1,0 +1,11 @@
+.list-toolbar {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  margin: var(--space-3) 0;
+}
+
+.report-output {
+  margin-top: var(--space-3);
+  white-space: pre-wrap;
+}

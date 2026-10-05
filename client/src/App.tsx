@@ -6,48 +6,16 @@ import NewOpportunity from "./pages/NewOpportunity";
 import OpportunityDetail from "./pages/OpportunityDetail";
 import ExperimentDetail from "./pages/ExperimentDetail";
 import StartAnalysis from "./pages/StartAnalysis";
+import EvidenceExplorer from "./pages/app/EvidenceExplorer";
+import HypothesisEngine from "./pages/app/HypothesisEngine";
+import PovPipeline from "./pages/app/PovPipeline";
+import NoAiOpportunities from "./pages/app/NoAiOpportunities";
+import ReportsAndExports from "./pages/app/ReportsAndExports";
+import SystemHealth from "./pages/admin/SystemHealth";
+import Landing from "./pages/site/Landing";
+import SignIn from "./pages/site/SignIn";
 import { AppShell } from "./components/app/AppShell";
-import { getToken, clearToken, login } from "./api";
-
-function LoginForm({ onSuccess }: { onSuccess: () => void }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    const ok = await login(username, password);
-    setLoading(false);
-    if (ok) {
-      onSuccess();
-    } else {
-      setError("Invalid username or password, or the server is unreachable");
-    }
-  }
-
-  return (
-    <main>
-      <h1>AI Accelerator</h1>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Username
-          <input value={username} onChange={(e) => setUsername(e.target.value)} required />
-        </label>
-        <label>
-          Password
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </label>
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Log in"}
-        </button>
-      </form>
-      {error && <p role="alert">{error}</p>}
-    </main>
-  );
-}
+import { getToken, clearToken } from "./api";
 
 export default function App() {
   const [hasToken, setHasToken] = useState(() => getToken() !== null);
@@ -61,7 +29,15 @@ export default function App() {
   }, []);
 
   if (!hasToken) {
-    return <LoginForm onSuccess={() => setHasToken(true)} />;
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/sign-in" element={<SignIn onSuccess={() => setHasToken(true)} />} />
+          <Route path="*" element={<Navigate to="/sign-in" replace />} />
+        </Routes>
+      </BrowserRouter>
+    );
   }
 
   return (
@@ -73,17 +49,28 @@ export default function App() {
         }}
       >
         <Routes>
-          {/* "/" has no built site surface routed here yet (SITE-01/02 exist in
-              SCREENS.md but aren't wired into this router pass) — once
-              authenticated, landing on "/" still reaches the app rather than
-              rendering nothing. */}
+          {/* Once authenticated, "/" and "/sign-in" lead straight into the app. */}
           <Route path="/" element={<Navigate to="/app" replace />} />
+          <Route path="/sign-in" element={<Navigate to="/app" replace />} />
           <Route path="/app" element={<Dashboard />} />
           <Route path="/app/portfolio" element={<Portfolio />} />
           <Route path="/app/analyze" element={<StartAnalysis />} />
+          <Route path="/app/evidence" element={<EvidenceExplorer />} />
+          <Route path="/app/hypothesis" element={<HypothesisEngine />} />
+          <Route path="/app/pov" element={<PovPipeline />} />
+          <Route path="/app/no-ai" element={<NoAiOpportunities />} />
+          <Route path="/app/reports" element={<ReportsAndExports />} />
           <Route path="/app/opportunities/new" element={<NewOpportunity />} />
           <Route path="/app/opportunities/:id" element={<OpportunityDetail />} />
           <Route path="/app/opportunities/:id/experiments/:experimentId" element={<ExperimentDetail />} />
+          <Route
+            path="/admin/health"
+            element={
+              <div data-surface="admin">
+                <SystemHealth />
+              </div>
+            }
+          />
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
       </AppShell>

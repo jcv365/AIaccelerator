@@ -56,10 +56,10 @@ components: [Button]
 density: editorial
 status: new
 scope: in
-reason: "New surface, added 2026-10-01 per the user's explicit scope-expansion decision overriding PRODUCT.md's 'no public marketing site' constraint."
+reason: "New surface, added 2026-10-01 per the user's explicit scope-expansion decision overriding PRODUCT.md's 'no public marketing site' constraint. Built 2026-10-05: pages/site/Landing.tsx + site.css. Journey (Discover/Reason/Prove/Decide/Learn) is real ordered-list text, not an image, so it is the accessible equivalent. 'Book a demo' is a visibly disabled 'coming soon' button — no booking backend exists. Unauthenticated users see this at /; authenticated users are redirected to /app."
 brief: ""
 a11y_notes: "Hero illustration must have alt text describing the DISCOVER/REASON/PROVE/DECIDE/LEARN journey, not just decorative alt=''."
-review: pending
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (2 new tests (site.test.tsx); client 66/66, server 121/121).
 ```
 
 ```yaml
@@ -81,10 +81,10 @@ components: [TextField, Button, InlineAlert]
 density: editorial
 status: new
 scope: in
-reason: "Replaces the existing bare LoginForm in App.tsx. SSO buttons render but are placeholder-contract (disabled or 'coming soon') until an OAuth provider is actually integrated — a real backend capability this skill doesn't build."
+reason: "Replaces the existing bare LoginForm in App.tsx. SSO buttons render but are placeholder-contract (disabled or 'coming soon') until an OAuth provider is actually integrated — a real backend capability this skill doesn't build. Built 2026-10-05: pages/site/SignIn.tsx replaces the inline LoginForm in App.tsx; built on TextField/Button/InlineAlert, same login() call. Microsoft/Google SSO buttons render disabled 'coming soon' (no OAuth integration exists). Unauthenticated routes: / and /sign-in; everything else redirects to /sign-in. App.test.tsx now starts at /sign-in with the 'Sign in' button label — same intent."
 brief: ""
 a11y_notes: ""
-review: pending
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests (site.test.tsx); client 66/66, server 121/121).
 ```
 
 ```yaml
@@ -339,7 +339,7 @@ user_question: "Across all opportunities, what evidence exists, and how credible
 primary_action: "Search/filter evidence, add new evidence, or open its source opportunity"
 data:
   - endpoint: "cross-opportunity evidence search (new — GET /opportunities/:id/evidence exists only nested per-opportunity; no cross-opportunity evidence list/search endpoint exists)"
-    readiness: missing
+    readiness: ready
   - endpoint: "evidence quality scoring (source credibility/date recency/applicability/data depth, per the reference image — new, no backend concept)"
     readiness: missing
 states: [empty, loading, error, success]
@@ -349,10 +349,10 @@ components: [DataTable, EvidenceTag, TextField, Button]
 density: dense
 status: new
 scope: in
-reason: "New cross-opportunity view from the reference image. Requires a new search/list endpoint; quality-scoring fields shown in the reference image (credibility/recency/applicability/depth) have no backend source at all — placeholder-contract, flagged plainly."
+reason: "New cross-opportunity view from the reference image. Requires a new search/list endpoint; quality-scoring fields shown in the reference image (credibility/recency/applicability/depth) have no backend source at all — placeholder-contract, flagged plainly. Built 2026-10-05: pages/app/EvidenceExplorer.tsx against the new GET /evidence (server/src/domain/crossLists.ts, returns each row with its opportunity {id,title}). Client-side search + type filter. Quality-scoring columns are NOT shown — one InlineAlert says no backend concept exists; nothing is fabricated."
 brief: ""
 a11y_notes: ""
-review: pending
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (4 new tests; client 66/66, server 121/121).
 ```
 
 ```yaml
@@ -378,10 +378,10 @@ components: [TextField, Button, StatusBadge, InlineAlert]
 density: dense
 status: new
 scope: in
-reason: "New cross-cutting view combining Reasoning+Decision into a dedicated page, per the reference image, operating on whichever opportunity is currently focused via the company/opportunity switcher."
+reason: "New cross-cutting view combining Reasoning+Decision into a dedicated page, per the reference image, operating on whichever opportunity is currently focused via the company/opportunity switcher. Built 2026-10-05: pages/app/HypothesisEngine.tsx. Opportunity selector bound to ?opportunity=; hypothesis saves via PATCH /opportunities/:id; decisions via POST /opportunities/:id/decisions with a history table. Structured confidence/effort/risk recommendations are not built — an InlineAlert states the backend concept does not exist."
 brief: ""
 a11y_notes: ""
-review: pending
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121).
 ```
 
 ```yaml
@@ -447,7 +447,7 @@ user_question: "Across all opportunities, which PoVs are in progress, pending, c
 primary_action: "Open a specific PoV's results, or start a new one"
 data:
   - endpoint: "cross-opportunity experiment list (new — GET /opportunities/:id/experiments exists only nested; no cross-opportunity list endpoint)"
-    readiness: missing
+    readiness: ready
 states: [empty, loading, error, success]
 entry_from: [APP-DASH, APP-HYP]
 exits_to: [APP-08]
@@ -455,10 +455,10 @@ components: [DataTable, StatusBadge, Button]
 density: dense
 status: new
 scope: in
-reason: "New cross-opportunity pipeline board from the reference image's 'All / In Progress / Pending / Completed / Stopped' tab row. Needs a new list endpoint; the per-experiment data itself (status, dates) already exists."
+reason: "New cross-opportunity pipeline board from the reference image's 'All / In Progress / Pending / Completed / Stopped' tab row. Needs a new list endpoint; the per-experiment data itself (status, dates) already exists. Built 2026-10-05: pages/app/PovPipeline.tsx against the new GET /experiments (includes opportunity and learning count). Tabs map the reference image onto the real ExperimentStatus enum: All / In progress (RUNNING) / Planned / Completed (COMPLETE) / Stopped (ABANDONED). Rows link to APP-08."
 brief: ""
 a11y_notes: ""
-review: pending
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121).
 ```
 
 ```yaml
@@ -480,10 +480,10 @@ components: [DataTable, StatusBadge]
 density: dense
 status: new
 scope: in
-reason: "Maps cleanly onto the existing NO_AI terminal status — no schema gap, just a filtered view that didn't exist before."
+reason: "Maps cleanly onto the existing NO_AI terminal status — no schema gap, just a filtered view that didn't exist before. Built 2026-10-05: pages/app/NoAiOpportunities.tsx — GET /opportunities filtered client-side to status NO_AI; shows aiSuitability (else businessProblem) as the reasoning. Rows link to APP-04."
 brief: ""
 a11y_notes: ""
-review: pending
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121).
 ```
 
 ```yaml
@@ -507,10 +507,10 @@ components: [DataTable, Button, StatusBadge]
 density: dense
 status: new
 scope: in
-reason: "Only the single-opportunity narrative report has a real endpoint; every other report/export type shown in the reference image is placeholder-contract — each one's button should be visibly disabled or clearly labeled 'not yet available' rather than faking a download."
+reason: "Only the single-opportunity narrative report has a real endpoint; every other report/export type shown in the reference image is placeholder-contract — each one's button should be visibly disabled or clearly labeled 'not yet available' rather than faking a download. Built 2026-10-05: pages/app/ReportsAndExports.tsx. The single-opportunity narrative report is real (POST /opportunities/:id/report, including its 503 AI_NOT_CONFIGURED error). The six other report/export types are disabled 'Not yet available' buttons — nothing fakes a download."
 brief: ""
 a11y_notes: ""
-review: pending
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (4 new tests; client 66/66, server 121/121).
 ```
 
 ```yaml
@@ -536,10 +536,10 @@ components: [StatusBadge, DataTable]
 density: densest
 status: new
 scope: in
-reason: ""
+reason: " Built 2026-10-05: pages/admin/SystemHealth.tsx at /admin/health (data-surface=admin). Probes /health, /ready, /version in parallel; each row shows an OK/Failing badge plus a text detail, so status is never colour-only. Linked from the sidebar."
 brief: ""
 a11y_notes: ""
-review: pending
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (4 new tests; client 66/66, server 121/121).
 ```
 
 ## D. Unresolved decisions blocking specific screens
@@ -547,6 +547,6 @@ review: pending
 - **APP-00/APP-DASH** (company switcher): no multi-company/tenant data model exists in the Prisma schema at all (the `Opportunity` table has no company/client field). This is a real data-model gap, not just a missing endpoint — building the switcher UI now means it operates over placeholder/local data until a schema migration adds company scoping. Flagged, not fabricated.
 - **APP-DASH** (AI readiness donut + category bars): no readiness-scoring concept exists anywhere in the backend. Placeholder-contract.
 - **SITE-02** (SSO buttons): no OAuth integration exists. Buttons render in a visibly-disabled/"coming soon" state, not a fake working flow.
-- **APP-EVID, APP-POV** (cross-opportunity list endpoints): both need new, simple list endpoints (a company-scoped `GET /evidence` and `GET /experiments` alongside the existing nested per-opportunity ones) — straightforward backend work, not flagged as risky, just not yet built.
+- **APP-EVID, APP-POV** (cross-opportunity list endpoints): RESOLVED 2026-10-05 — `GET /evidence` and `GET /experiments` added (server/src/domain/crossLists.ts, read-only, not company-scoped since no company model exists). Evidence quality scoring (APP-EVID's second data row) remains a placeholder.
 - **APP-REPORTS** (every report type except the single-opportunity narrative report): no backend concept for portfolio/ROI/scheduled reports or CSV export. Each such button should be disabled/labeled, not faked.
 - **APP-03** (Night-Flight vs. the new reference-image palette): not resolved whether StartAnalysis's cockpit-gauge aesthetic should be harmonized into the new multi-accent system or kept as a contrasting exception — carried into `system`/`direction` for this pass.

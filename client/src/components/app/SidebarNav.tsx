@@ -44,6 +44,11 @@ const icon = {
       <path d="M5.5 5.5l5 5" />
     </svg>
   ),
+  health: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path d="M1.5 8h3l2-4.5 3 9 2-4.5h3" />
+    </svg>
+  ),
   reports: (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d="M3 2h7l3 3v9H3z" />
@@ -59,11 +64,12 @@ const icon = {
 const items: NavItem[] = [
   { label: "Dashboard", to: "/app", icon: icon.dashboard },
   { label: "Opportunity Portfolio", to: "/app/portfolio", icon: icon.portfolio },
-  { label: "Evidence Explorer", icon: icon.evidence },
-  { label: "Hypothesis Engine", icon: icon.hypothesis },
-  { label: "14-Day PoV Pipeline", icon: icon.pov },
-  { label: "No-AI Opportunities", icon: icon.noAi },
-  { label: "Reports & Exports", icon: icon.reports },
+  { label: "Evidence Explorer", to: "/app/evidence", icon: icon.evidence },
+  { label: "Hypothesis Engine", to: "/app/hypothesis", icon: icon.hypothesis },
+  { label: "14-Day PoV Pipeline", to: "/app/pov", icon: icon.pov },
+  { label: "No-AI Opportunities", to: "/app/no-ai", icon: icon.noAi },
+  { label: "Reports & Exports", to: "/app/reports", icon: icon.reports },
+  { label: "System Health", to: "/admin/health", icon: icon.health },
 ];
 
 export function SidebarNav() {

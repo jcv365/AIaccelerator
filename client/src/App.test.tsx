@@ -2,9 +2,11 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import App from "./App";
+import { PRODUCT_NAME } from "./brand";
 
 beforeEach(() => {
   localStorage.clear();
+  window.history.pushState({}, "", "/sign-in");
 });
 
 afterEach(() => {
@@ -15,7 +17,13 @@ describe("App", () => {
   it("shows the login form when no token is stored", async () => {
     render(<App />);
 
-    expect(await screen.findByRole("button", { name: /log in/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^sign in$/i })).toBeInTheDocument();
+  });
+
+  it("shows the product name from brand.ts as the login heading", async () => {
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: PRODUCT_NAME })).toBeInTheDocument();
   });
 
   it("shows the opportunity list once a token is already stored", async () => {
@@ -53,7 +61,7 @@ describe("App", () => {
 
     fireEvent.change(await screen.findByLabelText(/username/i), { target: { value: "admin" } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "correct-password" } });
-    fireEvent.click(screen.getByRole("button", { name: /log in/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument());
   });
@@ -65,7 +73,7 @@ describe("App", () => {
 
     fireEvent.change(await screen.findByLabelText(/username/i), { target: { value: "admin" } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "wrong" } });
-    fireEvent.click(screen.getByRole("button", { name: /log in/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/invalid/i));
   });
@@ -77,7 +85,7 @@ describe("App", () => {
 
     fireEvent.change(await screen.findByLabelText(/username/i), { target: { value: "admin" } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "correct-password" } });
-    fireEvent.click(screen.getByRole("button", { name: /log in/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/unreachable/i));
   });
@@ -100,7 +108,7 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /log out/i }));
 
-    expect(await screen.findByRole("button", { name: /log in/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^sign in$/i })).toBeInTheDocument();
     expect(localStorage.getItem("aiaccelerator_auth_token")).toBeNull();
   });
 });

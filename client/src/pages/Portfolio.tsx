@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../api";
 import { DataTable, InlineAlert, ProgressIndicator } from "../components/ui";
+import { PRODUCT_NAME } from "../brand";
 import "./Portfolio.css";
 
 const STATUS_ORDER = [
@@ -40,7 +41,7 @@ export default function Portfolio() {
   return (
     <main>
       <div className="portfolio__header">
-        <h1>AI Accelerator</h1>
+        <h1>{PRODUCT_NAME}</h1>
         <Link className="btn btn--primary" to="/app/opportunities/new">
           + New
         </Link>

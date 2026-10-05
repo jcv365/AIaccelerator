@@ -1,0 +1,68 @@
+.site {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.site__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+}
+
+.site__brand {
+  font-weight: 600;
+}
+
+.site__main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+.site__main--narrow {
+  max-width: 420px;
+}
+
+.site__lead {
+  font-size: 18px;
+  margin-bottom: var(--space-4);
+}
+
+.site__actions {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.site__link {
+  color: var(--color-accent-blue);
+}
+
+.site__journey {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.site__journey li {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius);
+}
+
+.site__form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.site__sso {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+}
