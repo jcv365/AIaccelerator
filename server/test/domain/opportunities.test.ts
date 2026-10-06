@@ -31,7 +31,9 @@ describe("GET /opportunities", () => {
 
     expect(res.status).toBe(200);
     // Rows without evidence or assessments carry a null score and no assessment.
-    expect(res.body).toEqual([{ id: "1", title: "A", evidenceScore: null, latestAssessment: null }]);
+    expect(res.body).toEqual([
+      { id: "1", title: "A", evidenceScore: null, latestAssessment: null, latestDecision: null },
+    ]);
     expect(prisma.opportunity.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ orderBy: { createdAt: "desc" } })
     );
@@ -58,6 +60,26 @@ describe("GET /opportunities", () => {
     expect(res.body[0].latestAssessment).toEqual({ id: "a1", recommendation: "PROCEED_TO_POV" });
     expect(res.body[0]).not.toHaveProperty("evidence");
     expect(res.body[0]).not.toHaveProperty("assessments");
+  });
+
+  it("adds the latest decision and does not leak the raw decisions array", async () => {
+    const prisma = {
+      opportunity: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: "1", title: "A", decisions: [{ id: "d1", decision: "No AI", rationale: "Rules suffice" }] },
+        ]),
+      },
+    };
+
+    const res = await request(appWithPrisma(prisma)).get("/opportunities");
+
+    expect(res.body[0].latestDecision).toEqual({ id: "d1", decision: "No AI", rationale: "Rules suffice" });
+    expect(res.body[0]).not.toHaveProperty("decisions");
+    expect(prisma.opportunity.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({ decisions: { orderBy: { decidedAt: "desc" }, take: 1 } }),
+      })
+    );
   });
 });
 

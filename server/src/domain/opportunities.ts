@@ -154,15 +154,17 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
           _count: { select: { evidence: true, decisions: true } },
           evidence: { select: { quality: true, confidence: true, capturedAt: true } },
           assessments: { orderBy: { createdAt: "desc" }, take: 1 },
+          decisions: { orderBy: { decidedAt: "desc" }, take: 1 },
         },
       });
-      // The list carries the computed evidence score and the latest AI assessment; the raw evidence
-      // rows used to compute the score are not sent.
+      // The list carries the computed evidence score, the latest AI assessment and the latest decision;
+      // the raw evidence rows used to compute the score are not sent.
       res.status(200).json(
-        opportunities.map(({ evidence, assessments, ...opportunity }) => ({
+        opportunities.map(({ evidence, assessments, decisions, ...opportunity }) => ({
           ...opportunity,
           evidenceScore: computeEvidenceScore(evidence ?? []),
           latestAssessment: assessments?.[0] ?? null,
+          latestDecision: decisions?.[0] ?? null,
         }))
       );
     })
