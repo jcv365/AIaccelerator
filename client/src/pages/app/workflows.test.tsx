@@ -48,6 +48,7 @@ describe("HypothesisEngine", () => {
     const fetchMock = routeFetch({
       "GET /opportunities": () => ({ ok: true, body: list }),
       "GET /opportunities/o1": () => ({ ok: true, body: detail }),
+      "GET /opportunities/o1/assessment": () => ({ ok: false, status: 404, body: {} }),
       "PATCH /opportunities/o1": () => ({ ok: true, body: detail }),
       "POST /opportunities/o1/decisions": () => ({
         ok: true,
@@ -60,9 +61,12 @@ describe("HypothesisEngine", () => {
       </MemoryRouter>,
     );
 
-    const box = await screen.findByLabelText("Hypothesis");
+    // The tab panel is also labelled "Hypothesis", so pick the text box by role.
+    const box = await screen.findByRole("textbox", { name: "Hypothesis" });
     expect(box).toHaveValue("Automation cuts cost");
-    expect(screen.getByText(/recommendations .* not available yet/i)).toBeInTheDocument();
+    // With no assessment run, the recommendation card says so and estimates nothing.
+    expect(screen.getByText(/no ai assessment has been run/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Run assessment" })).toBeInTheDocument();
 
     fireEvent.change(box, { target: { value: "New hypothesis" } });
     fireEvent.click(screen.getByRole("button", { name: /save hypothesis/i }));
@@ -70,7 +74,8 @@ describe("HypothesisEngine", () => {
     const patch = fetchMock.mock.calls.find(([, init]) => init?.method === "PATCH");
     expect(JSON.parse(patch![1].body as string)).toEqual({ hypothesis: "New hypothesis" });
 
-    fireEvent.change(screen.getByLabelText("Decision"), { target: { value: "Proceed" } });
+    fireEvent.click(screen.getByRole("tab", { name: "Decision" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Decision" }), { target: { value: "Proceed" } });
     fireEvent.click(screen.getByRole("button", { name: /record decision/i }));
     expect(await screen.findByText(/decision recorded/i)).toBeInTheDocument();
     expect(screen.getByText("Proceed")).toBeInTheDocument();

@@ -1,0 +1,68 @@
+.hypothesis-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--space-4);
+  align-items: start;
+  margin-top: var(--space-3);
+}
+
+.hypothesis-layout h3 {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.hypothesis__bullets {
+  margin: 0;
+  padding-inline-start: var(--space-4);
+  display: grid;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.hypothesis__muted {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.recommendation {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.recommendation h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.recommendation__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  width: 100%;
+}
+
+.recommendation__facts dt {
+  color: var(--color-text-muted);
+}
+
+.recommendation__facts dd {
+  margin: 0;
+  font-weight: 600;
+  justify-self: end;
+}
+
+@media (max-width: 900px) {
+  .hypothesis-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
