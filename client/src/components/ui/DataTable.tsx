@@ -27,23 +27,25 @@ export function DataTable<Row>({ columns, rows, getRowKey, loading, error, empty
     return <p className="data-table__empty">{emptyMessage}</p>;
   }
   return (
-    <table className="data-table">
-      <thead>
-        <tr>
-          {columns.map((column) => (
-            <th key={column.key}>{column.header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr key={getRowKey(row)}>
+    <div className="data-table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
             {columns.map((column) => (
-              <td key={column.key}>{column.render(row)}</td>
+              <th key={column.key}>{column.header}</th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={getRowKey(row)}>
+              {columns.map((column) => (
+                <td key={column.key}>{column.render(row)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

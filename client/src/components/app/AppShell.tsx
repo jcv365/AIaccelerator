@@ -16,6 +16,7 @@ const PLACEHOLDER_COMPANIES = ["ABC Manufacturing"];
 
 export function AppShell({ onLogout, children }: AppShellProps) {
   const [company, setCompany] = useState(PLACEHOLDER_COMPANIES[0]);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="app-shell" data-surface="app">
@@ -27,9 +28,21 @@ export function AppShell({ onLogout, children }: AppShellProps) {
           <span className="app-sidebar__mark" aria-hidden="true" />
           {PRODUCT_NAME}
         </div>
-        <SidebarNav />
-        <div className="app-sidebar__footer">
-          <StatusIndicator onLogout={onLogout} />
+        {/* Visible only at <= 800px, where the sidebar collapses into a top bar with this toggle. */}
+        <button
+          type="button"
+          className="app-sidebar__menu-btn"
+          aria-expanded={menuOpen}
+          aria-controls="app-sidebar-panel"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {menuOpen ? "Close" : "Menu"}
+        </button>
+        <div id="app-sidebar-panel" className={`app-sidebar__panel${menuOpen ? " app-sidebar__panel--open" : ""}`}>
+          <SidebarNav onNavigate={() => setMenuOpen(false)} />
+          <div className="app-sidebar__footer">
+            <StatusIndicator onLogout={onLogout} />
+          </div>
         </div>
       </aside>
       <div className="app-main">

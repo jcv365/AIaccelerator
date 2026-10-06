@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, apiFetch } from "../../api";
-import { Button, DataTable, InlineAlert, ProgressIndicator, TextAreaField, TextField } from "../../components/ui";
+import {
+  Button,
+  DataTable,
+  InlineAlert,
+  PageHeader,
+  ProgressIndicator,
+  Select,
+  TextAreaField,
+  TextField,
+} from "../../components/ui";
 import "./lists.css";
 
 interface OpportunitySummary {
@@ -95,7 +104,10 @@ export default function HypothesisEngine() {
 
   return (
     <main>
-      <h1>Hypothesis Engine &amp; Decision Centre</h1>
+      <PageHeader
+        title="Hypothesis Engine & Decision Centre"
+        description="Sharpen the hypothesis for one opportunity, then record the decision and why."
+      />
       {loading && <ProgressIndicator label="Loading opportunities…" />}
       {!loading && error && <InlineAlert variant="error">{error}</InlineAlert>}
 
@@ -105,24 +117,18 @@ export default function HypothesisEngine() {
 
       {!loading && !error && options.length > 0 && (
         <>
-          <div className="text-field">
-            <label className="text-field__label" htmlFor="hyp-opportunity">
-              Opportunity
-            </label>
-            <select
-              id="hyp-opportunity"
-              className="text-field__input"
-              value={selectedId}
-              onChange={(e) => setParams(e.target.value ? { opportunity: e.target.value } : {})}
-            >
-              <option value="">Select an opportunity…</option>
-              {options.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.title}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Opportunity"
+            value={selectedId}
+            onChange={(e) => setParams(e.target.value ? { opportunity: e.target.value } : {})}
+          >
+            <option value="">Select an opportunity…</option>
+            {options.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.title}
+              </option>
+            ))}
+          </Select>
 
           {!selectedId && <p>Choose an opportunity to edit its hypothesis and record a decision.</p>}
           {selectedId && detailLoading && <ProgressIndicator label="Loading opportunity…" />}
@@ -132,9 +138,10 @@ export default function HypothesisEngine() {
               {saveError && <InlineAlert variant="error">{saveError}</InlineAlert>}
               {saveNote && <InlineAlert variant="info">{saveNote}</InlineAlert>}
 
+              <div className="two-col">
               <section>
                 <h2>Hypothesis</h2>
-                <form onSubmit={saveHypothesis}>
+                <form className="form-stack" onSubmit={saveHypothesis}>
                   <TextAreaField label="Hypothesis" rows={3} value={hypothesis} onChange={(e) => setHypothesis(e.target.value)} />
                   <Button type="submit" variant="primary">
                     Save hypothesis
@@ -149,13 +156,18 @@ export default function HypothesisEngine() {
                   AI decision recommendations (confidence, effort, risk scoring) are not available yet — no backend concept
                   exists. Record your decision manually below.
                 </InlineAlert>
-                <form onSubmit={recordDecision}>
+                <form className="form-stack" onSubmit={recordDecision}>
                   <TextField label="Decision" value={decision} onChange={(e) => setDecision(e.target.value)} required />
                   <TextAreaField label="Rationale" rows={3} value={rationale} onChange={(e) => setRationale(e.target.value)} />
                   <Button type="submit" variant="primary">
                     Record decision
                   </Button>
                 </form>
+              </section>
+              </div>
+
+              <section>
+                <h2>Decision history</h2>
                 <DataTable
                   columns={[
                     { key: "decision", header: "Decision", render: (d: Decision) => d.decision },

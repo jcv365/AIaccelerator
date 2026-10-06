@@ -109,6 +109,7 @@
 
 .app-shell__content {
   flex: 1;
+  min-width: 0;
   padding: var(--space-4);
 }
 
@@ -165,4 +166,79 @@
 
 .status-indicator__dot--loading {
   background: var(--color-text-muted);
+}
+
+/* Menu toggle and panel wrapper. On desktop the panel is just the sidebar's body and the toggle is hidden. */
+.app-sidebar__panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.app-sidebar__menu-btn {
+  display: none;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  font-size: var(--text-body-size);
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.app-sidebar__menu-btn[aria-expanded="true"] {
+  border-color: var(--color-accent);
+}
+
+/* Phone / narrow tablet: the fixed sidebar becomes a top bar; its links open in a drawer below it. */
+@media (max-width: 800px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .app-sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: var(--space-2) var(--space-3);
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .app-sidebar__brand {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .app-sidebar__menu-btn {
+    display: inline-flex;
+  }
+
+  .app-sidebar__panel {
+    display: none;
+    flex-basis: 100%;
+    padding-top: var(--space-2);
+  }
+
+  .app-sidebar__panel--open {
+    display: flex;
+  }
+
+  .sidebar-nav__link {
+    min-height: 40px;
+  }
+
+  .app-topbar {
+    justify-content: flex-start;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .app-shell__content {
+    padding: var(--space-3);
+  }
 }

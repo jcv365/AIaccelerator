@@ -59,7 +59,7 @@ scope: in
 reason: "New surface, added 2026-10-01 per the user's explicit scope-expansion decision overriding PRODUCT.md's 'no public marketing site' constraint. Built 2026-10-05: pages/site/Landing.tsx + site.css. Journey (Discover/Reason/Prove/Decide/Learn) is real ordered-list text, not an image, so it is the accessible equivalent. 'Book a demo' is a visibly disabled 'coming soon' button — no booking backend exists. Unauthenticated users see this at /; authenticated users are redirected to /app."
 brief: ""
 a11y_notes: "Hero illustration must have alt text describing the DISCOVER/REASON/PROVE/DECIDE/LEARN journey, not just decorative alt=''."
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (2 new tests (site.test.tsx); client 66/66, server 121/121).
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (2 new tests (site.test.tsx); client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): hero card + journey strip, readable primary button.
 ```
 
 ```yaml
@@ -84,7 +84,7 @@ scope: in
 reason: "Replaces the existing bare LoginForm in App.tsx. SSO buttons render but are placeholder-contract (disabled or 'coming soon') until an OAuth provider is actually integrated — a real backend capability this skill doesn't build. Built 2026-10-05: pages/site/SignIn.tsx replaces the inline LoginForm in App.tsx; built on TextField/Button/InlineAlert, same login() call. Microsoft/Google SSO buttons render disabled 'coming soon' (no OAuth integration exists). Unauthenticated routes: / and /sign-in; everything else redirects to /sign-in. App.test.tsx now starts at /sign-in with the 'Sign in' button label — same intent."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests (site.test.tsx); client 66/66, server 121/121).
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests (site.test.tsx); client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): centred sign-in card, SSO row, phone layout.
 ```
 
 ```yaml
@@ -111,7 +111,7 @@ scope: in
 reason: "Built 2026-09-30 as a top-nav shell under the now-superseded direction. Restyled 2026-10-01 to a left-sidebar layout (SidebarNav, icon set, active-rail indicator) with a CompanySwitcher in the topbar, per the reference image and the approved mockup. NavBar.tsx deleted. Not-yet-built destinations (Evidence Explorer, Hypothesis Engine, PoV Pipeline, No-AI, Reports) render as visibly disabled 'Soon' items rather than links to routes that would 404."
 brief: ""
 a11y_notes: "Skip-to-content link; status indicator must not be color-only (pair with text label). Both present and unchanged in the restyle."
-review: pass (2026-10-01) — slop-scan clean, typecheck/lint/tests (31/31) pass.
+review: pass (2026-10-01) — slop-scan clean, typecheck/lint/tests (31/31) pass. Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): phone top bar + Menu drawer (<= 800px), shared page-header rhythm.
 ```
 
 ```yaml
@@ -138,7 +138,7 @@ scope: in
 reason: "New home screen for /app, replacing Portfolio as the landing view. Readiness scoring is a genuine data-model gap, not just a missing endpoint — flagged, not fabricated. Built 2026-10-01: Opportunities and Evidence Sources KPIs are real (derived from GET /opportunities); Active PoVs and Estimated Annual Value show 'Not yet available' rather than invented numbers (no experiments-count field on the list endpoint; potentialValue is free text, not a currency amount to sum). DonutChart renders its explicit no-data state since no readiness-scoring backend exists at all."
 brief: ""
 a11y_notes: "Donut chart needs a text equivalent (the percentage and category breakdown as a table or list), not color-only. DonutChart component always renders an accessible <table> alongside the SVG ring when there is a score; the no-data state is plain text."
-review: pass (2026-10-01) — slop-scan clean, typecheck/lint clean, tests pass (4 new, 35/35 total).
+review: pass (2026-10-01) — slop-scan clean, typecheck/lint clean, tests pass (4 new, 35/35 total). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): PageHeader, real 'Pipeline by status' section, no internal jargon in the readiness note.
 ```
 
 ```yaml
@@ -352,7 +352,7 @@ scope: in
 reason: "New cross-opportunity view from the reference image. Requires a new search/list endpoint; quality-scoring fields shown in the reference image (credibility/recency/applicability/depth) have no backend source at all — placeholder-contract, flagged plainly. Built 2026-10-05: pages/app/EvidenceExplorer.tsx against the new GET /evidence (server/src/domain/crossLists.ts, returns each row with its opportunity {id,title}). Client-side search + type filter. Quality-scoring columns are NOT shown — one InlineAlert says no backend concept exists; nothing is fabricated."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (4 new tests; client 66/66, server 121/121).
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (4 new tests; client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): styled EvidenceTag, toolbar card, paging (15 at a time), clamped long sources.
 ```
 
 ```yaml
@@ -381,7 +381,7 @@ scope: in
 reason: "New cross-cutting view combining Reasoning+Decision into a dedicated page, per the reference image, operating on whichever opportunity is currently focused via the company/opportunity switcher. Built 2026-10-05: pages/app/HypothesisEngine.tsx. Opportunity selector bound to ?opportunity=; hypothesis saves via PATCH /opportunities/:id; decisions via POST /opportunities/:id/decisions with a history table. Structured confidence/effort/risk recommendations are not built — an InlineAlert states the backend concept does not exist."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121).
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): two-column hypothesis/decision layout, spaced forms, decision history section.
 ```
 
 ```yaml
@@ -458,7 +458,7 @@ scope: in
 reason: "New cross-opportunity pipeline board from the reference image's 'All / In Progress / Pending / Completed / Stopped' tab row. Needs a new list endpoint; the per-experiment data itself (status, dates) already exists. Built 2026-10-05: pages/app/PovPipeline.tsx against the new GET /experiments (includes opportunity and learning count). Tabs map the reference image onto the real ExperimentStatus enum: All / In progress (RUNNING) / Planned / Completed (COMPLETE) / Stopped (ABANDONED). Rows link to APP-08."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121).
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): tab counts per status, status badge tones.
 ```
 
 ```yaml
@@ -483,7 +483,7 @@ scope: in
 reason: "Maps cleanly onto the existing NO_AI terminal status — no schema gap, just a filtered view that didn't exist before. Built 2026-10-05: pages/app/NoAiOpportunities.tsx — GET /opportunities filtered client-side to status NO_AI; shows aiSuitability (else businessProblem) as the reasoning. Rows link to APP-04."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121).
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): PageHeader.
 ```
 
 ```yaml
@@ -510,7 +510,7 @@ scope: in
 reason: "Only the single-opportunity narrative report has a real endpoint; every other report/export type shown in the reference image is placeholder-contract — each one's button should be visibly disabled or clearly labeled 'not yet available' rather than faking a download. Built 2026-10-05: pages/app/ReportsAndExports.tsx. The single-opportunity narrative report is real (POST /opportunities/:id/report, including its 503 AI_NOT_CONFIGURED error). The six other report/export types are disabled 'Not yet available' buttons — nothing fakes a download."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (4 new tests; client 66/66, server 121/121).
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (4 new tests; client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): ReportPanel card with Copy text.
 ```
 
 ```yaml
@@ -539,7 +539,7 @@ scope: in
 reason: " Built 2026-10-05: pages/admin/SystemHealth.tsx at /admin/health (data-surface=admin). Probes /health, /ready, /version in parallel; each row shows an OK/Failing badge plus a text detail, so status is never colour-only. Linked from the sidebar."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (4 new tests; client 66/66, server 121/121).
+review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (4 new tests; client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): PageHeader.
 ```
 
 ## D. Unresolved decisions blocking specific screens

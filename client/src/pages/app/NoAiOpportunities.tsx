@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../api";
-import { DataTable, InlineAlert, ProgressIndicator, StatusBadge } from "../../components/ui";
+import { DataTable, InlineAlert, PageHeader, ProgressIndicator, StatusBadge } from "../../components/ui";
 
 interface Opportunity {
   id: string;
@@ -26,8 +26,10 @@ export default function NoAiOpportunities() {
 
   return (
     <main>
-      <h1>No-AI Opportunities</h1>
-      <p>Opportunities decided as not suited to AI, with the reasoning kept so the decision can be revisited.</p>
+      <PageHeader
+        title="No-AI Opportunities"
+        description="Opportunities decided as not suited to AI, with the reasoning kept so the decision can be revisited."
+      />
       {loading && <ProgressIndicator label="Loading opportunities…" />}
       {!loading && error && <InlineAlert variant="error">{error}</InlineAlert>}
       {!loading && !error && (

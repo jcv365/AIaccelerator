@@ -10,6 +10,7 @@
   --color-text: #e8ecf5;
   --color-text-muted: #8993ab;
   --color-on-accent: #ffffff;
+  --color-focus-ring: rgba(59, 130, 246, 0.35);
 
   /* Accents — multi-accent by explicit 2026-10-01 override (was single-accent) */
   --color-accent-blue: #3b82f6;

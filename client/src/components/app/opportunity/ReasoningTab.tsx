@@ -32,7 +32,6 @@ export function ReasoningTab({ hypothesis, onSaveHypothesis, onGenerateReport, o
       cancelled = true;
     };
     // Load once per mount; the handler identity changes every render of the parent.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleSave(e: React.FormEvent) {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../api";
-import { DonutChart, InlineAlert, KpiTile, ProgressIndicator } from "../../components/ui";
+import { DonutChart, InlineAlert, KpiTile, PageHeader, ProgressIndicator, StatusBadge } from "../../components/ui";
 import "./Dashboard.css";
 
 interface OpportunitySummary {
@@ -9,6 +9,9 @@ interface OpportunitySummary {
   status: string;
   _count?: { evidence: number; decisions: number };
 }
+
+// Lifecycle order, so the pipeline reads left to right from discovery to outcome.
+const STATUS_ORDER = ["DISCOVERED", "QUALIFIED", "HYPOTHESIS", "EXPERIMENT", "PROVING", "PROVEN", "DEFERRED", "REJECTED", "NO_AI"];
 
 export default function Dashboard() {
   const [opportunities, setOpportunities] = useState<OpportunitySummary[]>([]);
@@ -27,7 +30,7 @@ export default function Dashboard() {
 
   return (
     <main>
-      <h1>Dashboard</h1>
+      <PageHeader title="Dashboard" description="How your AI opportunities are progressing, at a glance." />
 
       {loading && <ProgressIndicator label="Loading dashboard…" />}
       {!loading && error && <InlineAlert variant="error">{error}</InlineAlert>}
@@ -52,12 +55,26 @@ export default function Dashboard() {
             <KpiTile value="—" label="Estimated Annual Value" delta="Not yet available" />
           </div>
 
+          <section className="dashboard__pipeline">
+            <h2>Pipeline by status</h2>
+            <ul className="pipeline">
+              {STATUS_ORDER.map((status) => ({ status, count: opportunities.filter((o) => o.status === status).length }))
+                .filter(({ count }) => count > 0)
+                .map(({ status, count }) => (
+                  <li key={status} className="pipeline__item">
+                    <StatusBadge label={status} tone={status === "PROVEN" ? "success" : status === "REJECTED" ? "danger" : status === "NO_AI" || status === "DEFERRED" ? "caution" : "accent"} />
+                    <span className="pipeline__count">{count}</span>
+                  </li>
+                ))}
+            </ul>
+          </section>
+
           <section className="dashboard__readiness">
             <h2>AI Readiness</h2>
             <DonutChart
               score={null}
               breakdown={[]}
-              emptyMessage="No AI-readiness scoring exists in the backend yet — this is a real data-model gap, not a missing endpoint (see SCREENS.md §D)."
+              emptyMessage="No AI-readiness scoring exists yet. It needs a scoring model that has not been built, so no score is shown rather than an invented one."
             />
           </section>
 

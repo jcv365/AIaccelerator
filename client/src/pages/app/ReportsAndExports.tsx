@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, apiFetch } from "../../api";
-import { Button, DataTable, InlineAlert, ProgressIndicator } from "../../components/ui";
+import { Button, DataTable, InlineAlert, PageHeader, ProgressIndicator, ReportPanel, Select } from "../../components/ui";
 import "./lists.css";
 
 interface OpportunitySummary {
@@ -52,7 +52,7 @@ export default function ReportsAndExports() {
 
   return (
     <main>
-      <h1>Reports &amp; Exports</h1>
+      <PageHeader title="Reports & Exports" description="Generate a written report for an opportunity, or export your data." />
       {loading && <ProgressIndicator label="Loading opportunities…" />}
       {!loading && error && <InlineAlert variant="error">{error}</InlineAlert>}
 
@@ -64,30 +64,26 @@ export default function ReportsAndExports() {
               <InlineAlert variant="info">No opportunities yet, so there is nothing to report on.</InlineAlert>
             ) : (
               <>
-                <div className="text-field">
-                  <label className="text-field__label" htmlFor="report-opportunity">
-                    Opportunity
-                  </label>
-                  <select
-                    id="report-opportunity"
-                    className="text-field__input"
-                    value={selectedId}
-                    onChange={(e) => setSelectedId(e.target.value)}
-                  >
-                    <option value="">Select an opportunity…</option>
-                    {options.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Select label="Opportunity" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
+                  <option value="">Select an opportunity…</option>
+                  {options.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.title}
+                    </option>
+                  ))}
+                </Select>
                 <Button variant="primary" onClick={generate} disabled={!selectedId || generating}>
                   {generating ? "Generating…" : "Generate report"}
                 </Button>
                 {generating && <ProgressIndicator label="Generating report…" />}
                 {reportError && <InlineAlert variant="error">{reportError}</InlineAlert>}
-                {report && <pre className="report-output">{report}</pre>}
+                {report && (
+                  <ReportPanel
+                    title={options.find((o) => o.id === selectedId)?.title ?? "Opportunity report"}
+                    text={report}
+                    meta="Generated report"
+                  />
+                )}
               </>
             )}
           </section>

@@ -2,30 +2,60 @@
    token from styles/tokens.css; no hardcoded colors/spacing. */
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-family: var(--font-family);
   font-size: var(--text-body-size);
+  font-weight: 500;
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius);
+  border-radius: 8px;
   border: 1px solid var(--color-border);
-  background: transparent;
+  background: var(--color-surface);
   color: var(--color-text);
   cursor: pointer;
-  transition: border-color var(--motion-duration) ease, color var(--motion-duration) ease;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--motion-duration) var(--ease), box-shadow var(--motion-duration) var(--ease),
+    border-color var(--motion-duration) var(--ease), filter var(--motion-duration) var(--ease);
 }
 
 .btn:hover:not(:disabled) {
   border-color: var(--color-accent);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Disabled stays legible (muted text on a flat surface), not just faded. */
 .btn:disabled {
-  opacity: 0.5;
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
 .btn--primary {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
+}
+
+.btn--primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .btn:hover:not(:disabled) {
+    transition: none;
+    transform: none;
+  }
 }
 
 .btn--danger {
@@ -42,6 +72,7 @@
 
 .text-field__label {
   font-size: 12px;
+  font-weight: 500;
   color: var(--color-text-muted);
 }
 
@@ -49,10 +80,25 @@
   font-family: var(--font-family);
   font-size: var(--text-body-size);
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius);
+  border-radius: 8px;
   border: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--color-bg);
   color: var(--color-text);
+  transition: border-color var(--motion-duration) var(--ease), box-shadow var(--motion-duration) var(--ease);
+}
+
+.text-field__input:hover:not(:disabled) {
+  border-color: var(--color-text-muted);
+}
+
+.text-field__input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+select.text-field__input {
+  cursor: pointer;
 }
 
 /* :user-invalid (not :invalid) so an untouched empty required field is not red on page load. */
@@ -73,7 +119,9 @@
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
+  background: var(--color-surface);
   font-size: var(--text-body-size);
+  line-height: 1.5;
 }
 
 .inline-alert--error {
@@ -95,6 +143,15 @@
   color: var(--color-text-muted);
 }
 
+/* The wrapper owns the card chrome and scrolls horizontally on narrow screens, so a wide table never widens the page. */
+.data-table-wrap {
+  overflow-x: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -105,13 +162,25 @@
 .data-table th,
 .data-table td {
   text-align: left;
+  vertical-align: middle;
   padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--color-border);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-surface-raised);
 }
 
 .data-table th {
   color: var(--color-text-muted);
   font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .data-table__empty,
@@ -124,11 +193,13 @@
 
 .status-badge {
   display: inline-block;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius);
+  padding: 3px var(--space-2);
+  border-radius: 6px;
   border: 1px solid var(--color-border);
-  font-size: 12px;
+  font-size: 11.5px;
+  font-weight: 500;
   color: var(--color-text);
+  white-space: nowrap;
 }
 
 .status-badge--accent {
@@ -153,6 +224,7 @@
 
 .lifecycle-stepper {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   list-style: none;
   margin: 0;
@@ -209,6 +281,10 @@
   padding: 0;
 }
 
+.tabs__list {
+  overflow-x: auto;
+}
+
 .tabs__tab {
   background: none;
   border: none;
@@ -216,8 +292,24 @@
   color: var(--color-text-muted);
   font-family: var(--font-family);
   font-size: var(--text-body-size);
+  font-weight: 500;
   padding: var(--space-2) 0;
   cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--motion-duration) var(--ease);
+}
+
+.tabs__tab:hover {
+  color: var(--color-text);
+}
+
+.tabs__count {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--color-surface-raised);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 .tabs__tab[aria-selected="true"] {
@@ -304,4 +396,107 @@
   color: var(--color-text);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+}
+
+/* Page header: title, one-line description, optional actions. */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.page-header__desc {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  max-width: 72ch;
+}
+
+.page-header__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* Toolbar card holding filters/search above a table. */
+.toolbar {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.toolbar .text-field {
+  min-width: 200px;
+  flex: 1 1 200px;
+}
+
+/* Evidence type tag: bracketed text always present, colour only reinforces. */
+.evidence-tag {
+  display: inline-block;
+  font-family: var(--font-family-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+.evidence-tag--fact {
+  color: var(--color-success);
+}
+
+.evidence-tag--inference {
+  color: var(--color-accent-cyan);
+}
+
+.evidence-tag--assumption {
+  color: var(--color-caution);
+}
+
+.evidence-tag--ai_hypothesis {
+  color: var(--color-accent-purple);
+}
+
+/* Report panel: a generated report as a readable card (title, copy action, paragraph body at a comfortable measure). */
+.report-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+
+.report-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.report-panel__meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.report-panel__body {
+  padding: var(--space-3) var(--space-4);
+  max-width: 68ch;
+  overflow-wrap: anywhere;
+}
+
+.report-panel__body p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.report-panel__body p + p {
+  margin-top: var(--space-3);
 }

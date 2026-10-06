@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polish pass — phone navigation and report panel (pending approval)</title>
+<link rel="stylesheet" href="../../client/src/styles/tokens.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: var(--space-4); background: var(--color-bg); color: var(--color-text); font-family: var(--font-family); font-size: var(--text-body-size); line-height: 1.5; }
+  h1 { font-size: var(--text-heading-size); margin: 0 0 var(--space-1); letter-spacing: -0.01em; }
+  h2 { font-size: 16px; margin: 0 0 var(--space-2); }
+  p { margin: 0; }
+  .muted { color: var(--color-text-muted); }
+  .row { display: flex; gap: var(--space-4); flex-wrap: wrap; align-items: flex-start; margin-top: var(--space-4); }
+  .frame { width: 390px; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-bg); overflow: hidden; box-shadow: var(--shadow-lg); }
+  .label { display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--color-text-muted); border: 1px solid var(--color-border); border-radius: 6px; padding: 3px var(--space-2); margin-bottom: var(--space-2); }
+
+  /* Collapsed top bar (<= 800px): replaces the fixed 215px sidebar. */
+  .topbar { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
+  .topbar .brand { display: flex; align-items: center; gap: var(--space-2); font-weight: 600; flex: 1; }
+  .mark { width: 22px; height: 22px; border-radius: 6px; background: var(--color-accent-blue); }
+  .menu-btn { display: inline-flex; align-items: center; gap: 6px; padding: var(--space-2) var(--space-3); border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font: inherit; font-weight: 500; box-shadow: var(--shadow-sm); }
+  .menu-btn[aria-expanded="true"] { border-color: var(--color-accent); }
+  .drawer { background: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: var(--space-2); display: grid; gap: 2px; }
+  .drawer a { display: flex; align-items: center; gap: 10px; padding: 9px var(--space-2); color: var(--color-text-muted); text-decoration: none; font-weight: 500; border-radius: 7px; min-height: 40px; }
+  .drawer a.active { background: var(--color-surface-raised); color: var(--color-text); box-shadow: inset 2px 0 0 var(--color-accent-blue); }
+  .drawer .foot { display: flex; justify-content: space-between; align-items: center; padding: var(--space-2); margin-top: var(--space-1); border-top: 1px solid var(--color-border); font-size: 12px; color: var(--color-text-muted); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--color-success); margin-right: var(--space-1); }
+  .page { padding: var(--space-3); }
+  .kpi { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); padding: var(--space-3); box-shadow: var(--shadow-sm); margin-top: var(--space-3); }
+  .kpi b { display: block; font-size: 26px; letter-spacing: -0.01em; }
+
+  /* Report panel (desktop width). */
+  .report { width: 640px; max-width: 100%; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-md); }
+  .report__head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-3); border-bottom: 1px solid var(--color-border); }
+  .report__meta { font-size: 12px; color: var(--color-text-muted); }
+  .report__body { padding: var(--space-3) var(--space-4); max-width: 68ch; }
+  .report__body p + p { margin-top: var(--space-3); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: var(--space-2) var(--space-3); border-radius: 8px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font: inherit; font-weight: 500; box-shadow: var(--shadow-sm); }
+</style>
+</head>
+<body>
+  <span class="label">Pending approval — polish pass</span>
+  <h1>Phone navigation and report panel</h1>
+  <p class="muted">Two pieces the approved direction mockup does not show. Everything uses existing tokens; nothing else about the direction changes.</p>
+
+  <div class="row">
+    <section>
+      <h2>1. Phone: menu closed (&le; 800px)</h2>
+      <div class="frame">
+        <div class="topbar">
+          <span class="brand"><span class="mark"></span>AI Accelerator</span>
+          <button class="menu-btn" aria-expanded="false" aria-controls="drawer-a">Menu</button>
+        </div>
+        <div class="page">
+          <h1>Dashboard</h1>
+          <p class="muted">How your AI opportunities are progressing, at a glance.</p>
+          <div class="kpi"><b>13</b><span class="muted">Opportunities</span></div>
+          <div class="kpi"><b>48</b><span class="muted">Evidence Sources</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Phone: menu open</h2>
+      <div class="frame">
+        <div class="topbar">
+          <span class="brand"><span class="mark"></span>AI Accelerator</span>
+          <button class="menu-btn" aria-expanded="true" aria-controls="drawer-b">Close</button>
+        </div>
+        <nav class="drawer" id="drawer-b" aria-label="Primary">
+          <a class="active" href="#">Dashboard</a>
+          <a href="#">Opportunity Portfolio</a>
+          <a href="#">Evidence Explorer</a>
+          <a href="#">Hypothesis Engine</a>
+          <a href="#">14-Day PoV Pipeline</a>
+          <a href="#">No-AI Opportunities</a>
+          <a href="#">Reports &amp; Exports</a>
+          <a href="#">System Health</a>
+          <div class="foot"><span><span class="dot"></span>Backend online</span><button class="btn">Log out</button></div>
+        </nav>
+      </div>
+    </section>
+  </div>
+
+  <div class="row">
+    <section>
+      <h2>3. Report panel</h2>
+      <div class="report">
+        <div class="report__head">
+          <div>
+            <strong>Zero-Touch Logistics Automation Platform</strong>
+            <div class="report__meta">Generated report &middot; saved with the opportunity</div>
+          </div>
+          <button class="btn">Copy text</button>
+        </div>
+        <div class="report__body">
+          <p>This opportunity targets end-to-end automation of booking, documentation and exception handling across a global logistics network.</p>
+          <p>Evidence is strongest on market context and weakest on measured savings, which are still assumptions pending a pilot.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

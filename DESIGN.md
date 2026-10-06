@@ -29,6 +29,7 @@ itself, which uses tables for every list.
   --color-text: #e8ecf5;
   --color-text-muted: #8993ab;
   --color-on-accent: #ffffff;
+  --color-focus-ring: rgba(59, 130, 246, 0.35);
 
   /* Accents — multi-accent by explicit 2026-10-01 override (was single-accent) */
   --color-accent-blue: #3b82f6;
@@ -95,6 +96,12 @@ Derived from every `components` field across the revised `SCREENS.md`.
 - `Button`, `TextField`, `InlineAlert`, `DataTable`, `StatusBadge`, `LifecycleStepper`,
   `ProgressIndicator`, `Tabs` — unchanged from the 2026-09-30 foundation build; only their token
   values change (new palette/radius), not their structure or accessibility contract.
+- `PageHeader`, `Select`, `EvidenceTag`, `ReportPanel` (new 2026-10-06 visual pass) — `PageHeader` is the single
+  page-title pattern (h1 + one-line description + optional actions) for every `/app/*` page; `Select` is the styled
+  native select (same label/focus contract as `TextField`); `EvidenceTag` renders an evidence type as bracketed text with
+  colour only as reinforcement; `ReportPanel` shows a generated report as a card with a Copy text action. `Tabs` gained an
+  optional per-tab `count`, and `DataTable` now wraps its table in a scrolling card so a wide table never widens the page.
+  `AppShell` collapses the sidebar into a top bar with a Menu drawer at <= 800px (approved in `docs/mockups/polish.html`).
 - `KpiTile` (new) — a single metric + label + optional delta, used only in the Dashboard's 4-tile
   row. Not a general-purpose card; do not reuse it as a substitute for a real table elsewhere.
 - `DonutChart` (new) — the AI-readiness ring. Must render a text/table equivalent of its data

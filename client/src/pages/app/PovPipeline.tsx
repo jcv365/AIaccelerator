@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../api";
-import { DataTable, InlineAlert, ProgressIndicator, StatusBadge, TabPanel, Tabs } from "../../components/ui";
+import { DataTable, InlineAlert, PageHeader, ProgressIndicator, StatusBadge, TabPanel, Tabs } from "../../components/ui";
 import type { ExperimentStatusValue } from "../../domain/experimentStatus";
 
 interface ExperimentRow {
@@ -23,11 +23,6 @@ const STATUS_LABELS: Record<ExperimentStatusValue, string> = {
   ABANDONED: "Stopped",
 };
 
-const TABS = [
-  { id: "ALL", label: "All" },
-  ...Object.entries(STATUS_LABELS).map(([id, label]) => ({ id, label })),
-];
-
 export default function PovPipeline() {
   const [rows, setRows] = useState<ExperimentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,16 +37,27 @@ export default function PovPipeline() {
       .finally(() => setLoading(false));
   }, []);
 
+  const tabs = [
+    { id: "ALL", label: "All", count: rows.length },
+    ...Object.entries(STATUS_LABELS).map(([id, label]) => ({
+      id,
+      label,
+      count: rows.filter((r) => r.status === id).length,
+    })),
+  ];
   const visible = active === "ALL" ? rows : rows.filter((r) => r.status === active);
 
   return (
     <main>
-      <h1>14-Day PoV Pipeline</h1>
+      <PageHeader
+        title="14-Day PoV Pipeline"
+        description="Every proof-of-value experiment across your opportunities, grouped by where it stands."
+      />
       {loading && <ProgressIndicator label="Loading experiments…" />}
       {!loading && error && <InlineAlert variant="error">{error}</InlineAlert>}
       {!loading && !error && (
         <>
-          <Tabs items={TABS} activeId={active} onChange={setActive} aria-label="PoV status" />
+          <Tabs items={tabs} activeId={active} onChange={setActive} aria-label="PoV status" />
           <TabPanel id={active} activeId={active}>
             <DataTable
               columns={[
@@ -67,7 +73,10 @@ export default function PovPipeline() {
                   key: "status",
                   header: "Status",
                   render: (r: ExperimentRow) => (
-                    <StatusBadge label={r.status} tone={r.status === "RUNNING" ? "accent" : r.status === "ABANDONED" ? "danger" : "default"} />
+                    <StatusBadge
+                      label={STATUS_LABELS[r.status as ExperimentStatusValue] ?? r.status}
+                      tone={r.status === "RUNNING" ? "accent" : r.status === "ABANDONED" ? "danger" : r.status === "COMPLETE" ? "success" : "default"}
+                    />
                   ),
                 },
                 {
@@ -79,7 +88,11 @@ export default function PovPipeline() {
               ]}
               rows={visible}
               getRowKey={(r) => r.id}
-              emptyMessage={rows.length === 0 ? "No experiments yet. Create one from an opportunity's Experiments tab." : "No experiments in this status."}
+              emptyMessage={
+                rows.length === 0
+                  ? "No experiments yet. Open an opportunity and create one from its Experiments tab."
+                  : "No experiments in this status."
+              }
             />
           </TabPanel>
         </>

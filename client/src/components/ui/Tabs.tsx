@@ -4,6 +4,8 @@ import "./ui.css";
 export interface TabItem {
   id: string;
   label: string;
+  /** Optional count shown after the label (e.g. rows in that status). */
+  count?: number;
 }
 
 export interface TabsProps {
@@ -29,6 +31,7 @@ export function Tabs({ items, activeId, onChange, "aria-label": ariaLabel }: Tab
           onClick={() => onChange(item.id)}
         >
           {item.label}
+          {item.count !== undefined && <span className="tabs__count">{item.count}</span>}
         </button>
       ))}
     </div>

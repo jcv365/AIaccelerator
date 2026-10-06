@@ -80,7 +80,7 @@ describe("PovPipeline", () => {
       "href",
       "/app/opportunities/o1/experiments/x1",
     );
-    fireEvent.click(screen.getByRole("tab", { name: "Completed" }));
+    fireEvent.click(screen.getByRole("tab", { name: /^Completed/ }));
     expect(screen.queryByText("Pilot A")).not.toBeInTheDocument();
     expect(screen.getByText("Pilot B")).toBeInTheDocument();
   });

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../../api";
-import { DataTable, InlineAlert, ProgressIndicator, StatusBadge } from "../../components/ui";
+import { DataTable, InlineAlert, PageHeader, ProgressIndicator, StatusBadge } from "../../components/ui";
 
 interface HealthRow {
   check: string;
@@ -44,7 +44,7 @@ export default function SystemHealth() {
 
   return (
     <main>
-      <h1>System Health</h1>
+      <PageHeader title="System Health" description="Live checks against the backend service and its database." />
       {!rows && !error && <ProgressIndicator label="Running health checks…" />}
       {error && <InlineAlert variant="error">{error}</InlineAlert>}
       {rows && (

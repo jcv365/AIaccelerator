@@ -72,7 +72,12 @@ const items: NavItem[] = [
   { label: "System Health", to: "/admin/health", icon: icon.health },
 ];
 
-export function SidebarNav() {
+export interface SidebarNavProps {
+  /** Called after a link is followed, so the phone drawer can close itself. */
+  onNavigate?: () => void;
+}
+
+export function SidebarNav({ onNavigate }: SidebarNavProps) {
   return (
     <nav className="sidebar-nav" aria-label="Primary">
       {items.map((item) =>
@@ -81,6 +86,7 @@ export function SidebarNav() {
             key={item.label}
             to={item.to}
             end={item.to === "/app"}
+            onClick={onNavigate}
             className={({ isActive }) => `sidebar-nav__link${isActive ? " active" : ""}`}
           >
             {item.icon}
