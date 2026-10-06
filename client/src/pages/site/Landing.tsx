@@ -11,21 +11,45 @@ const JOURNEY = [
   ["Learn", "Keep what each experiment taught you."],
 ] as const;
 
-/** Decorative-but-described illustration of the five-step path; the journey list below is the full text equivalent. */
+const FEATURES = [
+  ["Opportunity Portfolio", "Every opportunity with its value, evidence score and priority in one table."],
+  ["Evidence Explorer", "Each claim with its source, and how credible, deep and recent it is."],
+  ["Hypothesis Engine", "What you believe, why, and what would prove it wrong."],
+  ["14-Day PoV Pipeline", "Time-boxed proofs of value, with days left and who is on them."],
+  ["Reports & Exports", "Executive summaries and data exports built from the same records."],
+] as const;
+
+const WHY = [
+  ["Evidence first", "Every claim is typed as fact, inference or assumption, so you can see how much rests on what."],
+  ["Honest numbers", "An AI figure always says which model produced it, when, and why. Where nothing was assessed, it says so."],
+  ["Decisions on record", "Scale, defer or stop — with the reasoning kept so a decision can be revisited."],
+] as const;
+
+// Ridge points the journey nodes sit on, climbing left to right.
+const RIDGE: [number, number][] = [
+  [50, 200],
+  [140, 160],
+  [230, 120],
+  [320, 85],
+  [410, 50],
+];
+
+/** A mountain ridge with the five journey steps climbing it. The numbers are drawn; the step names are in the list below. */
 function JourneyArt() {
-  const xs = [30, 80, 130, 180, 230];
   return (
     <svg
       className="hero-art"
-      viewBox="0 0 260 120"
+      viewBox="0 0 460 240"
       role="img"
-      aria-label="Five connected steps: Discover, Reason, Prove, Decide, Learn"
+      aria-label="A mountain path with five steps climbing it: Discover, Reason, Prove, Decide, Learn"
     >
-      <line className="hero-art__line" x1={xs[0]} y1="60" x2={xs[4]} y2="60" />
-      {xs.map((x, i) => (
+      <polygon className="hero-art__far" points="0,240 0,150 70,110 130,150 200,90 280,150 350,100 460,170 460,240" />
+      <polygon className="hero-art__near" points="0,240 0,200 140,160 230,120 320,85 410,50 460,70 460,240" />
+      <polyline className="hero-art__path" points={RIDGE.map(([x, y]) => `${x},${y}`).join(" ")} />
+      {RIDGE.map(([x, y], i) => (
         <g key={x}>
-          <circle className={`hero-art__node hero-art__node--${i + 1}`} cx={x} cy="60" r="12" />
-          <text className="hero-art__num" x={x} y="64" textAnchor="middle">
+          <circle className={`hero-art__node hero-art__node--${i + 1}`} cx={x} cy={y} r="13" />
+          <text className="hero-art__num" x={x} y={y + 4} textAnchor="middle">
             {i + 1}
           </text>
         </g>
@@ -42,6 +66,11 @@ export default function Landing() {
           <span className="site__mark" aria-hidden="true" />
           {PRODUCT_NAME}
         </span>
+        <nav className="site__nav" aria-label="On this page">
+          <a href="#why">Why</a>
+          <a href="#how">How it works</a>
+          <a href="#features">Features</a>
+        </nav>
         <Link to="/sign-in" className="site__link">
           Sign in
         </Link>
@@ -51,7 +80,7 @@ export default function Landing() {
           <div className="hero__copy">
             <span className="hero__eyebrow">AI opportunity intelligence</span>
             <h1 id="hero-heading" className="hero__title">
-              Know which AI opportunities are worth pursuing — and prove it.
+              Turn AI potential into measurable business value.
             </h1>
             <p className="site__lead">
               {PRODUCT_NAME} takes a client from first discovery to a proven, evidence-backed decision on every AI
@@ -70,7 +99,19 @@ export default function Landing() {
           <JourneyArt />
         </section>
 
-        <section aria-labelledby="journey-heading">
+        <section id="why" aria-labelledby="why-heading">
+          <h2 id="why-heading">Why teams use it</h2>
+          <ul className="tiles">
+            {WHY.map(([name, text]) => (
+              <li key={name} className="tile">
+                <strong>{name}</strong>
+                <span className="tile__text">{text}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section id="how" aria-labelledby="journey-heading">
           <h2 id="journey-heading">The path from idea to decision</h2>
           <ol className="journey">
             {JOURNEY.map(([name, text], i) => (
@@ -83,6 +124,18 @@ export default function Landing() {
               </li>
             ))}
           </ol>
+        </section>
+
+        <section id="features" aria-labelledby="features-heading">
+          <h2 id="features-heading">What is in the workspace</h2>
+          <ul className="tiles">
+            {FEATURES.map(([name, text]) => (
+              <li key={name} className="tile">
+                <strong>{name}</strong>
+                <span className="tile__text">{text}</span>
+              </li>
+            ))}
+          </ul>
         </section>
       </main>
     </div>

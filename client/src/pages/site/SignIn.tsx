@@ -9,6 +9,12 @@ export interface SignInProps {
   onSuccess: () => void;
 }
 
+const POINTS = [
+  "Every AI figure shows its model, date and reasoning.",
+  "Claims are typed as fact, inference or assumption.",
+  "Decisions are kept with the reasons behind them.",
+] as const;
+
 export default function SignIn({ onSuccess }: SignInProps) {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
@@ -32,53 +38,64 @@ export default function SignIn({ onSuccess }: SignInProps) {
 
   return (
     <div className="site" data-surface="site">
-      <main className="site__main site__main--narrow">
-        <div className="signin-card">
+      <main className="signin">
+        <section className="signin__brand" aria-label="About">
           <h1 className="site__brand">
             <span className="site__mark" aria-hidden="true" />
             {PRODUCT_NAME}
           </h1>
-          <div>
-            <h2>Welcome back</h2>
-            <p className="site__lead">Sign in to your workspace.</p>
+          <h2>Welcome back</h2>
+          <p className="site__lead">Pick up where your opportunities left off.</p>
+          <ul className="signin__points">
+            {POINTS.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+        </section>
+
+        <div className="signin__panel">
+          <div className="signin-card">
+            <h2>Sign in</h2>
+            <form onSubmit={handleSubmit} className="site__form">
+              <TextField
+                label="Username"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+              <TextField
+                label="Password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              {error && <InlineAlert variant="error">{error}</InlineAlert>}
+              <Button type="submit" variant="primary" disabled={loading}>
+                {loading ? "Signing in…" : "Sign in"}
+              </Button>
+            </form>
+            {/* Passwords are set by the administrator; there is no self-service reset to link to. */}
+            <p className="site__note">Forgot your password? Ask your administrator.</p>
+            <div className="site__divider">or</div>
+            {/* No OAuth integration exists anywhere in this codebase — rendered visibly unavailable, not a fake flow. */}
+            <div className="site__sso">
+              <Button disabled aria-label="Sign in with Microsoft — coming soon">
+                Microsoft (coming soon)
+              </Button>
+              <Button disabled aria-label="Sign in with Google — coming soon">
+                Google (coming soon)
+              </Button>
+            </div>
           </div>
-          <form onSubmit={handleSubmit} className="site__form">
-            <TextField
-              label="Username"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-            <TextField
-              label="Password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            {error && <InlineAlert variant="error">{error}</InlineAlert>}
-            <Button type="submit" variant="primary" disabled={loading}>
-              {loading ? "Signing in…" : "Sign in"}
-            </Button>
-          </form>
-          <div className="site__divider">or</div>
-          {/* No OAuth integration exists anywhere in this codebase — rendered visibly unavailable, not a fake flow. */}
-          <div className="site__sso">
-            <Button disabled aria-label="Sign in with Microsoft — coming soon">
-              Microsoft (coming soon)
-            </Button>
-            <Button disabled aria-label="Sign in with Google — coming soon">
-              Google (coming soon)
-            </Button>
-          </div>
+          <p className="site__back">
+            <Link to="/" className="site__link">
+              ← Back to the home page
+            </Link>
+          </p>
         </div>
-        <p className="site__back">
-          <Link to="/" className="site__link">
-            ← Back to the home page
-          </Link>
-        </p>
       </main>
     </div>
   );

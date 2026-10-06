@@ -37,7 +37,49 @@ describe("Landing", () => {
   });
 });
 
+describe("Landing sections", () => {
+  it("makes every nav link point at a section that exists on the page", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <Landing />
+      </MemoryRouter>,
+    );
+    const nav = screen.getByRole("navigation", { name: /on this page/i });
+    const links = Array.from(nav.querySelectorAll("a"));
+    expect(links.map((a) => a.textContent)).toEqual(["Why", "How it works", "Features"]);
+    for (const a of links) {
+      expect(container.querySelector(a.getAttribute("href")!)).not.toBeNull();
+    }
+  });
+
+  it("draws the mountain path as a described image and lists the five features, with no video promise", () => {
+    render(
+      <MemoryRouter>
+        <Landing />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("img", { name: /mountain path.*discover.*learn/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Turn AI potential into measurable business value.");
+    for (const feature of ["Opportunity Portfolio", "Evidence Explorer", "Hypothesis Engine", "14-Day PoV Pipeline", "Reports & Exports"]) {
+      expect(screen.getByText(feature)).toBeInTheDocument();
+    }
+    expect(screen.queryByText(/watch overview/i)).toBeNull();
+  });
+});
+
 describe("SignIn", () => {
+  it("shows the welcome panel with its value points and says who resets passwords", () => {
+    render(
+      <MemoryRouter>
+        <SignIn onSuccess={() => {}} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("heading", { name: "Welcome back" })).toBeInTheDocument();
+    expect(screen.getByText(/shows its model, date and reasoning/i)).toBeInTheDocument();
+    expect(screen.getByText(/ask your administrator/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
+  });
+
   it("shows SSO providers as disabled, coming-soon controls", () => {
     render(
       <MemoryRouter>
