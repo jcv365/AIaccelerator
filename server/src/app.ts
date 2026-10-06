@@ -9,6 +9,7 @@ import type { AiClient } from "./ai/client.js";
 import { AiClientError, aiErrorStatus } from "./ai/errors.js";
 import { createOpportunitiesRouter } from "./domain/opportunities.js";
 import { createEvidenceListRouter, createExperimentsListRouter } from "./domain/crossLists.js";
+import { createCompaniesRouter } from "./domain/companies.js";
 
 export interface AppDeps {
   pool: Pool;
@@ -112,6 +113,7 @@ export function createApp(deps: AppDeps): Express {
 
   if (deps.prisma) {
     app.use("/opportunities", createOpportunitiesRouter(deps.prisma, deps.aiClient));
+    app.use("/companies", createCompaniesRouter(deps.prisma));
     app.use("/evidence", createEvidenceListRouter(deps.prisma));
     app.use("/experiments", createExperimentsListRouter(deps.prisma));
   }

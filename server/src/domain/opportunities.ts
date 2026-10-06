@@ -5,6 +5,7 @@ import { isValidTransition, validTransitionsFrom, type OpportunityStatus } from 
 import type { AiClient } from "../ai/client.js";
 import { AiClientError, aiErrorStatus } from "../ai/errors.js";
 import { createAnalysisRouter } from "./analysis.js";
+import { parseCompanyIdQuery } from "./companies.js";
 import { EXPERIMENT_STATUSES } from "./experimentStatus.js";
 import { logJson } from "../logger.js";
 import { DATA_NOTICE, dataBlock } from "../ai/promptSafety.js";
@@ -97,8 +98,14 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
 
   router.get(
     "/",
-    asyncHandler(async (_req, res) => {
+    asyncHandler(async (req, res) => {
+      const company = parseCompanyIdQuery(req.query.companyId);
+      if (!company.ok) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "companyId must be a single id" } });
+        return;
+      }
       const opportunities = await prisma.opportunity.findMany({
+        where: company.id ? { companyId: company.id } : undefined,
         orderBy: { createdAt: "desc" },
         include: { _count: { select: { evidence: true, decisions: true } } },
       });
@@ -119,8 +126,22 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
         res.status(400).json({ error: { code: "VALIDATION_ERROR", message: picked.error } });
         return;
       }
+      // Optional: file it under a company. It must be an existing one (never trust the id).
+      let companyId: string | undefined;
+      if (body.companyId !== undefined) {
+        const given = body.companyId;
+        const exists =
+          typeof given === "string" && given.length >= 1 && given.length <= 64
+            ? await prisma.company.findUnique({ where: { id: given } })
+            : null;
+        if (!exists) {
+          res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "companyId must be an existing company" } });
+          return;
+        }
+        companyId = given as string;
+      }
       const opportunity = await prisma.opportunity.create({
-        data: picked.data as { title: string },
+        data: { ...(picked.data as { title: string }), ...(companyId ? { companyId } : {}) },
       });
       res.status(201).json(opportunity);
     })

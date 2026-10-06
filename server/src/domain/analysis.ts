@@ -5,6 +5,7 @@ import type { AiClient } from "../ai/client.js";
 import { AiClientError } from "../ai/errors.js";
 import { DATA_NOTICE, cleanForPrompt } from "../ai/promptSafety.js";
 import { logJson } from "../logger.js";
+import { findOrCreateCompany } from "./companies.js";
 
 // Path of the analysis-specific expert roster as seen by the Conclave container, which mounts the
 // Code folder at /code/all-projects (see conclave/experts-analysis.yaml for why it is a small roster).
@@ -116,7 +117,11 @@ const isNonEmptyString = (v: unknown): v is string => typeof v === "string" && v
 const optionalString = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
 
 /** Stores every valid opportunity (and its valid evidence) atomically; returns the new opportunity ids. */
-async function persistOpportunities(prisma: PrismaClient, parsed: ParsedOpportunity[]): Promise<string[]> {
+async function persistOpportunities(
+  prisma: PrismaClient,
+  parsed: ParsedOpportunity[],
+  companyId?: string
+): Promise<string[]> {
   const valid = parsed.filter(
     (o) => isNonEmptyString(o.title) && isNonEmptyString(o.description) && isNonEmptyString(o.businessProblem)
   );
@@ -132,6 +137,7 @@ async function persistOpportunities(prisma: PrismaClient, parsed: ParsedOpportun
           description: opp.description as string,
           businessProblem: opp.businessProblem as string,
           status: "DISCOVERED",
+          ...(companyId ? { companyId } : {}),
         },
       });
       ids.push(created.id);
@@ -164,7 +170,8 @@ export async function runAnalysisJob(
   prisma: PrismaClient,
   aiClient: AiClient,
   jobId: string,
-  companyName: string
+  companyName: string,
+  companyId?: string
 ): Promise<void> {
   const startedAtMs = Date.now();
   const fail = async (errorCode: string, errorMessage: string) => {
@@ -186,7 +193,7 @@ export async function runAnalysisJob(
       configPath: process.env.COUNCIL_ANALYSIS_CONFIG_PATH || DEFAULT_ANALYSIS_CONFIG_PATH,
       timeoutMs: SESSION_TIMEOUT_MS,
     });
-    const opportunityIds = await persistOpportunities(prisma, parseSynthesis(result.synthesis));
+    const opportunityIds = await persistOpportunities(prisma, parseSynthesis(result.synthesis), companyId);
     await prisma.analysisJob.update({
       where: { id: jobId },
       data: { status: "SUCCEEDED", opportunityIds, completedAt: new Date() },
@@ -233,18 +240,35 @@ export function createAnalysisRouter(prisma: PrismaClient, aiClient?: AiClient):
         res.status(503).json({ error: { code: "AI_NOT_CONFIGURED", message: "AI backend is not configured" } });
         return;
       }
-      const raw = (req.body ?? {}).companyName;
-      const companyName = typeof raw === "string" ? raw.trim() : "";
-      if (!companyName || companyName.length > MAX_COMPANY_NAME_LENGTH) {
-        res.status(400).json({
-          error: {
-            code: "VALIDATION_ERROR",
-            message: `companyName is required (max ${MAX_COMPANY_NAME_LENGTH} characters)`,
-          },
-        });
-        return;
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const validation = (message: string) => ({ error: { code: "VALIDATION_ERROR", message } });
+
+      // The analysis is for a company: either an existing one (companyId) or one named by the user
+      // (companyName), which is found or created below.
+      let existing: { id: string; name: string } | null = null;
+      let companyName = "";
+      if (body.companyId !== undefined) {
+        const given = body.companyId;
+        const found =
+          typeof given === "string" && given.length >= 1 && given.length <= 64
+            ? await prisma.company.findUnique({ where: { id: given } })
+            : null;
+        if (!found) {
+          res.status(400).json(validation("companyId must be an existing company"));
+          return;
+        }
+        existing = found;
+        companyName = found.name;
+      } else {
+        const raw = body.companyName;
+        companyName = typeof raw === "string" ? raw.replace(/\s+/g, " ").trim() : "";
+        if (!companyName || companyName.length > MAX_COMPANY_NAME_LENGTH) {
+          res.status(400).json(validation(`companyName is required (max ${MAX_COMPANY_NAME_LENGTH} characters)`));
+          return;
+        }
       }
-      // The Conclave has a single session slot, so only one analysis may run at a time.
+      // The Conclave has a single session slot, so only one analysis may run at a time. Checked before a
+      // company is created so a rejected request leaves nothing behind.
       const active = await prisma.analysisJob.findFirst({ where: { status: { in: ["QUEUED", "RUNNING"] } } });
       if (active) {
         res.status(409).json({
@@ -252,9 +276,11 @@ export function createAnalysisRouter(prisma: PrismaClient, aiClient?: AiClient):
         });
         return;
       }
-      const job = await prisma.analysisJob.create({ data: { companyName } });
-      void runAnalysisJob(prisma, aiClient, job.id, companyName);
-      res.status(202).json({ jobId: job.id, status: job.status });
+      const company = existing ?? (await findOrCreateCompany(prisma, { name: companyName })).company;
+      companyName = company.name;
+      const job = await prisma.analysisJob.create({ data: { companyName, companyId: company.id } });
+      void runAnalysisJob(prisma, aiClient, job.id, companyName, company.id);
+      res.status(202).json({ jobId: job.id, status: job.status, companyId: company.id });
     })
   );
 
@@ -271,6 +297,7 @@ export function createAnalysisRouter(prisma: PrismaClient, aiClient?: AiClient):
         companyName: job.companyName,
         status: job.status,
         opportunitiesFound: job.opportunityIds.length,
+        companyId: job.companyId,
         opportunityIds: job.opportunityIds,
         error: job.errorCode ? { code: job.errorCode, message: job.errorMessage } : null,
         createdAt: job.createdAt,

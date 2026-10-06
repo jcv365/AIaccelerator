@@ -28,6 +28,10 @@ function makePrisma(overrides: Record<string, unknown> = {}) {
       update: vi.fn().mockResolvedValue({}),
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
+    company: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ id: "co1", ...data })),
+    },
     opportunity: { create: vi.fn().mockResolvedValue({ id: "opp1" }) },
     evidence: { create: vi.fn().mockResolvedValue({}) },
     ...overrides,
@@ -79,9 +83,9 @@ describe("POST /opportunities/analyze", () => {
     const aiClient = { runSession: vi.fn().mockReturnValue(new Promise(() => {})) }; // never resolves
     const res = await request(appWith(prisma, aiClient)).post("/opportunities/analyze").send({ companyName: " Maersk " });
     expect(res.status).toBe(202);
-    expect(res.body).toEqual({ jobId: "job1", status: "QUEUED" });
+    expect(res.body).toEqual({ jobId: "job1", status: "QUEUED", companyId: "co1" });
     expect((prisma.analysisJob as { create: ReturnType<typeof vi.fn> }).create).toHaveBeenCalledWith({
-      data: { companyName: "Maersk" },
+      data: { companyName: "Maersk", companyId: "co1" },
     });
   });
 });

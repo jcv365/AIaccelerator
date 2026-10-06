@@ -53,6 +53,22 @@ model Opportunity {
   decisions       Decision[]
   experiments     Experiment[]
   reports         OpportunityReport[]
+  companyId       String?
+  company         Company?          @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+}
+
+// A company the team is working on. Opportunities and analyses are filed under one. nameKey is the
+// name trimmed, whitespace-collapsed and lower-cased, so "Maersk", "maersk" and " MAERSK " are one company.
+model Company {
+  id            String        @id @default(cuid())
+  name          String
+  nameKey       String        @unique
+  website       String?
+  createdAt     DateTime      @default(now())
+  opportunities Opportunity[]
+  analysisJobs  AnalysisJob[]
 }
 
 // An AI-generated report for an opportunity. Every generation is kept; the newest is the one shown.
@@ -127,6 +143,10 @@ model AnalysisJob {
   createdAt      DateTime          @default(now())
   startedAt      DateTime?
   completedAt    DateTime?
+  companyId      String?
+  company        Company?          @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
 }
 
 model Learning {
