@@ -12,7 +12,7 @@ locked_briefs: []
 direction_approved: 2026-10-01
 screens_total: 19
 screens_done: 19
-last_run: 2026-10-05
+last_run: 2026-10-06
 ---
 ## Inventory notes
 
@@ -66,3 +66,4 @@ This is richer than the plan's initial read: the backend already covers report g
 - **ADM-01, APP-NOAI, APP-EVID, APP-POV, APP-HYP, APP-REPORTS, SITE-01, SITE-02** (2026-10-05): built and reviewed pass. New pages under `client/src/pages/{admin,app,site}/`, routes wired in `App.tsx` (unauthenticated: `/` Landing, `/sign-in`; authenticated: `/app/*`, `/admin/health`), SidebarNav "Soon" items replaced with real links plus a System Health link. Placeholder contracts, stated in-UI rather than faked: evidence quality scoring, structured AI decision recommendations, the 6 non-narrative reports/exports, SSO, demo booking. `App.test.tsx` now starts at `/sign-in` and uses the "Sign in" label (same intent). 26 new client tests; client 66/66, typecheck/lint clean, slop-scan clean on all 12 touched UI files.
 - **Environment note**: removed 39 untracked, tsc-emitted `client/src/**/*.js` files (all had a `.ts/.tsx` sibling; none tracked). They shadowed the TypeScript source in Vite/Vitest resolution (a stale `App.js` made the new router invisible to tests) and tripped ESLint. Root cause: `client/tsconfig.json` has no `noEmit`/`outDir`, so any bare `tsc` run re-creates them. Not changed here.
 - `screens_done: 19` of 19. Backlog complete.
+- **status re-run** (2026-10-06): 19/19 screens `review: pass`, 0 pending; every SCREENS.md route is present in `client/src/App.tsx`. Seven commits landed after `d7bbd6a` outside product-atlas (login rate limiting/helmet, prompt-injection hardening, experiment/learning edit-delete with single-source statuses, report persistence, nginx cache headers, SPA required-field fix). **Drift to resolve**: `docs/mockups/` (commits 2711b32, 5d740ca) holds mockups for a new company-analysis journey — intake, progress, results, plus C-level/technical slide and proposal deliverables — marked "pending approval". None of those screens exist in SCREENS.md, and the slide/proposal outputs are new scope, not restyles. Not built; `build` stays gated on that approval and on a `map`/`inventory` pass that adds the screens. Next command: once the mockups are approved, `map` (extend journeys), then `inventory`.

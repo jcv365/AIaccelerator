@@ -13,7 +13,8 @@ services:
       timeout: 3s
       retries: 5
     ports:
-      - "5434:5432"
+      # Loopback only: the database must never be reachable from the network.
+      - "127.0.0.1:5434:5432"
 
   server:
     build:
@@ -40,7 +41,8 @@ services:
       timeout: 3s
       retries: 5
     ports:
-      - "4000:4000"
+      # Loopback only: the API is reached through the client's nginx (and, publicly, through the WAF).
+      - "127.0.0.1:4000:4000"
 
   client:
     build: ./client
@@ -48,7 +50,19 @@ services:
       server:
         condition: service_healthy
     ports:
-      - "8080:80"
+      # Loopback only for local use. Public traffic arrives through the shared WAF over placements_gateway.
+      - "127.0.0.1:8080:80"
+    networks:
+      default: {}
+      placements_gateway:
+        # Stable name the WAF routes aiaccel.dotcloud.africa to (see the WAF's proxy_backend.conf).
+        aliases:
+          - aiaccelerator-web
+
+networks:
+  # Shared with the WAF and the other published apps (created by the placement stack).
+  placements_gateway:
+    external: true
 
 volumes:
   pgdata:
