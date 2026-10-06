@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-10-06T08:10:42.640Z",
+        "reason": "mockups mirror the product's existing font (DESIGN.md and client/src/styles/tokens.css use Inter); the user pinned Inter on 2026-09-30 per implement.md Decisions Log; not a new typeface choice"
+      }
+    ]
+  }
+}
