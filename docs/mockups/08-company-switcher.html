@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Mockup 8 - Company switcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockup.css">
+<style>
+  .state { width: 1200px; margin: 0 auto 28px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .state h2 { margin: 0; padding: 14px 24px; font-size: 13px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface); }
+  .topbar { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--border); }
+  .topbar .lbl { font-size: 12px; color: var(--muted); }
+  .pick { position: relative; }
+  .pick .field { min-width: 240px; height: 40px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 13px; font-weight: 600; }
+  .menu { position: absolute; right: 0; top: 46px; width: 280px; background: var(--raised); border: 1px solid var(--border); border-radius: 10px; padding: 6px; box-shadow: 0 2px 4px rgba(0,0,0,.3), 0 16px 32px -8px rgba(0,0,0,.45); z-index: 2; }
+  .menu .opt { padding: 9px 10px; border-radius: 8px; font-size: 13px; color: var(--soft); display: flex; justify-content: space-between; }
+  .menu .opt.sel { background: var(--surface); color: var(--text); font-weight: 600; }
+  .menu hr { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
+  .menu .add { color: #8fb4ff; font-weight: 600; }
+  .body { padding: 24px; display: flex; gap: 24px; min-height: 250px; }
+  .pop { width: 420px; background: var(--raised); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 2px 4px rgba(0,0,0,.3), 0 16px 32px -8px rgba(0,0,0,.45); }
+  .pop h3 { margin: 0; font-size: 16px; }
+  .field-row { display: flex; flex-direction: column; gap: 6px; }
+  .field-row .in { height: 40px; padding: 0 12px; display: flex; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; color: var(--text); }
+  .field-row .in.ph { color: var(--muted); }
+  .field-row .hint { font-size: 11.5px; color: var(--muted); }
+  .note { padding: 10px 12px; border-radius: 8px; font-size: 12.5px; border: 1px solid rgba(59,130,246,.35); background: rgba(59,130,246,.10); color: #cfe0ff; }
+  .acts { display: flex; justify-content: flex-end; gap: 10px; }
+  .page-ghost { flex: 1; display: flex; flex-direction: column; gap: 10px; color: var(--muted); font-size: 13px; }
+  .ghost-card { height: 44px; border: 1px dashed var(--border); border-radius: 10px; }
+  .empty { flex: 1; padding: 36px; text-align: center; border: 1px dashed var(--border); border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+</style>
+</head>
+<body>
+<div class="caption">8 · Company switcher in the top bar: three states. <a href="index.html">All mockups</a> · <a href="03-results.html">results</a></div>
+
+<div class="state">
+  <h2>A · Dropdown open: pick a company, or add one</h2>
+  <div class="topbar">
+    <span class="lbl">Company</span>
+    <div class="pick">
+      <div class="field"><span>Maersk</span><span style="color:var(--muted)">▾</span></div>
+      <div class="menu">
+        <div class="opt sel"><span>Maersk</span><span style="color:var(--green)">✓</span></div>
+        <div class="opt"><span>Acme Manufacturing</span></div>
+        <hr>
+        <div class="opt add">+ Add company…</div>
+      </div>
+    </div>
+  </div>
+  <div class="body" style="min-height:190px">
+    <div class="page-ghost"><div>Every screen below the top bar shows only the selected company's data.</div></div>
+  </div>
+</div>
+
+<div class="state">
+  <h2>B · The add form (a duplicate name selects the existing company instead of creating a second one)</h2>
+  <div class="topbar"><span class="lbl">Company</span><div class="pick"><div class="field"><span>Maersk</span><span style="color:var(--muted)">▾</span></div></div></div>
+  <div class="body">
+    <div class="pop">
+      <h3>Add a company</h3>
+      <div class="field-row"><div class="label">Company name</div><div class="in">Maersk</div></div>
+      <div class="field-row"><div class="label">Website <span style="color:var(--muted);font-weight:400">(optional)</span></div><div class="in ph">e.g. maersk.com</div><div class="hint">Helps the research find the right company.</div></div>
+      <div class="note">“Maersk” already exists, so we selected it for you instead of adding a second one.</div>
+      <div class="acts"><span class="btn secondary sm">Cancel</span><span class="btn sm">Add company</span></div>
+    </div>
+    <div class="page-ghost"><div class="ghost-card"></div><div class="ghost-card"></div><div class="ghost-card"></div></div>
+  </div>
+</div>
+
+<div class="state">
+  <h2>C · First visit, no companies yet (the made-up “ABC Manufacturing” is gone)</h2>
+  <div class="topbar"><span class="lbl">Company</span><span class="btn sm">+ Add your first company</span></div>
+  <div class="body">
+    <div class="empty">
+      <div style="font-size:18px;font-weight:600;color:var(--text)">No company yet</div>
+      <div style="max-width:420px;line-height:1.55">Add the company you want to work on, or go to New analysis and type its name there. We create it for you.</div>
+      <span class="btn sm">Add a company</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
