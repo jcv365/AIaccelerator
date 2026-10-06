@@ -9,6 +9,7 @@ import { parseCompanyIdQuery } from "./companies.js";
 import { EXPERIMENT_STATUSES } from "./experimentStatus.js";
 import { logJson } from "../logger.js";
 import { DATA_NOTICE, dataBlock } from "../ai/promptSafety.js";
+import { computeEvidenceScore } from "../scoring/evidenceScore.js";
 
 // Bounds for text placed into the report prompt (keeps prompts small and limits what injected text can carry).
 const REPORT_FIELD_CHARS = 2000;
@@ -26,10 +27,40 @@ const EDITABLE_FIELDS = [
   "risks",
   "owner",
   "hypothesis",
+  "category",
 ] as const;
+
+const PRIORITY_VALUES = ["HIGH", "MEDIUM", "LOW"];
+const MAX_ANNUAL_VALUE = 1_000_000_000_000;
+const MAX_TEAM = 10;
+
+/** A team list: up to 10 short names. Returns null when the value is not a valid list. */
+function parseTeam(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length > MAX_TEAM) return null;
+  const names: string[] = [];
+  for (const v of value) {
+    if (typeof v !== "string" || v.trim() === "" || v.length > 60) return null;
+    names.push(v.trim());
+  }
+  return names;
+}
 
 function pickEditableFields(body: Record<string, unknown>): { data: Record<string, unknown>; error?: string } {
   const result: Record<string, unknown> = {};
+  if ("estimatedAnnualValue" in body) {
+    const v = body.estimatedAnnualValue;
+    if (v !== null && v !== undefined && (typeof v !== "number" || !Number.isInteger(v) || v < 0 || v > MAX_ANNUAL_VALUE)) {
+      return { data: {}, error: "estimatedAnnualValue must be a whole number of rand, 0 or more" };
+    }
+    result.estimatedAnnualValue = v;
+  }
+  if ("priority" in body) {
+    const v = body.priority;
+    if (v !== null && v !== undefined && (typeof v !== "string" || !PRIORITY_VALUES.includes(v))) {
+      return { data: {}, error: `priority must be one of ${PRIORITY_VALUES.join(", ")}` };
+    }
+    result.priority = v;
+  }
   for (const field of EDITABLE_FIELDS) {
     if (field in body) {
       const value = body[field];
@@ -61,6 +92,18 @@ function pickExperimentUpdateFields(body: Record<string, unknown>): { data: Reco
       return { data: {}, error: `status must be one of ${EXPERIMENT_STATUSES.join(", ")}` };
     }
     result.status = body.status;
+  }
+  if ("plannedDays" in body) {
+    const v = body.plannedDays;
+    if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > 90) {
+      return { data: {}, error: "plannedDays must be a whole number from 1 to 90" };
+    }
+    result.plannedDays = v;
+  }
+  if ("team" in body) {
+    const parsed = parseTeam(body.team);
+    if (!parsed) return { data: {}, error: "team must be a list of up to 10 names" };
+    result.team = parsed;
   }
   // For the optional fields below, null clears the value back to empty.
   if ("resultSummary" in body) {
@@ -107,9 +150,21 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
       const opportunities = await prisma.opportunity.findMany({
         where: company.id ? { companyId: company.id } : undefined,
         orderBy: { createdAt: "desc" },
-        include: { _count: { select: { evidence: true, decisions: true } } },
+        include: {
+          _count: { select: { evidence: true, decisions: true } },
+          evidence: { select: { quality: true, confidence: true, capturedAt: true } },
+          assessments: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
       });
-      res.status(200).json(opportunities);
+      // The list carries the computed evidence score and the latest AI assessment; the raw evidence
+      // rows used to compute the score are not sent.
+      res.status(200).json(
+        opportunities.map(({ evidence, assessments, ...opportunity }) => ({
+          ...opportunity,
+          evidenceScore: computeEvidenceScore(evidence ?? []),
+          latestAssessment: assessments?.[0] ?? null,
+        }))
+      );
     })
   );
 
@@ -387,8 +442,25 @@ Write a concise report (3-5 paragraphs) summarizing the opportunity, the strengt
         res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "title and method are required" } });
         return;
       }
+      let plannedDays: number | undefined;
+      if (body.plannedDays !== undefined) {
+        if (typeof body.plannedDays !== "number" || !Number.isInteger(body.plannedDays) || body.plannedDays < 1 || body.plannedDays > 90) {
+          res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "plannedDays must be a whole number from 1 to 90" } });
+          return;
+        }
+        plannedDays = body.plannedDays;
+      }
+      let team: string[] | undefined;
+      if (body.team !== undefined) {
+        const parsed = parseTeam(body.team);
+        if (!parsed) {
+          res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "team must be a list of up to 10 names" } });
+          return;
+        }
+        team = parsed;
+      }
       const experiment = await prisma.experiment.create({
-        data: { opportunityId: req.params.id, title: body.title, method: body.method },
+        data: { opportunityId: req.params.id, title: body.title, method: body.method, ...(plannedDays ? { plannedDays } : {}), ...(team ? { team } : {}) },
       });
       res.status(201).json(experiment);
     })

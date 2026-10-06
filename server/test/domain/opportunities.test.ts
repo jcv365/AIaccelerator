@@ -30,10 +30,123 @@ describe("GET /opportunities", () => {
     const res = await request(app).get("/opportunities");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual([{ id: "1", title: "A" }]);
+    // Rows without evidence or assessments carry a null score and no assessment.
+    expect(res.body).toEqual([{ id: "1", title: "A", evidenceScore: null, latestAssessment: null }]);
     expect(prisma.opportunity.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ orderBy: { createdAt: "desc" } })
     );
+  });
+
+  it("adds the computed evidence score and the latest assessment, and does not leak the raw evidence rows", async () => {
+    const quality = { credibility: "HIGH", applicability: "HIGH", depth: "HIGH", relevance: "HIGH", rationale: "" };
+    const prisma = {
+      opportunity: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "1",
+            title: "A",
+            evidence: [{ quality, confidence: null, capturedAt: new Date() }],
+            assessments: [{ id: "a1", recommendation: "PROCEED_TO_POV" }],
+          },
+        ]),
+      },
+    };
+
+    const res = await request(appWithPrisma(prisma)).get("/opportunities");
+
+    expect(res.body[0].evidenceScore).toBe(100);
+    expect(res.body[0].latestAssessment).toEqual({ id: "a1", recommendation: "PROCEED_TO_POV" });
+    expect(res.body[0]).not.toHaveProperty("evidence");
+    expect(res.body[0]).not.toHaveProperty("assessments");
+  });
+});
+
+describe("PATCH /opportunities/:id scoring fields", () => {
+  const existing = { id: "1", title: "A" };
+
+  it("saves category, a whole-rand value and a priority", async () => {
+    const prisma = {
+      opportunity: {
+        findUnique: vi.fn().mockResolvedValue(existing),
+        update: vi.fn().mockResolvedValue({ ...existing, category: "Finance" }),
+      },
+    };
+
+    const res = await request(appWithPrisma(prisma))
+      .patch("/opportunities/1")
+      .send({ category: "Finance", estimatedAnnualValue: 1200000, priority: "HIGH" });
+
+    expect(res.status).toBe(200);
+    expect(prisma.opportunity.update).toHaveBeenCalledWith({
+      where: { id: "1" },
+      data: { category: "Finance", estimatedAnnualValue: 1200000, priority: "HIGH" },
+    });
+  });
+
+  it.each([
+    [{ estimatedAnnualValue: 1.5 }, "estimatedAnnualValue"],
+    [{ estimatedAnnualValue: -1 }, "estimatedAnnualValue"],
+    [{ estimatedAnnualValue: "100" }, "estimatedAnnualValue"],
+    [{ priority: "URGENT" }, "priority"],
+    [{ category: 5 }, "category"],
+  ])("rejects %j with a 400 naming the field", async (body, field) => {
+    const prisma = { opportunity: { findUnique: vi.fn().mockResolvedValue(existing), update: vi.fn() } };
+
+    const res = await request(appWithPrisma(prisma)).patch("/opportunities/1").send(body);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toContain(field);
+    expect(prisma.opportunity.update).not.toHaveBeenCalled();
+  });
+
+  it("clears the value and priority when null is sent", async () => {
+    const prisma = {
+      opportunity: { findUnique: vi.fn().mockResolvedValue(existing), update: vi.fn().mockResolvedValue(existing) },
+    };
+
+    await request(appWithPrisma(prisma)).patch("/opportunities/1").send({ estimatedAnnualValue: null, priority: null });
+
+    expect(prisma.opportunity.update).toHaveBeenCalledWith({
+      where: { id: "1" },
+      data: { estimatedAnnualValue: null, priority: null },
+    });
+  });
+});
+
+describe("experiment plannedDays and team", () => {
+  it("creates an experiment with a planned length and team", async () => {
+    const prisma = {
+      opportunity: { findUnique: vi.fn().mockResolvedValue({ id: "1" }) },
+      experiment: { create: vi.fn().mockResolvedValue({ id: "x1" }) },
+    };
+
+    const res = await request(appWithPrisma(prisma))
+      .post("/opportunities/1/experiments")
+      .send({ title: "t", method: "m", plannedDays: 21, team: ["Ann Lee", "Bo Chen"] });
+
+    expect(res.status).toBe(201);
+    expect(prisma.experiment.create).toHaveBeenCalledWith({
+      data: { opportunityId: "1", title: "t", method: "m", plannedDays: 21, team: ["Ann Lee", "Bo Chen"] },
+    });
+  });
+
+  it.each([
+    [{ plannedDays: 0 }],
+    [{ plannedDays: 91 }],
+    [{ plannedDays: 7.5 }],
+    [{ team: "Ann" }],
+    [{ team: [""] }],
+    [{ team: Array.from({ length: 11 }, (_, i) => `P${i}`) }],
+  ])("rejects %j", async (extra) => {
+    const prisma = {
+      opportunity: { findUnique: vi.fn().mockResolvedValue({ id: "1" }) },
+      experiment: { create: vi.fn() },
+    };
+
+    const res = await request(appWithPrisma(prisma)).post("/opportunities/1/experiments").send({ title: "t", method: "m", ...extra });
+
+    expect(res.status).toBe(400);
+    expect(prisma.experiment.create).not.toHaveBeenCalled();
   });
 });
 

@@ -10,6 +10,12 @@ import { AiClientError, aiErrorStatus } from "./ai/errors.js";
 import { createOpportunitiesRouter } from "./domain/opportunities.js";
 import { createEvidenceListRouter, createExperimentsListRouter } from "./domain/crossLists.js";
 import { createCompaniesRouter } from "./domain/companies.js";
+import {
+  createExportRouter,
+  createOpportunityScoringRouter,
+  createReadinessRouter,
+  createStandardReportsRouter,
+} from "./scoring/routes.js";
 
 export interface AppDeps {
   pool: Pool;
@@ -112,6 +118,11 @@ export function createApp(deps: AppDeps): Express {
   });
 
   if (deps.prisma) {
+    // Scoring routes are mounted first; anything they do not handle falls through to the routers below.
+    app.use("/opportunities", createOpportunityScoringRouter(deps.prisma, deps.aiClient));
+    app.use("/readiness", createReadinessRouter(deps.prisma, deps.aiClient));
+    app.use("/reports/standard", createStandardReportsRouter(deps.prisma, deps.aiClient));
+    app.use("/exports", createExportRouter(deps.prisma));
     app.use("/opportunities", createOpportunitiesRouter(deps.prisma, deps.aiClient));
     app.use("/companies", createCompaniesRouter(deps.prisma));
     app.use("/evidence", createEvidenceListRouter(deps.prisma));

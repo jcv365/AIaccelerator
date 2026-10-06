@@ -53,10 +53,81 @@ model Opportunity {
   decisions       Decision[]
   experiments     Experiment[]
   reports         OpportunityReport[]
+  assessments     OpportunityAssessment[]
+  category        String?
+  // Whole rand per year. User-entered; the AI assessment keeps its own estimate separately.
+  estimatedAnnualValue Int?
+  priority        Priority?
   companyId       String?
   company         Company?          @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
+}
+
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum Recommendation {
+  PROCEED_TO_POV
+  INVESTIGATE
+  STOP
+  NO_AI
+}
+
+enum Level {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+// An AI assessment of one opportunity. Every run is kept; the newest is the one shown.
+model OpportunityAssessment {
+  id                    String         @id @default(cuid())
+  opportunityId         String
+  opportunity           Opportunity    @relation(fields: [opportunityId], references: [id])
+  category              String
+  estimatedAnnualValue  Int?
+  priority              Priority
+  recommendation        Recommendation
+  confidence            Float
+  effort                Level
+  risk                  Level
+  whyBelieve            String[]
+  couldDisprove         String[]
+  rationale             String
+  model                 String
+  createdAt             DateTime       @default(now())
+
+  @@index([opportunityId, createdAt])
+}
+
+// An AI assessment of AI readiness, for one company or (companyId null) the whole portfolio.
+// dimensions: { key: { score: 0-100, basis: string } } for the five readiness dimensions.
+model ReadinessAssessment {
+  id        String   @id @default(cuid())
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+  overall   Int
+  dimensions Json
+  rationale String
+  model     String
+  createdAt DateTime @default(now())
+
+  @@index([companyId, createdAt])
+}
+
+// A generated portfolio-level report (executive summary, portfolio, evidence, PoV results, ROI).
+model StandardReport {
+  id        String   @id @default(cuid())
+  type      String
+  content   String
+  model     String
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
 }
 
 // A company the team is working on. Opportunities and analyses are filed under one. nameKey is the
@@ -70,6 +141,7 @@ model Company {
   opportunities Opportunity[]
   analysisJobs  AnalysisJob[]
   reports       CompanyReport[]
+  readiness     ReadinessAssessment[]
 }
 
 enum CompanyReportStatus {
@@ -150,6 +222,10 @@ model Evidence {
   location      String?
   excerpt       String?
   capturedAt    DateTime     @default(now())
+  // AI quality assessment: { credibility, applicability, depth, relevance: "HIGH"|"MEDIUM"|"LOW", rationale }.
+  quality       Json?
+  qualityModel  String?
+  qualityAt     DateTime?
 }
 
 model Decision {
@@ -177,6 +253,8 @@ model Experiment {
   success       Boolean?
   startedAt     DateTime?
   completedAt   DateTime?
+  plannedDays   Int              @default(14)
+  team          String[]         @default([])
   learnings     Learning[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
