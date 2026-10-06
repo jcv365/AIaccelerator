@@ -102,7 +102,15 @@ describe("ReportPanel", () => {
 
 describe("AppShell phone menu", () => {
   it("toggles the navigation panel from the Menu button and closes it after following a link", () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ status: "ok" }) }));
+    // The shell loads the company list as well as the health probe, so answer each with its own shape.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (url: string) => ({
+        ok: true,
+        status: 200,
+        json: async () => (String(url).includes("/companies") ? [] : { status: "ok" }),
+      })),
+    );
     render(
       <MemoryRouter initialEntries={["/app"]}>
         <AppShell onLogout={() => {}}>

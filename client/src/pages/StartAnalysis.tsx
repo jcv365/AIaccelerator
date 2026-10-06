@@ -71,7 +71,6 @@ export default function StartAnalysis({ pollIntervalMs = 5000 }: { pollIntervalM
   const currentName = current?.name;
   useEffect(() => {
     if (currentName && !isRunning) setCompanyName(currentName);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentId, currentName]);
 
   // Poll the background job until it finishes; the analysis itself runs server-side for minutes.

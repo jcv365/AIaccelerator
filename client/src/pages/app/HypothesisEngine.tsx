@@ -66,7 +66,6 @@ export default function HypothesisEngine() {
       })
       .catch(() => setError("Could not load opportunities."))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
 
   useEffect(() => {

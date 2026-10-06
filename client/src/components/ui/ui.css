@@ -500,3 +500,148 @@ select.text-field__input {
 .report-panel__body p + p {
   margin-top: var(--space-3);
 }
+
+/* Progress bar: a known fraction (days elapsed, a score). The track and fill are decorative; the value is in aria-valuenow. */
+.progress-bar {
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  border-radius: 6px;
+  background: var(--color-accent);
+}
+
+.progress-bar__fill--success {
+  background: var(--color-success);
+}
+
+.progress-bar__fill--caution {
+  background: var(--color-caution);
+}
+
+.progress-bar__fill--danger {
+  background: var(--color-danger);
+}
+
+.progress-bar__fill--purple {
+  background: var(--color-accent-purple);
+}
+
+/* Bar list: label, bar, value per row. */
+.bar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bar-list__row {
+  display: grid;
+  grid-template-columns: minmax(110px, 30%) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.bar-list__label {
+  color: var(--color-text-muted);
+}
+
+.bar-list__track {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bar-list__fill {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--color-accent);
+}
+
+.bar-list__value {
+  min-width: 2ch;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Initials circles for a team. */
+.avatars {
+  display: inline-flex;
+}
+
+.avatars__item {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--color-surface);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.avatars__item:first-child {
+  margin-left: 0;
+}
+
+.avatars__item--more {
+  color: var(--color-text-muted);
+}
+
+.priority-unset {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* AI attribution: who produced a number, when, and why. */
+.ai-note {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.ai-note p {
+  margin: 0;
+}
+
+.ai-note__details {
+  margin-top: var(--space-1);
+}
+
+.ai-note__details summary {
+  cursor: pointer;
+  color: var(--color-accent);
+}
+
+.ai-note__details p {
+  margin-top: var(--space-1);
+  max-width: 68ch;
+  white-space: pre-wrap;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.pagination__controls {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
