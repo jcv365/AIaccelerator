@@ -51,6 +51,35 @@ export function makeFacts(): Facts {
   };
 }
 
+/**
+ * What a well-behaved model would answer for one generation section (see generate.ts), built from the valid
+ * content. Opportunity replies deliberately carry fields the model must NOT control, so tests prove code overwrites them.
+ */
+export function sectionReply(section: string): unknown {
+  const valid = makeValidContent();
+  if (section.startsWith("opportunity:")) {
+    const entry = valid.opportunities.find((o) => o.opportunityId === section.slice("opportunity:".length))!;
+    return { ...entry, rank: 9, evidence: { facts: 99, inferences: 99, assumptions: 99, hypotheses: 99 }, sourceIds: ["S9"] };
+  }
+  switch (section) {
+    case "company":
+      return { summary: valid.company.summary };
+    case "priorities":
+      return { priorities: valid.priorities };
+    case "executive":
+      return valid.executive;
+    case "roadmap":
+      return valid.roadmap;
+    case "risks":
+      return { risks: valid.risks };
+    case "technical":
+      return valid.technical;
+    case "notes":
+      return { evidenceNote: valid.evidenceNote, assumptions: valid.assumptions, openQuestions: valid.openQuestions, glossary: valid.glossary };
+  }
+  throw new Error(`unexpected section ${section}`);
+}
+
 /** A report content that satisfies the schema and every quality gate against makeFacts(). */
 export function makeValidContent(): ReportContent {
   return {

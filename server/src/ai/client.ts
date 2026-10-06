@@ -25,7 +25,8 @@ export interface SessionOptions {
 }
 
 export interface AiClient {
-  quickAsk(model: string, system: string, prompt: string, timeoutMs?: number): Promise<QuickAskResult>;
+  /** configPath selects a Conclave-side roster (e.g. one with a larger Fusion token cap); omit for the default. */
+  quickAsk(model: string, system: string, prompt: string, timeoutMs?: number, configPath?: string): Promise<QuickAskResult>;
   runSession(goal: string, webResearch?: boolean, opts?: SessionOptions): Promise<SessionResult>;
 }
 
@@ -92,11 +93,11 @@ function mapStatusToError(status: number): AiClientError {
 
 export function createAiClient(config: AiClientConfig): AiClient {
   return {
-    async quickAsk(model, system, prompt, timeoutMs = 30_000) {
+    async quickAsk(model, system, prompt, timeoutMs = 30_000, configPath) {
       const res = await postJson(
         `${config.baseUrl}/api/external/quick`,
         config.apiKey,
-        { model, system, prompt },
+        { model, system, prompt, ...(configPath ? { config_path: configPath } : {}) },
         timeoutMs
       );
       if (!res.ok) throw mapStatusToError(res.status);

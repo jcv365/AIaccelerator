@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Mockup 9 - Company reports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockup.css">
+<style>
+  .state { width: 1200px; margin: 0 auto 28px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .state h2 { margin: 0; padding: 14px 24px; font-size: 13px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface); }
+  .pg { padding: 24px 32px 32px; display: flex; flex-direction: column; gap: 18px; }
+  .pg h1 { margin: 0; font-size: 22px; }
+  .pg .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .badge { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); }
+  .badge.draft { color: var(--orange); border-color: rgba(251,146,60,.5); background: rgba(251,146,60,.1); }
+  .badge.ok { color: var(--green); border-color: rgba(52,211,153,.5); background: rgba(52,211,153,.1); }
+  .badge.bad { color: var(--red); border-color: rgba(248,113,113,.5); background: rgba(248,113,113,.1); }
+  .files { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .file { background: var(--raised); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .file .k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .file .n { font-size: 14px; font-weight: 600; }
+  .file .m { font-size: 12px; color: var(--muted); }
+  .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; font-size: 13px; color: var(--soft); }
+  .checks .ok::before { content: "✓ "; color: var(--green); }
+  .checks .no::before { content: "✕ "; color: var(--red); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--soft); }
+  .bar { height: 8px; border-radius: 4px; background: var(--raised); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 62%; background: var(--blue); }
+  .note { padding: 10px 12px; border-radius: 8px; font-size: 12.5px; border: 1px solid rgba(251,146,60,.35); background: rgba(251,146,60,.08); color: #fde2c7; }
+</style>
+</head>
+<body>
+<div class="caption">9 · Reports &amp; Exports, now per company (replaces the per-opportunity report screen). Four states. <a href="index.html">All mockups</a> · <a href="08-company-switcher.html">← company switcher</a></div>
+
+<div class="state">
+  <h2>A · A finished draft: four downloads, quality checks, approve</h2>
+  <div class="pg">
+    <div class="head">
+      <div><h1>Reports &amp; Exports</h1><div class="sub">Maersk · one report set for the whole company: executive briefing and technical briefing, as a deck and a proposal.</div></div>
+      <span class="btn sm">Write a new version</span>
+    </div>
+    <div class="card">
+      <div class="row"><strong style="font-size:16px">Version 2</strong><span class="badge draft">Draft: AI-generated, verify before sharing</span><span style="color:var(--muted);font-size:12.5px">Written 6 Oct 2026, 3 opportunities, 11 public sources</span></div>
+      <div class="note">Read the files before they go to a client. Approving locks this version and removes the draft mark from all four files.</div>
+      <div class="files">
+        <div class="file"><div class="k">C-level</div><div class="n">Deck (.pptx)</div><div class="m">0.4 MB</div><span class="btn secondary sm">Download</span></div>
+        <div class="file"><div class="k">C-level</div><div class="n">Proposal (.docx)</div><div class="m">0.1 MB</div><span class="btn secondary sm">Download</span></div>
+        <div class="file"><div class="k">Technical</div><div class="n">Deck (.pptx)</div><div class="m">0.4 MB</div><span class="btn secondary sm">Download</span></div>
+        <div class="file"><div class="k">Technical</div><div class="n">Proposal (.docx)</div><div class="m">0.1 MB</div><span class="btn secondary sm">Download</span></div>
+      </div>
+      <div class="row"><span class="btn sm">Approve this version</span></div>
+    </div>
+    <div class="card">
+      <strong>Quality checks (all passed)</strong>
+      <div class="checks"><div class="ok">All sections present</div><div class="ok">Evidence counts match the database</div><div class="ok">Every cited source exists</div><div class="ok">No invented figures</div><div class="ok">No placeholder text</div><div class="ok">Text fits slides and pages</div></div>
+    </div>
+    <div class="card">
+      <strong>Versions</strong>
+      <table><tr><th>Version</th><th>Status</th><th>Written</th><th></th></tr>
+        <tr><td>2</td><td><span class="badge draft">Draft</span></td><td>6 Oct 2026</td><td>Shown above</td></tr>
+        <tr><td>1</td><td><span class="badge ok">Approved by admin</span></td><td>5 Oct 2026</td><td><span class="btn secondary sm">Show</span></td></tr></table>
+    </div>
+  </div>
+</div>
+
+<div class="state">
+  <h2>B · Being written (10 to 20 minutes, safe to leave the page)</h2>
+  <div class="pg">
+    <div class="head"><div><h1>Reports &amp; Exports</h1><div class="sub">Maersk</div></div></div>
+    <div class="card">
+      <div class="row"><strong style="font-size:16px">Version 3</strong><span class="badge">Writing…</span></div>
+      <div style="font-size:13.5px;color:var(--soft)">Writing opportunity 2 of 3: Zero-touch customs and trade compliance</div>
+      <div class="bar"><i></i></div>
+      <div style="font-size:12px;color:var(--muted)">Each section is written, checked and repaired separately; nothing is shown until every quality check passes.</div>
+    </div>
+  </div>
+</div>
+
+<div class="state">
+  <h2>C · Failed a quality check (the reason is shown, no files are offered)</h2>
+  <div class="pg">
+    <div class="head"><div><h1>Reports &amp; Exports</h1><div class="sub">Maersk</div></div><span class="btn sm">Write a new version</span></div>
+    <div class="card">
+      <div class="row"><strong style="font-size:16px">Version 3</strong><span class="badge bad">Did not pass quality checks</span></div>
+      <div class="checks"><div class="ok">All sections present</div><div class="no">Every figure comes from the saved facts</div><div class="ok">Every cited source exists</div><div class="ok">No placeholder text</div></div>
+      <div style="font-size:13px;color:var(--soft)">“30%” in opportunities.0.whyItMatters is not in the saved facts.</div>
+    </div>
+  </div>
+</div>
+
+<div class="state">
+  <h2>D · Nothing to report on yet</h2>
+  <div class="pg">
+    <div class="head"><div><h1>Reports &amp; Exports</h1><div class="sub">Maersk</div></div></div>
+    <div class="card" style="align-items:center;padding:36px;text-align:center">
+      <div style="font-size:17px;font-weight:600">No opportunities for Maersk yet</div>
+      <div style="color:var(--muted);max-width:440px;font-size:13.5px;line-height:1.55">Run an analysis first. A report brings together all of a company's opportunities, evidence, decisions and experiments.</div>
+      <span class="btn sm">Start an analysis</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

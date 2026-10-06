@@ -10,6 +10,7 @@ import { AiClientError, aiErrorStatus } from "./ai/errors.js";
 import { createOpportunitiesRouter } from "./domain/opportunities.js";
 import { createEvidenceListRouter, createExperimentsListRouter } from "./domain/crossLists.js";
 import { createCompaniesRouter } from "./domain/companies.js";
+import { createReportsRouter } from "./reporting/routes.js";
 import {
   createExportRouter,
   createOpportunityScoringRouter,
@@ -125,6 +126,7 @@ export function createApp(deps: AppDeps): Express {
     app.use("/exports", createExportRouter(deps.prisma));
     app.use("/opportunities", createOpportunitiesRouter(deps.prisma, deps.aiClient));
     app.use("/companies", createCompaniesRouter(deps.prisma));
+    app.use("/reports", createReportsRouter(deps.prisma, deps.aiClient, { approver: deps.adminUsername }));
     app.use("/evidence", createEvidenceListRouter(deps.prisma));
     app.use("/experiments", createExperimentsListRouter(deps.prisma));
   }

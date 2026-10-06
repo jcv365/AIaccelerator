@@ -4,6 +4,7 @@ import { createPool } from "./db.js";
 import { createAiClient } from "./ai/client.js";
 import { createPrismaClient } from "./db/prisma.js";
 import { reconcileInterruptedJobs } from "./domain/analysis.js";
+import { reconcileInterruptedReports } from "./reporting/service.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -32,6 +33,10 @@ const app = createApp({
 reconcileInterruptedJobs(prisma)
   .then((n) => n > 0 && console.log(JSON.stringify({ level: "warn", msg: `marked ${n} interrupted analysis job(s) as failed` })))
   .catch((err) => console.error(JSON.stringify({ level: "error", msg: "analysis job reconcile failed", err: String(err) })));
+
+reconcileInterruptedReports(prisma)
+  .then((n) => n > 0 && console.log(JSON.stringify({ level: "warn", msg: `marked ${n} interrupted report(s) as failed` })))
+  .catch((err) => console.error(JSON.stringify({ level: "error", msg: "report reconcile failed", err: String(err) })));
 
 app.listen(config.port, () => {
   console.log(JSON.stringify({ level: "info", msg: `server listening on ${config.port}` }));

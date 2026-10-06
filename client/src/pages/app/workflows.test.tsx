@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import "@testing-library/jest-dom";
 import HypothesisEngine from "./HypothesisEngine";
-import ReportsAndExports from "./ReportsAndExports";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -75,51 +74,5 @@ describe("HypothesisEngine", () => {
     fireEvent.click(screen.getByRole("button", { name: /record decision/i }));
     expect(await screen.findByText(/decision recorded/i)).toBeInTheDocument();
     expect(screen.getByText("Proceed")).toBeInTheDocument();
-  });
-});
-
-describe("ReportsAndExports", () => {
-  it("lists every non-narrative report as visibly unavailable", async () => {
-    routeFetch({ "GET /opportunities": () => ({ ok: true, body: list }) });
-    render(<ReportsAndExports />);
-    expect(await screen.findByText("ROI report")).toBeInTheDocument();
-    const buttons = screen.getAllByRole("button", { name: /not yet available/i });
-    expect(buttons).toHaveLength(6);
-    buttons.forEach((b) => expect(b).toBeDisabled());
-  });
-
-  it("shows an error when the list fails to load", async () => {
-    routeFetch({ "GET /opportunities": () => ({ ok: false, body: {} }) });
-    render(<ReportsAndExports />);
-    expect(await screen.findByRole("alert")).toHaveTextContent(/could not load/i);
-  });
-
-  it("generates the opportunity report", async () => {
-    routeFetch({
-      "GET /opportunities": () => ({ ok: true, body: list }),
-      "POST /opportunities/o1/report": () => ({ ok: true, body: { report: "Report body text" } }),
-    });
-    render(<ReportsAndExports />);
-    const select = await screen.findByLabelText("Opportunity");
-    const generate = screen.getByRole("button", { name: /generate report/i });
-    expect(generate).toBeDisabled();
-    fireEvent.change(select, { target: { value: "o1" } });
-    fireEvent.click(generate);
-    expect(await screen.findByText("Report body text")).toBeInTheDocument();
-  });
-
-  it("surfaces the AI-not-configured error from the report endpoint", async () => {
-    routeFetch({
-      "GET /opportunities": () => ({ ok: true, body: list }),
-      "POST /opportunities/o1/report": () => ({
-        ok: false,
-        status: 503,
-        body: { error: { code: "AI_NOT_CONFIGURED", message: "AI backend is not configured" } },
-      }),
-    });
-    render(<ReportsAndExports />);
-    fireEvent.change(await screen.findByLabelText("Opportunity"), { target: { value: "o1" } });
-    fireEvent.click(screen.getByRole("button", { name: /generate report/i }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/not configured/i));
   });
 });

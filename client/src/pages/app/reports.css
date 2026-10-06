@@ -1,0 +1,122 @@
+.reports-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+}
+
+.reports-toolbar__hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.report-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.report-card h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.report-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.report-card__meta,
+.report-card__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+}
+
+.report-files {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-3);
+}
+
+.report-file {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.report-file__kind {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.report-file__name {
+  font-weight: 600;
+}
+
+.report-file__meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.report-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-checks li.is-pass > span[aria-hidden] {
+  color: var(--color-success);
+}
+
+.report-checks li.is-fail > span[aria-hidden] {
+  color: var(--color-danger);
+}
+
+.report-checks__details {
+  margin: var(--space-1) 0 0 var(--space-4);
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  list-style: disc;
+}
+
+.reports-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.reports-empty h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.reports-empty p {
+  max-width: 440px;
+  margin: 0;
+  color: var(--color-text-muted);
+}

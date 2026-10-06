@@ -31,7 +31,7 @@ export const opportunityEntrySchema = z.object({
   summary: text(500),
   whyItMatters: text(500),
   feasibility: text(400),
-  risks: z.array(text(200)).min(1).max(5),
+  risks: z.array(text(280)).min(1).max(5),
   dataNeeded: z.array(text(160)).max(6),
   firstStep: text(300),
   ratings: z.object({ value: ratingSchema, feasibility: ratingSchema, risk: ratingSchema, confidence: ratingSchema }),
@@ -71,7 +71,7 @@ export const reportContentSchema = z.object({
       .max(5),
   }),
   risks: z
-    .array(z.object({ risk: text(200), likelihood: ratingSchema, impact: ratingSchema, mitigation: text(300) }))
+    .array(z.object({ risk: text(280), likelihood: ratingSchema, impact: ratingSchema, mitigation: text(420) }))
     .min(3)
     .max(8),
   technical: z.object({

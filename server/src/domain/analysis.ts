@@ -9,7 +9,7 @@ import { findOrCreateCompany } from "./companies.js";
 
 // Path of the analysis-specific expert roster as seen by the Conclave container, which mounts the
 // Code folder at /code/all-projects (see conclave/experts-analysis.yaml for why it is a small roster).
-const DEFAULT_ANALYSIS_CONFIG_PATH = "/code/all-projects/AIaccelerator/conclave/experts-analysis.yaml";
+export const DEFAULT_ANALYSIS_CONFIG_PATH = "/code/all-projects/AIaccelerator/conclave/experts-analysis.yaml";
 // A full web-research deliberation across five experts took 22-35 min in live runs (discuss, critique and
 // revise rounds); nothing user-facing waits on this call, so leave generous headroom.
 const SESSION_TIMEOUT_MS = 60 * 60_000;
