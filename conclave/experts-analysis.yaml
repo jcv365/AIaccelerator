@@ -11,6 +11,9 @@
 originator: Nemotron
 originator_rotates: false
 moderator: Fusion
+# If Fusion (the chairman) fails or times out, Claude drafts the synthesis
+# instead of the round dropping to an unclustered raw pool.
+synthesis_fallbacks: [Claude]
 mode: brainstorm
 brainstorm_blind: true
 anonymize_synthesis: true
