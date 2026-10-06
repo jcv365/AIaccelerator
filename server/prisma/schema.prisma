@@ -69,6 +69,62 @@ model Company {
   createdAt     DateTime      @default(now())
   opportunities Opportunity[]
   analysisJobs  AnalysisJob[]
+  reports       CompanyReport[]
+}
+
+enum CompanyReportStatus {
+  GENERATING
+  DRAFT
+  APPROVED
+  FAILED
+}
+
+enum DeliverableAudience {
+  C_LEVEL
+  TECHNICAL
+}
+
+enum DeliverableFormat {
+  PPTX
+  DOCX
+}
+
+// One version of the company-level report: the structured content all four files are rendered from.
+// Versions are never overwritten; APPROVED locks a version (a human reviewed it).
+model CompanyReport {
+  id            String              @id @default(cuid())
+  companyId     String
+  company       Company             @relation(fields: [companyId], references: [id])
+  version       Int
+  status        CompanyReportStatus @default(GENERATING)
+  stage         String?
+  content       Json?
+  sources       Json?
+  qualityReport Json?
+  errorMessage  String?
+  createdAt     DateTime            @default(now())
+  completedAt   DateTime?
+  approvedAt    DateTime?
+  approvedBy    String?
+  deliverables  Deliverable[]
+
+  @@unique([companyId, version])
+  @@index([companyId, createdAt])
+}
+
+// A rendered file (stored in the database, rebuilt deterministically from CompanyReport.content).
+model Deliverable {
+  id              String              @id @default(cuid())
+  companyReportId String
+  companyReport   CompanyReport       @relation(fields: [companyReportId], references: [id], onDelete: Cascade)
+  audience        DeliverableAudience
+  format          DeliverableFormat
+  filename        String
+  content         Bytes
+  sizeBytes       Int
+  createdAt       DateTime            @default(now())
+
+  @@unique([companyReportId, audience, format])
 }
 
 // An AI-generated report for an opportunity. Every generation is kept; the newest is the one shown.
