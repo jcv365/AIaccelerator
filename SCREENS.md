@@ -59,7 +59,7 @@ scope: in
 reason: "New surface, added 2026-10-01 per the user's explicit scope-expansion decision overriding PRODUCT.md's 'no public marketing site' constraint. Built 2026-10-05: pages/site/Landing.tsx + site.css. Journey (Discover/Reason/Prove/Decide/Learn) is real ordered-list text, not an image, so it is the accessible equivalent. 'Book a demo' is a visibly disabled 'coming soon' button — no booking backend exists. Unauthenticated users see this at /; authenticated users are redirected to /app."
 brief: ""
 a11y_notes: "Hero illustration must have alt text describing the DISCOVER/REASON/PROVE/DECIDE/LEARN journey, not just decorative alt=''."
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (2 new tests (site.test.tsx); client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): hero card + journey strip, readable primary button.
+review: pass (2026-10-06) — rebuilt to the 9-screen mockup (direction revision 2026-10-06): hero with a drawn mountain path, real on-page anchor nav (Why, How it works, Features), five feature tiles; Book a demo stays visibly unavailable, no Watch overview. slop-scan clean, typecheck/lint clean, client 148/148 and server 333/333 tests pass. Visual pass against the running stack still to do.
 ```
 
 ```yaml
@@ -84,7 +84,7 @@ scope: in
 reason: "Replaces the existing bare LoginForm in App.tsx. SSO buttons render but are placeholder-contract (disabled or 'coming soon') until an OAuth provider is actually integrated — a real backend capability this skill doesn't build. Built 2026-10-05: pages/site/SignIn.tsx replaces the inline LoginForm in App.tsx; built on TextField/Button/InlineAlert, same login() call. Microsoft/Google SSO buttons render disabled 'coming soon' (no OAuth integration exists). Unauthenticated routes: / and /sign-in; everything else redirects to /sign-in. App.test.tsx now starts at /sign-in with the 'Sign in' button label — same intent."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests (site.test.tsx); client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): centred sign-in card, SSO row, phone layout.
+review: pass (2026-10-06) — split layout: brand panel (Welcome back, three value points, no testimonial) beside the form; SSO buttons disabled; Ask your administrator instead of a reset link. slop-scan clean, typecheck/lint clean, client 148/148 and server 333/333 tests pass. Visual pass against the running stack still to do.
 ```
 
 ```yaml
@@ -138,7 +138,7 @@ scope: in
 reason: "New home screen for /app, replacing Portfolio as the landing view. Readiness scoring is a genuine data-model gap, not just a missing endpoint — flagged, not fabricated. Built 2026-10-01: Opportunities and Evidence Sources KPIs are real (derived from GET /opportunities); Active PoVs and Estimated Annual Value show 'Not yet available' rather than invented numbers (no experiments-count field on the list endpoint; potentialValue is free text, not a currency amount to sum). DonutChart renders its explicit no-data state since no readiness-scoring backend exists at all."
 brief: ""
 a11y_notes: "Donut chart needs a text equivalent (the percentage and category breakdown as a table or list), not color-only. DonutChart component always renders an accessible <table> alongside the SVG ring when there is a score; the no-data state is plain text."
-review: pass (2026-10-01) — slop-scan clean, typecheck/lint clean, tests pass (4 new, 35/35 total). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): PageHeader, real 'Pipeline by status' section, no internal jargon in the readiness note.
+review: pass (2026-10-06) — 4 KPIs (PoV and value cards say why when empty), AI readiness ring + five dimension bars with model/date/rationale or a Run assessment empty state, value buckets, PoV counts, recent decisions. slop-scan clean, typecheck/lint clean, client 148/148 and server 333/333 tests pass. Visual pass against the running stack still to do.
 ```
 
 ```yaml
@@ -163,7 +163,7 @@ scope: in
 reason: "Built 2026-09-30 under the superseded direction (dark/restrained). Route moved 2026-10-01 from / to /app/portfolio (site now owns /, with a redirect at / and /app until SITE-01/APP-DASH are built). Visuals are built on components/ui/ (DataTable, Button) which are 100% token-driven with zero hardcoded colors, so updating tokens.css to the new multi-accent palette already restyled this screen automatically — verified via slop-scan + visual token audit, not yet eyeballed in a running browser. Deeper per-screen polish (e.g. the reference image's business-value/priority columns) isn't done — those fields don't exist on the current Opportunity data shown here; not fabricated."
 brief: ""
 a11y_notes: "Table must be a real <table> with header cells, not a div grid — screen reader row/column context."
-review: pass (2026-10-01) — route migration + token inheritance verified (typecheck/lint/tests 31/31, slop-scan clean); visual polish pass still open.
+review: pass (2026-10-06) — single filterable table (search, category, priority, status), # / value / evidence score / priority / status columns, 10 per page; AI values labelled as estimates. slop-scan clean, typecheck/lint clean, client 148/148 and server 333/333 tests pass. Visual pass against the running stack still to do.
 ```
 
 ```yaml
@@ -352,7 +352,7 @@ scope: in
 reason: "New cross-opportunity view from the reference image. Requires a new search/list endpoint; quality-scoring fields shown in the reference image (credibility/recency/applicability/depth) have no backend source at all — placeholder-contract, flagged plainly. Built 2026-10-05: pages/app/EvidenceExplorer.tsx against the new GET /evidence (server/src/domain/crossLists.ts, returns each row with its opportunity {id,title}). Client-side search + type filter. Quality-scoring columns are NOT shown — one InlineAlert says no backend concept exists; nothing is fabricated."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (4 new tests; client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): styled EvidenceTag, toolbar card, paging (15 at a time), clamped long sources.
+review: pass (2026-10-06) — source cards plus detail pane (key findings, source, quality per criterion, recency from capture date), Score evidence quality, Add evidence. Company filter dropped: the top-bar company switcher already scopes the list. slop-scan clean, typecheck/lint clean, client 148/148 and server 333/333 tests pass. Visual pass against the running stack still to do.
 ```
 
 ```yaml
@@ -381,7 +381,7 @@ scope: in
 reason: "New cross-cutting view combining Reasoning+Decision into a dedicated page, per the reference image, operating on whichever opportunity is currently focused via the company/opportunity switcher. Built 2026-10-05: pages/app/HypothesisEngine.tsx. Opportunity selector bound to ?opportunity=; hypothesis saves via PATCH /opportunities/:id; decisions via POST /opportunities/:id/decisions with a history table. Structured confidence/effort/risk recommendations are not built — an InlineAlert states the backend concept does not exist."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): two-column hypothesis/decision layout, spaced forms, decision history section.
+review: pass (2026-10-06) — tabs Hypothesis/Evidence/Assumptions/Risks/Decision, Why we believe this and What could disprove this from the latest AI assessment, recommendation card with Run assessment and Create 14-day PoV. slop-scan clean, typecheck/lint clean, client 148/148 and server 333/333 tests pass. Visual pass against the running stack still to do.
 ```
 
 ```yaml
@@ -458,7 +458,7 @@ scope: in
 reason: "New cross-opportunity pipeline board from the reference image's 'All / In Progress / Pending / Completed / Stopped' tab row. Needs a new list endpoint; the per-experiment data itself (status, dates) already exists. Built 2026-10-05: pages/app/PovPipeline.tsx against the new GET /experiments (includes opportunity and learning count). Tabs map the reference image onto the real ExperimentStatus enum: All / In progress (RUNNING) / Planned / Completed (COMPLETE) / Stopped (ABANDONED). Rows link to APP-08."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): tab counts per status, status badge tones.
+review: pass (2026-10-06) — status tabs with counts, cards with days left / end date from start + planned days, team avatars, schedule progress bar. slop-scan clean, typecheck/lint clean, client 148/148 and server 333/333 tests pass. Visual pass against the running stack still to do.
 ```
 
 ```yaml
@@ -483,7 +483,7 @@ scope: in
 reason: "Maps cleanly onto the existing NO_AI terminal status — no schema gap, just a filtered view that didn't exist before. Built 2026-10-05: pages/app/NoAiOpportunities.tsx — GET /opportunities filtered client-side to status NO_AI; shows aiSuitability (else businessProblem) as the reasoning. Rows link to APP-04."
 brief: ""
 a11y_notes: ""
-review: pass (2026-10-05) — slop-scan clean, typecheck/lint clean, tests pass (3 new tests; client 66/66, server 121/121). Visual pass 2026-10-06 (screenshots at 1440 and 390 wide against real data): PageHeader.
+review: pass (2026-10-06) — table of opportunity, reason (latest decision rationale), decision badge and date. slop-scan clean, typecheck/lint clean, client 148/148 and server 333/333 tests pass. Visual pass against the running stack still to do.
 ```
 
 ```yaml
