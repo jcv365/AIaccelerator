@@ -6,6 +6,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  text-decoration: none; /* links styled as buttons (e.g. Add opportunity) */
   font-family: var(--font-family);
   font-size: var(--text-body-size);
   font-weight: 500;
