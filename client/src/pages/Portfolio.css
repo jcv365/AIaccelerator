@@ -1,18 +1,11 @@
-.portfolio__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
+.portfolio__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
-.portfolio__section {
-  margin-bottom: var(--space-4);
-}
-
-.portfolio__section-heading {
-  font-size: var(--text-body-size);
+.portfolio__ai-tag {
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: var(--space-2);
+  font-size: var(--text-small-size, 12px);
 }
