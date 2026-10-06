@@ -41,4 +41,16 @@ describe("GET /experiments", () => {
       expect.objectContaining({ orderBy: { createdAt: "desc" } })
     );
   });
+
+  it("asks for the opportunity's category so the pipeline cards can show it", async () => {
+    const prisma = { experiment: { findMany: vi.fn().mockResolvedValue([]) } };
+
+    await request(appWith(prisma)).get("/experiments");
+
+    expect(prisma.experiment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({ opportunity: { select: { id: true, title: true, category: true } } }),
+      })
+    );
+  });
 });

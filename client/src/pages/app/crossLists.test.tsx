@@ -50,7 +50,63 @@ describe("PovPipeline", () => {
   });
 });
 
+describe("PovPipeline cards", () => {
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+
+  it("shows days left, the team and schedule progress derived from the start date and planned length", async () => {
+    stubFetch([
+      {
+        id: "x1",
+        title: "Pilot A",
+        status: "RUNNING",
+        startedAt: daysAgo(4),
+        plannedDays: 14,
+        team: ["Ann Lee", "Bo Chen"],
+        opportunity: { ...opp, category: "Finance" },
+        _count: { learnings: 2 },
+      },
+    ]);
+    renderPage(<PovPipeline />);
+
+    expect(await screen.findByText(/10 days left/)).toBeInTheDocument();
+    expect(screen.getByText(/Invoice triage · Finance/)).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Team: Ann Lee, Bo Chen" })).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "Pilot A schedule" })).toHaveAttribute("aria-valuenow", "29");
+    expect(screen.getByText(/2 learnings/)).toBeInTheDocument();
+  });
+
+  it("says when a running experiment is overdue, and when one has not started or has no team", async () => {
+    stubFetch([
+      { id: "x1", title: "Late", status: "RUNNING", startedAt: daysAgo(20), plannedDays: 14, opportunity: opp },
+      { id: "x2", title: "Waiting", status: "PLANNED", plannedDays: 14, opportunity: opp },
+    ]);
+    renderPage(<PovPipeline />);
+
+    expect(await screen.findByText(/Overdue by 6 days/)).toBeInTheDocument();
+    expect(screen.getByText("Not started · 14-day plan")).toBeInTheDocument();
+    expect(screen.getAllByText("No team assigned").length).toBe(2);
+  });
+});
+
 describe("NoAiOpportunities", () => {
+  it("shows the latest decision, its reason and date, preferring the decision's rationale", async () => {
+    stubFetch([
+      {
+        ...opp,
+        status: "NO_AI",
+        aiSuitability: "Fallback text",
+        latestDecision: { id: "d1", decision: "Not AI", rationale: "Rules are deterministic", decidedAt: "2026-10-01T00:00:00Z" },
+      },
+    ]);
+    renderPage(<NoAiOpportunities />);
+
+    const row = (await screen.findByRole("link", { name: "Invoice triage" })).closest("tr")!;
+    expect(row).toHaveTextContent("Rules are deterministic");
+    expect(row).not.toHaveTextContent("Fallback text");
+    expect(row).toHaveTextContent("Not AI");
+    expect(row).toHaveTextContent(new Date("2026-10-01T00:00:00Z").toLocaleDateString());
+  });
+
   it("shows an empty state when nothing is NO_AI", async () => {
     stubFetch([{ ...opp, status: "DISCOVERED" }]);
     renderPage(<NoAiOpportunities />);

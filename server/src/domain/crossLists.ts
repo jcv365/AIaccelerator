@@ -44,7 +44,7 @@ export function createExperimentsListRouter(prisma: PrismaClient): Router {
         where: company.id ? { opportunity: { companyId: company.id } } : undefined,
         orderBy: { createdAt: "desc" },
         include: {
-          opportunity: { select: { id: true, title: true } },
+          opportunity: { select: { id: true, title: true, category: true } },
           _count: { select: { learnings: true } },
         },
       });

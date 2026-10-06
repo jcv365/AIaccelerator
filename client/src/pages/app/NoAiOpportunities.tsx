@@ -3,17 +3,12 @@ import { Link } from "react-router-dom";
 import { apiFetch } from "../../api";
 import { useCompanyPath } from "../../company/CompanyContext";
 import { DataTable, InlineAlert, PageHeader, ProgressIndicator, StatusBadge } from "../../components/ui";
+import type { OpportunityRow } from "../../lib/opportunity";
 
-interface Opportunity {
-  id: string;
-  title: string;
-  status: string;
-  businessProblem?: string | null;
-  aiSuitability?: string | null;
-}
+type NoAiRow = OpportunityRow & { businessProblem?: string | null; aiSuitability?: string | null };
 
 export default function NoAiOpportunities() {
-  const [rows, setRows] = useState<Opportunity[]>([]);
+  const [rows, setRows] = useState<NoAiRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +24,7 @@ export default function NoAiOpportunities() {
     setError(null);
     apiFetch(path)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("failed"))))
-      .then((data: Opportunity[]) => setRows(data.filter((o) => o.status === "NO_AI")))
+      .then((data: NoAiRow[]) => setRows(data.filter((o) => o.status === "NO_AI")))
       .catch(() => setError("Could not load opportunities."))
       .finally(() => setLoading(false));
   }, [path]);
@@ -48,10 +43,23 @@ export default function NoAiOpportunities() {
             {
               key: "title",
               header: "Opportunity",
-              render: (o: Opportunity) => <Link to={`/app/opportunities/${o.id}`}>{o.title}</Link>,
+              render: (o: NoAiRow) => <Link to={`/app/opportunities/${o.id}`}>{o.title}</Link>,
             },
-            { key: "status", header: "Status", render: () => <StatusBadge label="NO_AI" tone="caution" /> },
-            { key: "reason", header: "Reasoning", render: (o: Opportunity) => o.aiSuitability || o.businessProblem || "—" },
+            {
+              key: "reason",
+              header: "Reason",
+              render: (o: NoAiRow) => o.latestDecision?.rationale || o.aiSuitability || o.businessProblem || "—",
+            },
+            {
+              key: "decision",
+              header: "Decision",
+              render: (o: NoAiRow) => <StatusBadge label={o.latestDecision?.decision ?? "NO_AI"} tone="caution" />,
+            },
+            {
+              key: "date",
+              header: "Date",
+              render: (o: NoAiRow) => (o.latestDecision ? new Date(o.latestDecision.decidedAt).toLocaleDateString() : "—"),
+            },
           ]}
           rows={rows}
           getRowKey={(o) => o.id}
