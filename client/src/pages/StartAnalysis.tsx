@@ -52,9 +52,9 @@ function formatElapsed(ms: number): string {
 }
 
 export default function StartAnalysis({ pollIntervalMs = 5000 }: { pollIntervalMs?: number }) {
-  const { refresh } = useCompany();
+  const { refresh, current } = useCompany();
   const [stored] = useState<StoredJob | null>(loadStoredJob);
-  const [companyName, setCompanyName] = useState(stored?.companyName ?? "");
+  const [companyName, setCompanyName] = useState(stored?.companyName ?? current?.name ?? "");
   const [job, setJob] = useState<StoredJob | null>(stored);
   const [status, setStatus] = useState<Status>(stored ? "running" : "empty");
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +63,16 @@ export default function StartAnalysis({ pollIntervalMs = 5000 }: { pollIntervalM
   const [now, setNow] = useState(() => Date.now());
 
   const isRunning = status === "running";
+
+  // Follow the selected company: when one is picked, added, or finishes loading after the first render, the
+  // box shows it, so it never has to be typed again. A running analysis keeps showing its own company, and
+  // typing another name afterwards is still allowed (the server finds or creates that company).
+  const currentId = current?.id;
+  const currentName = current?.name;
+  useEffect(() => {
+    if (currentName && !isRunning) setCompanyName(currentName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentId, currentName]);
 
   // Poll the background job until it finishes; the analysis itself runs server-side for minutes.
   useEffect(() => {
@@ -149,6 +159,13 @@ export default function StartAnalysis({ pollIntervalMs = 5000 }: { pollIntervalM
       <p className="start-analysis__intro">
         Enter a company name to generate an AI opportunity report backed by live research.
       </p>
+
+      {current && !isRunning && (
+        <p className="start-analysis__intro">
+          The company selected in the top bar (<strong>{current.name}</strong>) is filled in. Type a different name to
+          analyse another company; it is added automatically.
+        </p>
+      )}
 
       <form className="start-analysis__form" onSubmit={handleSubmit} data-testid="start-analysis-form">
         <TextField
