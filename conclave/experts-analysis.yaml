@@ -10,10 +10,14 @@
 # tools; they critique and refine what the others found.
 originator: Nemotron
 originator_rotates: false
-moderator: Fusion
-# If Fusion (the chairman) fails or times out, Claude drafts the synthesis
-# instead of the round dropping to an unclustered raw pool.
-synthesis_fallbacks: [Claude]
+# Only the two subscription-CLI experts may chair (Fusion via freellmapi kept
+# timing out as chairman, dropping the round to an unclustered raw pool that
+# yielded just the first expert's 3 opportunities). Claude chairs; ChatGPT
+# drafts the synthesis instead if Claude fails. chairman_providers makes the
+# Council reject any other provider here at load time.
+moderator: Claude
+synthesis_fallbacks: [ChatGPT]
+chairman_providers: [claude-code-cli, codex-cli]
 mode: brainstorm
 brainstorm_blind: true
 anonymize_synthesis: true
@@ -24,8 +28,8 @@ experts:
     base_url: http://localhost:3010/v1
     api_key_env: FREELLMAPI_API_KEY
     model: fusion
-    # Fusion is also the chairman, who writes the final JSON for every opportunity. The Council roster's
-    # 600 truncated it mid-string (live run 2026-10-05), so it needs a large budget here.
+    # Fusion no longer chairs, but it still writes a full JSON opportunity list each round. The Council
+    # roster's 600 truncated it mid-string (live run 2026-10-05), so it keeps a large budget here.
     max_tokens: 8192
     persona: >
       A broad, research-minded voice. You bring in outside context about the
