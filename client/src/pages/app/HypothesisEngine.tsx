@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api, apiFetch } from "../../api";
+import { useCompanyPath } from "../../company/CompanyContext";
 import {
   Button,
   DataTable,
@@ -46,13 +47,27 @@ export default function HypothesisEngine() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveNote, setSaveNote] = useState<string | null>(null);
 
+  const path = useCompanyPath("/opportunities");
   useEffect(() => {
-    apiFetch("/opportunities")
+    if (path === undefined) return; // companies still loading
+    if (path === null) {
+      setOptions([]); // no company yet: show the empty state
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    apiFetch(path)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("failed"))))
-      .then((data) => setOptions(data))
+      .then((data: OpportunitySummary[]) => {
+        setOptions(data);
+        // A selection from another company is not valid here: clear it.
+        if (selectedId && !data.some((o) => o.id === selectedId)) setParams({}, { replace: true });
+      })
       .catch(() => setError("Could not load opportunities."))
       .finally(() => setLoading(false));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path]);
 
   useEffect(() => {
     if (!selectedId) {

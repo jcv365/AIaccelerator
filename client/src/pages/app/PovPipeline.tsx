@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../api";
+import { useCompanyPath } from "../../company/CompanyContext";
 import { DataTable, InlineAlert, PageHeader, ProgressIndicator, StatusBadge, TabPanel, Tabs } from "../../components/ui";
 import type { ExperimentStatusValue } from "../../domain/experimentStatus";
 
@@ -29,13 +30,22 @@ export default function PovPipeline() {
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState("ALL");
 
+  const path = useCompanyPath("/experiments");
   useEffect(() => {
-    apiFetch("/experiments")
+    if (path === undefined) return; // companies still loading
+    if (path === null) {
+      setRows([]); // no company yet: show the empty state
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    apiFetch(path)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("failed"))))
       .then((data) => setRows(data))
       .catch(() => setError("Could not load experiments."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [path]);
 
   const tabs = [
     { id: "ALL", label: "All", count: rows.length },

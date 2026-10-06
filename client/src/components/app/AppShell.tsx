@@ -3,6 +3,7 @@ import { SidebarNav } from "./SidebarNav";
 import { CompanySwitcher } from "./CompanySwitcher";
 import { StatusIndicator } from "./StatusIndicator";
 import { PRODUCT_NAME } from "../../brand";
+import { CompanyProvider, useCompany } from "../../company/CompanyContext";
 import "./app.css";
 
 export interface AppShellProps {
@@ -10,15 +11,27 @@ export interface AppShellProps {
   children: ReactNode;
 }
 
-// Placeholder company list — no multi-tenant data model exists yet (SCREENS.md
-// §D, APP-00). Real company scoping is a schema change this skill doesn't build.
-const PLACEHOLDER_COMPANIES = ["ABC Manufacturing"];
+/** The top-bar picker wired to the real company list (see company/CompanyContext). */
+function ConnectedCompanySwitcher() {
+  const { companies, currentId, select, createCompany } = useCompany();
+  return (
+    <CompanySwitcher
+      companies={companies}
+      currentId={currentId}
+      onSelect={select}
+      onCreate={async (name, website) => {
+        const { created, company } = await createCompany({ name, website });
+        return { created, name: company.name };
+      }}
+    />
+  );
+}
 
 export function AppShell({ onLogout, children }: AppShellProps) {
-  const [company, setCompany] = useState(PLACEHOLDER_COMPANIES[0]);
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
+    <CompanyProvider>
     <div className="app-shell" data-surface="app">
       <a className="skip-link" href="#main-content">
         Skip to content
@@ -47,12 +60,13 @@ export function AppShell({ onLogout, children }: AppShellProps) {
       </aside>
       <div className="app-main">
         <header className="app-topbar">
-          <CompanySwitcher companies={PLACEHOLDER_COMPANIES} current={company} onChange={setCompany} />
+          <ConnectedCompanySwitcher />
         </header>
         <main id="main-content" className="app-shell__content">
           {children}
         </main>
       </div>
     </div>
+    </CompanyProvider>
   );
 }

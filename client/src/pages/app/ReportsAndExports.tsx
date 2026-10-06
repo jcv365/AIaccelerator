@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, apiFetch } from "../../api";
+import { useCompanyPath } from "../../company/CompanyContext";
 import { Button, DataTable, InlineAlert, PageHeader, ProgressIndicator, ReportPanel, Select } from "../../components/ui";
 import "./lists.css";
 
@@ -28,13 +29,27 @@ export default function ReportsAndExports() {
   const [report, setReport] = useState<string | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
 
+  const path = useCompanyPath("/opportunities");
   useEffect(() => {
-    apiFetch("/opportunities")
+    if (path === undefined) return; // companies still loading
+    if (path === null) {
+      setOptions([]); // no company yet: show the empty state
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    apiFetch(path)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("failed"))))
-      .then((data) => setOptions(data))
+      .then((data: OpportunitySummary[]) => {
+        setOptions(data);
+        // Another company's selection (and any report shown for it) must not linger.
+        setSelectedId((current) => (data.some((o) => o.id === current) ? current : ""));
+        setReport(null);
+      })
       .catch(() => setError("Could not load opportunities."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [path]);
 
   async function generate() {
     setReport(null);

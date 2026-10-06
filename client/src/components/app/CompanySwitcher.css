@@ -1,0 +1,46 @@
+/* Company picker + "Add a company" popover (see docs/mockups/08-company-switcher.html). */
+.company-switcher-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.company-add {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  z-index: 30;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.company-add h2 {
+  margin: 0;
+}
+
+.company-add__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.company-add__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.company-add__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}

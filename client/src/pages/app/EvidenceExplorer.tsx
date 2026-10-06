@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../api";
+import { useCompanyPath } from "../../company/CompanyContext";
 import { DataTable, EvidenceTag, InlineAlert, PageHeader, ProgressIndicator, Select, TextField } from "../../components/ui";
 import "./lists.css";
 
@@ -24,13 +25,22 @@ export default function EvidenceExplorer() {
   const [type, setType] = useState("ALL");
   const [shown, setShown] = useState(PAGE_SIZE);
 
+  const path = useCompanyPath("/evidence");
   useEffect(() => {
-    apiFetch("/evidence")
+    if (path === undefined) return; // companies still loading
+    if (path === null) {
+      setRows([]); // no company yet: show the empty state
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    apiFetch(path)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("failed"))))
       .then((data) => setRows(data))
       .catch(() => setError("Could not load evidence."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [path]);
 
   const q = query.trim().toLowerCase();
   const filtered = rows.filter(

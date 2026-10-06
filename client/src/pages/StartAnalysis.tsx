@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button, InlineAlert, TextField } from "../components/ui";
 import { api } from "../api";
+import { useCompany } from "../company/CompanyContext";
 import "./StartAnalysis.css";
 
 type Status = "empty" | "running" | "error" | "success";
@@ -51,6 +52,7 @@ function formatElapsed(ms: number): string {
 }
 
 export default function StartAnalysis({ pollIntervalMs = 5000 }: { pollIntervalMs?: number }) {
+  const { refresh } = useCompany();
   const [stored] = useState<StoredJob | null>(loadStoredJob);
   const [companyName, setCompanyName] = useState(stored?.companyName ?? "");
   const [job, setJob] = useState<StoredJob | null>(stored);
@@ -124,7 +126,12 @@ export default function StartAnalysis({ pollIntervalMs = 5000 }: { pollIntervalM
     setAnnouncement("Starting analysis…");
 
     try {
-      const { jobId } = await api.post<{ jobId: string }>("/opportunities/analyze", { companyName: name });
+      const { jobId, companyId } = await api.post<{ jobId: string; companyId?: string }>("/opportunities/analyze", {
+        companyName: name,
+      });
+      // The server found or created the company for this name: reload the list and select it so the
+      // top bar and every screen follow the company being analysed.
+      if (companyId) void refresh(companyId).catch(() => {});
       const started: StoredJob = { jobId, companyName: name, startedAtMs: Date.now() };
       storeJob(started);
       setNow(started.startedAtMs);

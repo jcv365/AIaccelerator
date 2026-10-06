@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../api";
+import { useCompanyPath } from "../../company/CompanyContext";
 import { DonutChart, InlineAlert, KpiTile, PageHeader, ProgressIndicator, StatusBadge } from "../../components/ui";
 import "./Dashboard.css";
 
@@ -18,13 +19,22 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const path = useCompanyPath("/opportunities");
   useEffect(() => {
-    apiFetch("/opportunities")
+    if (path === undefined) return; // companies still loading
+    if (path === null) {
+      setOpportunities([]); // no company yet: show the empty state
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    apiFetch(path)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("failed"))))
       .then((data) => setOpportunities(data))
       .catch(() => setError("Could not load dashboard data."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [path]);
 
   const totalEvidence = opportunities.reduce((sum, o) => sum + (o._count?.evidence ?? 0), 0);
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../../api";
+import { useCompanyPath } from "../../company/CompanyContext";
 import { DataTable, InlineAlert, PageHeader, ProgressIndicator, StatusBadge } from "../../components/ui";
 
 interface Opportunity {
@@ -16,13 +17,22 @@ export default function NoAiOpportunities() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const path = useCompanyPath("/opportunities");
   useEffect(() => {
-    apiFetch("/opportunities")
+    if (path === undefined) return; // companies still loading
+    if (path === null) {
+      setRows([]); // no company yet: show the empty state
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    apiFetch(path)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("failed"))))
       .then((data: Opportunity[]) => setRows(data.filter((o) => o.status === "NO_AI")))
       .catch(() => setError("Could not load opportunities."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [path]);
 
   return (
     <main>
