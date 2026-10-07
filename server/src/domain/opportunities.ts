@@ -4,7 +4,7 @@ import { asyncHandler } from "../asyncHandler.js";
 import { isValidTransition, validTransitionsFrom, type OpportunityStatus } from "./stateMachine.js";
 import type { AiClient } from "../ai/client.js";
 import { AiClientError, aiErrorStatus } from "../ai/errors.js";
-import { createAnalysisRouter } from "./analysis.js";
+import { createAnalysisRouter, DEFAULT_ANALYSIS_CONFIG_PATH } from "./analysis.js";
 import { parseCompanyIdQuery } from "./companies.js";
 import { EXPERIMENT_STATUSES } from "./experimentStatus.js";
 import { logJson } from "../logger.js";
@@ -393,7 +393,7 @@ ${decisionLines}
 
 Write a concise report (3-5 paragraphs) summarizing the opportunity, the strength of the evidence, and the decisions made so far.`;
       try {
-        const result = await aiClient.quickAsk("Fusion", system, prompt, 90_000);
+        const result = await aiClient.quickAsk(process.env.REPORT_MODEL || "Claude", system, prompt, 120_000, process.env.COUNCIL_ANALYSIS_CONFIG_PATH || DEFAULT_ANALYSIS_CONFIG_PATH);
         // Keep every generation so a page refresh doesn't lose a slow, paid-for AI answer. If saving
         // fails the report is still returned (createdAt null) rather than thrown away.
         let createdAt: Date | null = null;

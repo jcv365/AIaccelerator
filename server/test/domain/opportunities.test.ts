@@ -437,10 +437,11 @@ describe("POST /opportunities/:id/report", () => {
     // createdAt is also returned now (null here: this mock has no report table to save into).
     expect(res.body).toMatchObject({ report: "A generated report." });
     expect(quickAsk).toHaveBeenCalledWith(
-      "Fusion",
+      "Claude",
       expect.any(String),
       expect.stringContaining("Volume is high"),
-      90_000
+      120_000,
+      expect.stringMatching(/experts-analysis\.yaml$/)
     );
   });
 

@@ -241,6 +241,35 @@ describe("readiness", () => {
     });
   });
 
+  it("asks a single fast expert on the app's own roster, not the 600-token default Fusion", async () => {
+    const client = ai(JSON.stringify({ dimensions: dims(60), rationale: "ok" }));
+    await request(appWith("/readiness", createReadinessRouter(readinessPrisma() as never, client as never))).post("/readiness").send({});
+    const [model, , , , configPath] = client.quickAsk.mock.calls[0];
+    expect(model).toBe("Claude");
+    expect(configPath).toMatch(/experts-analysis\.yaml$/);
+  });
+
+  it("asks again once when the first answer is not JSON, then saves the good one", async () => {
+    const prisma = readinessPrisma();
+    const client = ai("");
+    client.quickAsk
+      .mockResolvedValueOnce({ ok: true, model: "Claude", response: '{"dimensions": {"strategy_governance": {"score": 5' }) // cut off
+      .mockResolvedValueOnce({ ok: true, model: "Claude", response: JSON.stringify({ dimensions: dims(70), rationale: "fine" }) });
+    const res = await request(appWith("/readiness", createReadinessRouter(prisma as never, client as never))).post("/readiness").send({});
+    expect(res.status).toBe(200);
+    expect(client.quickAsk).toHaveBeenCalledTimes(2);
+    expect(prisma.readinessAssessment.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives up after the second unusable answer and saves nothing", async () => {
+    const prisma = readinessPrisma();
+    const client = ai("not json at all");
+    const res = await request(appWith("/readiness", createReadinessRouter(prisma as never, client as never))).post("/readiness").send({});
+    expect(res.status).toBe(502);
+    expect(client.quickAsk).toHaveBeenCalledTimes(2);
+    expect(prisma.readinessAssessment.create).not.toHaveBeenCalled();
+  });
+
   it("rejects an answer missing a dimension and saves nothing", async () => {
     const prisma = readinessPrisma();
     const d = dims(60) as Record<string, unknown>;

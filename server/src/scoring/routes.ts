@@ -6,6 +6,7 @@ import { AiClientError, aiErrorStatus } from "../ai/errors.js";
 import { DATA_NOTICE, dataBlock } from "../ai/promptSafety.js";
 import { logJson } from "../logger.js";
 import { parseCompanyIdQuery } from "../domain/companies.js";
+import { DEFAULT_ANALYSIS_CONFIG_PATH } from "../domain/analysis.js";
 import {
   BAD_AI_OUTPUT,
   boundedString,
@@ -17,8 +18,11 @@ import {
 import { computeEvidenceScore } from "./evidenceScore.js";
 import { toCsv } from "./csv.js";
 
-const MODEL = "Fusion";
-const AI_TIMEOUT_MS = 90_000;
+// One fast expert on the app's own roster. The multi-expert "Fusion" on the default roster caps an answer at about
+// 600 tokens (which cut readiness JSON off mid-way) and takes minutes; see also reporting/service.ts.
+const MODEL = process.env.REPORT_MODEL || "Claude";
+const ROSTER_PATH = process.env.COUNCIL_ANALYSIS_CONFIG_PATH || DEFAULT_ANALYSIS_CONFIG_PATH;
+const AI_TIMEOUT_MS = 120_000;
 const FIELD_CHARS = 1500;
 const ITEM_CHARS = 600;
 const MAX_ITEMS = 40;
@@ -51,8 +55,14 @@ function handleAiError(err: unknown, res: Response, next: NextFunction): void {
 
 /** Ask the model for strict JSON. */
 async function askJson(aiClient: AiClient, system: string, prompt: string) {
-  const result = await aiClient.quickAsk(MODEL, system, prompt, AI_TIMEOUT_MS);
-  return { model: result.model, json: extractJsonObject(result.response) };
+  // A reply that is not usable JSON is asked for once more before giving up.
+  let last: { model: string; json: Record<string, unknown> | null } = { model: MODEL, json: null };
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const result = await aiClient.quickAsk(MODEL, system, prompt, AI_TIMEOUT_MS, ROSTER_PATH);
+    last = { model: result.model, json: extractJsonObject(result.response) };
+    if (last.json) break;
+  }
+  return last;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -477,7 +487,7 @@ export function createStandardReportsRouter(prisma: PrismaClient, aiClient?: AiC
       const system = `You write business reports about a portfolio of AI opportunities. Use only the data given; never invent numbers. Say plainly when data is missing. Plain prose, no markdown tables. ${DATA_NOTICE}`;
       const prompt = `${REPORT_INSTRUCTIONS[type]}\n\nPortfolio data:\n${lines}`;
       try {
-        const result = await aiClient.quickAsk(MODEL, system, prompt, AI_TIMEOUT_MS);
+        const result = await aiClient.quickAsk(MODEL, system, prompt, AI_TIMEOUT_MS, ROSTER_PATH);
         let saved: { id: string; createdAt: Date } | null = null;
         try {
           saved = await prisma.standardReport.create({
