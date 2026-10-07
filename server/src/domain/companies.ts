@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Company, PrismaClient } from "@prisma/client";
 import { asyncHandler } from "../asyncHandler.js";
+import { removeCompany } from "./removal.js";
 
 const MAX_NAME_LENGTH = 120;
 const MAX_WEBSITE_LENGTH = 200;
@@ -116,6 +117,61 @@ export function createCompaniesRouter(prisma: PrismaClient): Router {
       }
       const { company, created } = await findOrCreateCompany(prisma, parsed.value);
       res.status(created ? 201 : 200).json({ created, company: toDto(company) });
+    })
+  );
+
+  // Edit the name and/or website. A name that another company already uses (any capitalisation) is refused.
+  router.patch(
+    "/:id",
+    asyncHandler(async (req, res) => {
+      const existing = await prisma.company.findUnique({ where: { id: req.params.id } });
+      if (!existing) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Company not found" } });
+        return;
+      }
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = parseCompanyInput({ name: existing.name, website: existing.website, ...body });
+      if (!parsed.ok) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: parsed.message } });
+        return;
+      }
+      const nameKey = normalizeNameKey(parsed.value.name);
+      try {
+        const updated = await prisma.company.update({
+          where: { id: existing.id },
+          data: { name: parsed.value.name, nameKey, website: parsed.value.website ?? null },
+        });
+        res.status(200).json(toDto(updated));
+      } catch (err) {
+        if ((err as { code?: string }).code === "P2002") {
+          res.status(409).json({ error: { code: "NAME_TAKEN", message: "Another company already has that name" } });
+          return;
+        }
+        throw err;
+      }
+    })
+  );
+
+  // Deletes the company and everything under it. The caller must repeat the company's exact name in
+  // ?confirmName= so a stray request cannot wipe a company.
+  router.delete(
+    "/:id",
+    asyncHandler(async (req, res) => {
+      const existing = await prisma.company.findUnique({ where: { id: req.params.id } });
+      if (!existing) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Company not found" } });
+        return;
+      }
+      if (req.query.confirmName !== existing.name) {
+        res.status(400).json({ error: { code: "CONFIRM_REQUIRED", message: "Repeat the company name to confirm the deletion" } });
+        return;
+      }
+      const result = await removeCompany(prisma, existing.id);
+      if (!result.removed) {
+        res.status(409).json({ error: { code: "COMPANY_BUSY", message: "An analysis or report is running for this company. Try again when it finishes." } });
+        return;
+      }
+      res.status(200).json({ deleted: true, opportunities: result.opportunities });
     })
   );
 

@@ -116,6 +116,21 @@ describe("GET /opportunities/analyze/:jobId", () => {
 });
 
 describe("runAnalysisJob", () => {
+  it("tells the conclave which website is the company's, so a shared name is not confused with another business", async () => {
+    const prisma = makePrisma({ company: { findUnique: vi.fn().mockResolvedValue({ website: "https://www.momentum.co.za" }), create: vi.fn() } });
+    const aiClient = { runSession: vi.fn().mockResolvedValue({ ok: true, sessionId: "s", synthesis: GOOD_SYNTHESIS }) };
+    await runAnalysisJob(prisma as never, aiClient as never, "job1", "Momentum", "co1");
+    const goal = aiClient.runSession.mock.calls[0][0] as string;
+    expect(goal).toContain('"https://www.momentum.co.za"');
+    expect(goal).toMatch(/only the organisation that operates this website/i);
+  });
+
+  it("adds no website line when the company has none", async () => {
+    const aiClient = { runSession: vi.fn().mockResolvedValue({ ok: true, sessionId: "s", synthesis: GOOD_SYNTHESIS }) };
+    await runAnalysisJob(makePrisma() as never, aiClient as never, "job1", "Maersk", "co1");
+    expect(aiClient.runSession.mock.calls[0][0]).not.toMatch(/official website/i);
+  });
+
   it("runs the conclave with web research, the analysis roster and a long timeout, then stores results", async () => {
     const prisma = makePrisma();
     const aiClient = { runSession: vi.fn().mockResolvedValue({ ok: true, sessionId: "s", synthesis: GOOD_SYNTHESIS }) };

@@ -8,6 +8,7 @@ import { createAnalysisRouter } from "./analysis.js";
 import { parseCompanyIdQuery } from "./companies.js";
 import { EXPERIMENT_STATUSES } from "./experimentStatus.js";
 import { logJson } from "../logger.js";
+import { removeOpportunity } from "./removal.js";
 import { DATA_NOTICE, dataBlock } from "../ai/promptSafety.js";
 import { computeEvidenceScore } from "../scoring/evidenceScore.js";
 
@@ -574,6 +575,19 @@ Write a concise report (3-5 paragraphs) summarizing the opportunity, the strengt
         return;
       }
       await prisma.learning.delete({ where: { id: req.params.learningId } });
+      res.status(204).end();
+    })
+  );
+
+  // Removes an opportunity and everything recorded under it (evidence, decisions, experiments, reports).
+  router.delete(
+    "/:id",
+    asyncHandler(async (req, res) => {
+      const removed = await removeOpportunity(prisma, req.params.id);
+      if (!removed) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Opportunity not found" } });
+        return;
+      }
       res.status(204).end();
     })
   );

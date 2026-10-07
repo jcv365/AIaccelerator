@@ -76,6 +76,7 @@ const icon = {
 // would 404, per the same "visibly not yet available" pattern used for SSO.
 const items: NavItem[] = [
   { label: "Dashboard", to: "/app", icon: icon.dashboard },
+  { label: "Companies", to: "/app/companies", icon: icon.portfolio },
   { label: "Opportunity Portfolio", to: "/app/portfolio", icon: icon.portfolio },
   { label: "Evidence Explorer", to: "/app/evidence", icon: icon.evidence },
   { label: "Hypothesis Engine", to: "/app/hypothesis", icon: icon.hypothesis },
