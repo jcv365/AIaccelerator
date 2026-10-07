@@ -17,7 +17,7 @@ export function normalizeNameKey(name: string): string {
 
 type Parsed = { ok: true; value: { name: string; website: string | undefined } } | { ok: false; message: string };
 
-function parseWebsite(raw: unknown): { ok: true; value: string | undefined } | { ok: false; message: string } {
+export function parseWebsite(raw: unknown): { ok: true; value: string | undefined } | { ok: false; message: string } {
   const bad = { ok: false as const, message: "website must be a valid public web address, like maersk.com" };
   if (raw === undefined || raw === null) return { ok: true, value: undefined };
   if (typeof raw !== "string") return bad;
