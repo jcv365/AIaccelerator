@@ -797,7 +797,7 @@ git push origin HEAD
 
 **Files:**
 - Modify: `server/prisma/schema.prisma` (`AnalysisJob`, `Company`)
-- Create: `server/prisma/migrations/20261007100000_analysis_backbone/migration.sql`
+- Create: `server/prisma/migrations/20261007130000_analysis_backbone/migration.sql`
 
 **Interfaces:**
 - Produces: `AnalysisJob.councilSessionId | stage | progress | context | lastPolledAt | unreachableSince` (all nullable) and `Company.description | industry | notes` (nullable) and `Company.focusAreas String[]`. Tasks 6-9 read and write these.
@@ -826,7 +826,7 @@ In the `Company` model, after `website       String?`, add:
 
 - [ ] **Step 2: Write the migration**
 
-Create `server/prisma/migrations/20261007100000_analysis_backbone/migration.sql`:
+Create `server/prisma/migrations/20261007130000_analysis_backbone/migration.sql`:
 
 ```sql
 -- AlterTable
@@ -853,7 +853,7 @@ Then `npx tsc --noEmit`. Expected: no errors (nothing uses the new fields yet).
 - [ ] **Step 4: Commit**
 
 ```bash
-git add server/prisma/schema.prisma server/prisma/migrations/20261007100000_analysis_backbone/migration.sql
+git add server/prisma/schema.prisma server/prisma/migrations/20261007130000_analysis_backbone/migration.sql
 git commit -m "feat(db): analysis job session/stage/progress/context columns and company context fields"
 git push origin HEAD
 ```
@@ -1730,6 +1730,10 @@ describe("analysis worker: running jobs", () => {
     expect(active).toMatchObject({ status: "SUCCEEDED", opportunityIds: ["opp1"] });
     expect(active.completedAt).toBeInstanceOf(Date);
     expect((prisma.opportunity as { create: ReturnType<typeof vi.fn> }).create).toHaveBeenCalledTimes(1);
+    // Each opportunity records the run that found it (the company page groups and filters by it).
+    expect((prisma.opportunity as { create: ReturnType<typeof vi.fn> }).create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ analysisJobId: "j1" }) })
+    );
   });
 
   it("a new worker reattaches to a RUNNING job with a session id (restart safety)", async () => {
@@ -1946,7 +1950,8 @@ export function createAnalysisWorker(prisma: PrismaClient, aiClient: AiClient, o
       const opportunityIds = await persistOpportunities(
         prisma,
         parseSynthesis(session.result?.synthesis),
-        job.companyId ?? undefined
+        job.companyId ?? undefined,
+        job.id
       );
       await prisma.analysisJob.update({
         where: { id: job.id },
@@ -2367,15 +2372,17 @@ git push origin HEAD
 
 ---
 
-### Task 9: Company routes (`PATCH /companies/:id`, `GET /companies/:id/analysis-jobs`)
+### Task 9: Company routes (extend `PATCH /companies/:id`, add `GET /companies/:id/analysis-jobs`)
+
+> **Revised 2026-10-07 after commit 0e139f7.** `PATCH /companies/:id` already exists (name and website, returns the bare company DTO) and `GET /companies/:id/analyses` already lists a company's runs with opportunity counts. This task EXTENDS that PATCH with the context fields and keeps its response shape; it does not recreate it. `analysis-jobs` stays: it is the lightweight live list the wizard polls (it carries `stage` and the error, and never the Council session id).
 
 **Files:**
 - Modify: `server/src/domain/companies.ts`
 - Modify: `server/test/domain/companies.test.ts`
 
 **Interfaces:**
-- Consumes: `parseAnalysisContext` (Task 6).
-- Produces: `parseCompanyPatch(body)`, the `PATCH` and `GET analysis-jobs` routes, and company DTOs gaining `description`, `industry`, `focusAreas`, `notes`.
+- Consumes: `parseAnalysisContext` (Task 6); the existing `parseCompanyInput`, `normalizeNameKey`, `toDto`.
+- Produces: `parseCompanyContextPatch(body)`, the extended `PATCH` (name, website and the context fields; response is the bare DTO), the `GET analysis-jobs` route, and company DTOs gaining `description`, `industry`, `focusAreas`, `notes`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2390,58 +2397,50 @@ In `server/test/domain/companies.test.ts`, change the expectation in the list te
     ]);
 ```
 
-Append new tests (reuse the file's existing `appWith(prisma)` helper and its imports; add `parseCompanyPatch` to the import from `../../src/domain/companies.js`):
+Check first whether the file already has PATCH tests (`grep -n PATCH server/test/domain/companies.test.ts`; also look in other files under `server/test` for `patch("/companies`). Keep any that exist and make them pass; do not duplicate them. Append new tests (reuse the file's existing `appWith(prisma)` helper and imports; add `parseCompanyContextPatch` to the import from `../../src/domain/companies.js`; add `vi` to the vitest import if missing):
 
 ```ts
-describe("parseCompanyPatch", () => {
+describe("parseCompanyContextPatch", () => {
   it("accepts any subset of the context fields", () => {
-    expect(parseCompanyPatch({ industry: " Telecoms ", focusAreas: ["Operations"] })).toEqual({
+    expect(parseCompanyContextPatch({ industry: " Telecoms ", focusAreas: ["Operations"] })).toEqual({
       ok: true,
       data: { industry: "Telecoms", focusAreas: ["Operations"] },
     });
   });
 
   it("clears a field when it is empty or null, and a list when it is empty", () => {
-    expect(parseCompanyPatch({ notes: "", industry: null, focusAreas: [], description: "   " })).toEqual({
+    expect(parseCompanyContextPatch({ notes: "", industry: null, focusAreas: [], description: "   " })).toEqual({
       ok: true,
       data: { notes: null, industry: null, focusAreas: [], description: null },
     });
   });
 
-  it("normalises the website and rejects an unusable one", () => {
-    expect(parseCompanyPatch({ website: "Cassava.com" })).toEqual({ ok: true, data: { website: "https://cassava.com" } });
-    expect(parseCompanyPatch({ website: "http://localhost" })).toMatchObject({ ok: false });
-  });
-
-  it("enforces the context caps and ignores unknown or immutable fields", () => {
-    expect(parseCompanyPatch({ description: "x".repeat(1001) })).toMatchObject({ ok: false });
-    expect(parseCompanyPatch({ name: "Renamed", nameKey: "renamed" })).toMatchObject({ ok: false, message: "nothing to update" });
+  it("enforces the context caps and ignores name and website (the existing PATCH handles those)", () => {
+    expect(parseCompanyContextPatch({ description: "x".repeat(1001) })).toMatchObject({ ok: false });
+    expect(parseCompanyContextPatch({ name: "Renamed", website: "cassava.com" })).toEqual({ ok: true, data: {} });
   });
 });
 
-describe("PATCH /companies/:id", () => {
-  it("updates the context fields and returns the company", async () => {
+describe("PATCH /companies/:id with context fields", () => {
+  it("updates the context fields and returns the bare company", async () => {
+    const stored = { id: "c1", name: "Cassava", website: "https://cassava.com", description: null, industry: null, focusAreas: [], notes: null, createdAt: new Date("2026-10-07T08:00:00Z") };
     const prisma = {
       company: {
-        findUnique: vi.fn().mockResolvedValue({ id: "c1", name: "Cassava" }),
-        update: vi.fn().mockResolvedValue({
-          id: "c1", name: "Cassava", website: "https://cassava.com", description: "Pan-African group", industry: null,
-          focusAreas: [], notes: null, createdAt: new Date("2026-10-07T08:00:00Z"),
-        }),
+        findUnique: vi.fn().mockResolvedValue(stored),
+        update: vi.fn().mockResolvedValue({ ...stored, description: "Pan-African group", focusAreas: ["Operations"] }),
       },
     };
-    const res = await request(appWith(prisma as never)).patch("/companies/c1").send({ website: "cassava.com", description: "Pan-African group" });
+    const res = await request(appWith(prisma as never)).patch("/companies/c1").send({ description: "Pan-African group", focusAreas: ["Operations"] });
     expect(res.status).toBe(200);
     expect(prisma.company.update).toHaveBeenCalledWith({
       where: { id: "c1" },
-      data: { website: "https://cassava.com", description: "Pan-African group" },
+      data: expect.objectContaining({ description: "Pan-African group", focusAreas: ["Operations"] }),
     });
-    expect(res.body.company).toMatchObject({ id: "c1", website: "https://cassava.com", description: "Pan-African group" });
+    expect(res.body).toMatchObject({ id: "c1", description: "Pan-African group", focusAreas: ["Operations"] });
   });
 
-  it("returns 404 for an unknown company and 400 for an invalid body", async () => {
-    const prisma = { company: { findUnique: vi.fn().mockResolvedValue(null), update: vi.fn() } };
-    expect((await request(appWith(prisma as never)).patch("/companies/nope").send({ notes: "x" })).status).toBe(404);
+  it("rejects an invalid context field with 400 and writes nothing", async () => {
+    const prisma = { company: { findUnique: vi.fn().mockResolvedValue({ id: "c1", name: "Cassava", website: null }), update: vi.fn() } };
     expect((await request(appWith(prisma as never)).patch("/companies/c1").send({ industry: 5 })).status).toBe(400);
     expect(prisma.company.update).not.toHaveBeenCalled();
   });
@@ -2473,12 +2472,10 @@ describe("GET /companies/:id/analysis-jobs", () => {
 });
 ```
 
-(If `vi` is not already imported in that file, add it to the existing vitest import.)
-
 - [ ] **Step 2: Run to verify they fail**
 
 Run: `npx vitest run test/domain/companies.test.ts`
-Expected: FAIL (`parseCompanyPatch` not exported, routes missing, DTO shape).
+Expected: FAIL (`parseCompanyContextPatch` not exported, DTO shape, `analysis-jobs` route missing).
 
 - [ ] **Step 3: Implement**
 
@@ -2504,17 +2501,18 @@ const toDto = (c: Company) => ({
 Add, above `createCompaniesRouter`:
 
 ```ts
-const PATCH_FIELDS = ["website", "industry", "description", "focusAreas", "notes"] as const;
+const CONTEXT_FIELDS = ["industry", "description", "focusAreas", "notes"] as const;
 
 /**
- * Validates a partial update of the context fields. A field that is present but empty (or null, or an empty list)
- * clears it; a field that is absent is left alone. Name and nameKey are never changed here.
+ * Validates a partial update of the context fields (name and website are handled by parseCompanyInput). A field
+ * that is present but empty (or null, or an empty list) clears it; an absent field is left alone. An empty
+ * result is valid: the caller may be changing only the name or website.
  */
-export function parseCompanyPatch(
+export function parseCompanyContextPatch(
   body: Record<string, unknown>
 ): { ok: true; data: Record<string, unknown> } | { ok: false; message: string } {
   const data: Record<string, unknown> = {};
-  for (const key of PATCH_FIELDS) {
+  for (const key of CONTEXT_FIELDS) {
     if (!(key in body)) continue;
     const raw = body[key];
     const clearing =
@@ -2529,39 +2527,54 @@ export function parseCompanyPatch(
     if (!parsed.ok) return parsed;
     data[key] = parsed.value[key] ?? (key === "focusAreas" ? [] : null);
   }
-  if (Object.keys(data).length === 0) return { ok: false, message: "nothing to update" };
   return { ok: true, data };
 }
 
 const validId = (id: unknown): id is string => typeof id === "string" && id.length >= 1 && id.length <= 64;
 ```
 
-Inside `createCompaniesRouter`, before `return router;`, add:
+In the existing `router.patch("/:id", ...)` handler, replace its body after the 404 check so name/website and the context fields are all optional but at least one must be present:
 
 ```ts
-  router.patch(
-    "/:id",
-    asyncHandler(async (req, res) => {
-      const id = req.params.id;
-      if (!validId(id)) {
-        res.status(404).json({ error: { code: "NOT_FOUND", message: "Company not found" } });
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const context = parseCompanyContextPatch(body);
+      if (!context.ok) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: context.message } });
         return;
       }
-      const parsed = parseCompanyPatch((req.body ?? {}) as Record<string, unknown>);
-      if (!parsed.ok) {
-        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: parsed.message } });
+      const touchesIdentity = "name" in body || "website" in body;
+      if (!touchesIdentity && Object.keys(context.data).length === 0) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "nothing to update" } });
         return;
       }
-      const existing = await prisma.company.findUnique({ where: { id } });
-      if (!existing) {
-        res.status(404).json({ error: { code: "NOT_FOUND", message: "Company not found" } });
-        return;
+      const data: Record<string, unknown> = { ...context.data };
+      if (touchesIdentity) {
+        const parsed = parseCompanyInput({ name: existing.name, website: existing.website, ...body });
+        if (!parsed.ok) {
+          res.status(400).json({ error: { code: "VALIDATION_ERROR", message: parsed.message } });
+          return;
+        }
+        data.name = parsed.value.name;
+        data.nameKey = normalizeNameKey(parsed.value.name);
+        data.website = parsed.value.website ?? null;
       }
-      const company = await prisma.company.update({ where: { id }, data: parsed.data });
-      res.status(200).json({ company: toDto(company) });
-    })
-  );
+      try {
+        const updated = await prisma.company.update({ where: { id: existing.id }, data });
+        res.status(200).json(toDto(updated));
+      } catch (err) {
+        if ((err as { code?: string }).code === "P2002") {
+          res.status(409).json({ error: { code: "NAME_TAKEN", message: "Another company already has that name" } });
+          return;
+        }
+        throw err;
+      }
+```
 
+(Keep the handler's existing `existing` lookup and 404 branch and its `// Edit the name and/or website...` comment, updating the comment to mention the context fields.)
+
+Add, before `return router;`:
+
+```ts
   // Lets the client find a running or past analysis without relying on browser storage.
   router.get(
     "/:id/analysis-jobs",
@@ -2588,7 +2601,7 @@ Inside `createCompaniesRouter`, before `return router;`, add:
   );
 ```
 
-(`parsed.data` is a plain record; Prisma accepts it for `data`. If `tsc` objects, cast with `as Prisma.CompanyUpdateInput`, importing `Prisma` as a type.)
+(`data` is a plain record; Prisma accepts it. If `tsc` objects, type it `Prisma.CompanyUpdateInput`, importing `Prisma` as a type from `@prisma/client`.)
 
 - [ ] **Step 4: Run to verify they pass; type-check; whole server suite**
 
@@ -2599,7 +2612,7 @@ Expected: all pass.
 
 ```bash
 git add server/src/domain/companies.ts server/test/domain/companies.test.ts
-git commit -m "feat(companies): context fields, PATCH /companies/:id and GET /companies/:id/analysis-jobs"
+git commit -m "feat(companies): context fields on PATCH /companies/:id and GET /companies/:id/analysis-jobs"
 git push origin HEAD
 ```
 
