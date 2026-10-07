@@ -18,6 +18,10 @@ function makeDb() {
   const withFiles = (r: Row) => ({ ...r, deliverables: files.filter((f) => f.companyReportId === r.id).map((f) => ({ audience: f.audience, format: f.format, filename: f.filename, sizeBytes: f.sizeBytes })) });
   const prisma = {
     company: { findUnique: async ({ where }: Row) => (where.id === "c1" ? { id: "c1", name: "Acme Shipping" } : null) },
+    analysisJob: {
+      findFirst: async ({ where }: Row) =>
+        where.id === "j1" && where.companyId === "c1" && where.status === "SUCCEEDED" ? { id: "j1", createdAt: new Date("2026-10-07T11:00:00Z") } : null,
+    },
     companyReport: {
       findFirst: async ({ where, orderBy }: Row) => {
         const found = reports.filter((r) => matches(r, where));
@@ -183,6 +187,46 @@ describe("startReport and runReportJob", () => {
   });
 });
 
+describe("a report scoped to one analysis run", () => {
+  it("collects only that run's facts and records which run (and its date) the report is about", async () => {
+    const db = makeDb();
+    const collect = vi.fn(async () => makeFacts());
+    const d = { ...deps(db, makeAi()), collect };
+    expect((await startReport(d, "c1", "j1")).kind).toBe("started");
+    await settled(db);
+    expect(collect).toHaveBeenCalledWith(db.prisma, "c1", "j1");
+    const row = db.reports[0];
+    expect(row.status).toBe("DRAFT");
+    expect(row.sources.analysis).toEqual({ id: "j1", ranAt: "2026-10-07T11:00:00.000Z" });
+    const docx = db.files.find((f) => f.format === "DOCX")!;
+    const xml = await (await JSZip.loadAsync(docx.content)).file("word/document.xml")!.async("string");
+    expect(xml).toContain("Analysis run of 2026-10-07");
+  });
+
+  it("says plainly when every run was combined", async () => {
+    const db = makeDb();
+    await started(deps(db, makeAi()), db);
+    const xml = await (await JSZip.loadAsync(db.files.find((f) => f.format === "DOCX")!.content)).file("word/document.xml")!.async("string");
+    expect(xml).toContain("All analysis runs combined");
+  });
+
+  it("refuses a run that is unknown, unfinished or another company's", async () => {
+    const db = makeDb();
+    expect((await startReport(deps(db, makeAi()), "c1", "nope")).kind).toBe("analysis_not_found");
+    expect(db.reports).toHaveLength(0);
+  });
+
+  it("keeps the same run (and the draft/approved wording) when the report is approved", async () => {
+    const db = makeDb();
+    await startReport(deps(db, makeAi()), "c1", "j1");
+    await settled(db);
+    await approveReport(db.prisma as never, db.reports[0].id, "admin");
+    const xml = await (await JSZip.loadAsync(db.files.find((f) => f.format === "DOCX")!.content)).file("word/document.xml")!.async("string");
+    expect(xml).toContain("Analysis run of 2026-10-07");
+    expect(xml).toContain("Approved by admin");
+  });
+});
+
 describe("approveReport", () => {
   it("locks a draft and rebuilds its files without the draft mark", async () => {
     const db = makeDb();
@@ -264,6 +308,17 @@ describe("reports routes", () => {
     expect(busy.status).toBe(409);
     expect(busy.body.error.code).toBe("REPORT_IN_PROGRESS");
     expect((await request(appWith(makeDb(), undefined)).post("/reports").send({ companyId: "c1" })).status).toBe(503);
+  });
+
+  it("passes the chosen run through, and rejects a run that is not a finished run of the company", async () => {
+    const db = makeDb();
+    const app = appWith(db, makeAi());
+    expect((await request(app).post("/reports").send({ companyId: "c1", analysisId: "nope" })).status).toBe(400);
+    expect((await request(app).post("/reports").send({ companyId: "c1", analysisId: { $ne: "x" } })).status).toBe(400);
+    const ok = await request(app).post("/reports").send({ companyId: "c1", analysisId: "j1" });
+    expect(ok.status).toBe(202);
+    expect(db.reports[0].companyId).toBe("c1");
+    await settled(db);
   });
 
   it("accepts a start request with 202 and a version", async () => {

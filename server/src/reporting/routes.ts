@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import type { AiClient } from "../ai/client.js";
 import { asyncHandler } from "../asyncHandler.js";
+import { parseAnalysisIdBody } from "../domain/companies.js";
 import type { QualityReport } from "./gates.js";
 import { approveReport, startReport, type ReportDeps } from "./service.js";
 
@@ -24,7 +25,7 @@ type ReportRow = Prisma.CompanyReportGetPayload<{
 function view(r: ReportRow) {
   const quality = r.qualityReport as QualityReport | null;
   const content = r.content as { executive?: { headline?: string }; opportunities?: unknown[] } | null;
-  const saved = r.sources as { sources?: unknown[] } | null;
+  const saved = r.sources as { sources?: unknown[]; analysis?: { id: string; ranAt: string } | null } | null;
   return {
     id: r.id,
     companyId: r.companyId,
@@ -36,6 +37,7 @@ function view(r: ReportRow) {
     completedAt: r.completedAt,
     approvedAt: r.approvedAt,
     approvedBy: r.approvedBy,
+    analysis: saved?.analysis ?? null,
     summary: content?.executive?.headline ? { headline: content.executive.headline, opportunities: content.opportunities?.length ?? 0, sources: saved?.sources?.length ?? 0 } : null,
     quality: quality ? { passed: quality.passed, checks: quality.checks.map((c) => ({ id: c.id, name: c.name, passed: c.passed, details: c.passed ? [] : c.details.slice(0, 8) })) } : null,
     files: r.deliverables.map((d) => ({ audience: d.audience, format: d.format, filename: d.filename, sizeBytes: d.sizeBytes })),
@@ -59,10 +61,17 @@ export function createReportsRouter(prisma: PrismaClient, aiClient: AiClient | u
         res.status(400).json(error("VALIDATION_ERROR", "companyId must be an existing company"));
         return;
       }
+      const run = parseAnalysisIdBody((req.body ?? {}).analysisId);
+      if (!run.ok) {
+        res.status(400).json(error("VALIDATION_ERROR", "analysisId must be an id"));
+        return;
+      }
       const deps: ReportDeps = { prisma, aiClient, retryDelayMs: opts.retryDelayMs };
-      const result = await startReport(deps, companyId);
+      const result = await startReport(deps, companyId, run.id);
       if (result.kind === "company_not_found") {
         res.status(400).json(error("VALIDATION_ERROR", "companyId must be an existing company"));
+      } else if (result.kind === "analysis_not_found") {
+        res.status(400).json(error("VALIDATION_ERROR", "analysisId must be a finished analysis run of this company"));
       } else if (result.kind === "busy") {
         res.status(409).json(error("REPORT_IN_PROGRESS", "A report is already being written. Try again when it finishes."));
       } else {

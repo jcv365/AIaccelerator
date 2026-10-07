@@ -5,7 +5,7 @@ import { isValidTransition, validTransitionsFrom, type OpportunityStatus } from 
 import type { AiClient } from "../ai/client.js";
 import { AiClientError, aiErrorStatus } from "../ai/errors.js";
 import { createAnalysisRouter, DEFAULT_ANALYSIS_CONFIG_PATH } from "./analysis.js";
-import { parseCompanyIdQuery } from "./companies.js";
+import { opportunityScope, parseAnalysisIdQuery, parseCompanyIdQuery } from "./companies.js";
 import { EXPERIMENT_STATUSES } from "./experimentStatus.js";
 import { logJson } from "../logger.js";
 import { removeOpportunity } from "./removal.js";
@@ -148,14 +148,14 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
         res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "companyId must be a single id" } });
         return;
       }
-      // Optional: only the opportunities one analysis run found. One short id, never an operator object.
-      const run = req.query.analysisId;
-      if (run !== undefined && (typeof run !== "string" || run.length < 1 || run.length > 64)) {
+      // Optional: only the opportunities one analysis run found.
+      const run = parseAnalysisIdQuery(req.query.analysisId);
+      if (!run.ok) {
         res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "analysisId must be a single id" } });
         return;
       }
       const opportunities = await prisma.opportunity.findMany({
-        where: company.id || run ? { ...(company.id ? { companyId: company.id } : {}), ...(run ? { analysisJobId: run } : {}) } : undefined,
+        where: opportunityScope(company.id, run.id),
         orderBy: { createdAt: "desc" },
         include: {
           _count: { select: { evidence: true, decisions: true } },

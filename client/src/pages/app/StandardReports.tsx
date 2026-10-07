@@ -29,8 +29,9 @@ const REPORTS: { type: string; name: string; text: string; tone: string }[] = [
   { type: "roi", name: "ROI & Business Case", text: "Financial impact and value realisation", tone: "purple" },
 ];
 
-async function saveCsv(companyId: string | null): Promise<void> {
-  const query = companyId ? `?companyId=${encodeURIComponent(companyId)}` : "";
+async function saveCsv(companyId: string | null, analysisId: string | null): Promise<void> {
+  const parts = [companyId ? `companyId=${encodeURIComponent(companyId)}` : "", analysisId ? `analysisId=${encodeURIComponent(analysisId)}` : ""].filter(Boolean);
+  const query = parts.length ? `?${parts.join("&")}` : "";
   const res = await apiFetch(`/exports/opportunities.csv${query}`);
   if (!res.ok) throw new Error("The export could not be downloaded.");
   const url = URL.createObjectURL(await res.blob());
@@ -47,7 +48,7 @@ async function saveCsv(companyId: string | null): Promise<void> {
  * The five standard AI-written reports plus a CSV export, for the selected company. Each report is generated on request
  * from the recorded data, shown with the model that wrote it, and never saved or sent anywhere without a click.
  */
-export function StandardReports({ companyId }: { companyId: string | null }) {
+export function StandardReports({ companyId, analysisId = null }: { companyId: string | null; analysisId?: string | null }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ name: string; report: StandardReport } | null>(null);
@@ -56,7 +57,7 @@ export function StandardReports({ companyId }: { companyId: string | null }) {
     setBusy(type);
     setError(null);
     try {
-      const report = await api.post<StandardReport>(`/reports/standard/${type}`, companyId ? { companyId } : {});
+      const report = await api.post<StandardReport>(`/reports/standard/${type}`, { ...(companyId ? { companyId } : {}), ...(analysisId ? { analysisId } : {}) });
       setResult({ name, report });
     } catch (err) {
       setError(err instanceof Error ? err.message : "The report could not be generated.");
@@ -69,7 +70,7 @@ export function StandardReports({ companyId }: { companyId: string | null }) {
     setBusy("export");
     setError(null);
     try {
-      await saveCsv(companyId);
+      await saveCsv(companyId, analysisId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "The export could not be downloaded.");
     } finally {

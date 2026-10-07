@@ -40,6 +40,8 @@ function mount(extra: Record<string, Handler> = {}) {
   runs = [run("j2", "2026-10-07T11:00:00Z"), run("j1", "2026-10-06T08:00:00Z", { status: "FAILED", opportunities: 0, error: { code: "AI_UNREACHABLE", message: "Could not reach the conclave" } })];
   const fetchMock = routeFetch({
     "GET /companies": () => ({ ok: true, body: companies }),
+    // The newest finished run (j2) is shown by default; "all runs" shows every opportunity.
+    "GET /opportunities?companyId=c1&analysisId=j2": () => ({ ok: true, body: [opps[1]] }),
     "GET /opportunities?companyId=c1": () => ({ ok: true, body: opps }),
     "GET /opportunities?companyId=c2": () => ({ ok: true, body: [] }),
     "GET /companies/c1/analyses": () => ({ ok: true, body: { analyses: runs } }),
@@ -130,6 +132,7 @@ describe("Companies page", () => {
 
   it("removes a wrong opportunity after a second click", async () => {
     const fetchMock = mount({ "DELETE /opportunities/o1": () => ({ ok: true, status: 204, body: null }) });
+    fireEvent.click(await screen.findByRole("button", { name: "Show all runs" }));
     fireEvent.click(await screen.findByRole("button", { name: "Remove Momentum.io: Wrong thing" }));
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Confirm remove Momentum.io: Wrong thing" }));
@@ -145,11 +148,10 @@ describe("Companies page", () => {
     expect(screen.getAllByText(/2026/, { selector: "strong" })).toHaveLength(2);
   });
 
-  it("shows only one run's opportunities when asked, and all runs again after", async () => {
-    const fetchMock = mount({ "GET /opportunities?companyId=c1&analysisId=j2": () => ({ ok: true, body: [opps[1]] }) });
-    fireEvent.click(await screen.findByRole("button", { name: /^Show run of/ }));
-    await waitFor(() => expect(screen.queryByText("Momentum.io: Wrong thing")).not.toBeInTheDocument());
-    expect(screen.getByText("Claims intake")).toBeInTheDocument();
+  it("shows only the newest run's opportunities by default, and every run's when asked", async () => {
+    const fetchMock = mount();
+    expect(await screen.findByText("Claims intake")).toBeInTheDocument();
+    expect(screen.queryByText("Momentum.io: Wrong thing")).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("analysisId=j2"))).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Show all runs" }));
     expect(await screen.findByText("Momentum.io: Wrong thing")).toBeInTheDocument();

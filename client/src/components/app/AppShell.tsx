@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { SidebarNav } from "./SidebarNav";
 import { CompanySwitcher } from "./CompanySwitcher";
+import { RunSwitcher } from "./RunSwitcher";
 import { StatusIndicator } from "./StatusIndicator";
 import { PRODUCT_NAME } from "../../brand";
 import { BrandMark } from "../BrandMark";
@@ -27,6 +28,12 @@ function ConnectedCompanySwitcher() {
       }}
     />
   );
+}
+
+/** The top-bar analysis-run picker: screens show only what the chosen run found. */
+function ConnectedRunSwitcher() {
+  const { runs, runId, selectRun } = useCompany();
+  return <RunSwitcher runs={runs} runId={runId} onSelect={selectRun} />;
 }
 
 /** Today's date and the signed-in user's initials, top right. */
@@ -88,6 +95,7 @@ export function AppShell({ onLogout, children }: AppShellProps) {
       <div className="app-main">
         <header className="app-topbar">
           <ConnectedCompanySwitcher />
+          <ConnectedRunSwitcher />
           <TopbarIdentity username={username} />
         </header>
         <main id="main-content" className="app-shell__content">

@@ -202,4 +202,24 @@ describe("ReportsAndExports (company level)", () => {
     mount({ "GET /reports?companyId=c1": () => ({ ok: false, body: {} }) });
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not load the reports/i);
   });
+
+  it("writes the report for the selected analysis run and says which run it covers", async () => {
+    const fetchMock = mount({
+      "GET /companies/c1/analyses": () => ({ ok: true, body: { analyses: [{ id: "j9", status: "SUCCEEDED", createdAt: "2026-10-07T11:00:00Z", opportunities: 8 }] } }),
+      "GET /reports?companyId=c1": () => ({ ok: true, body: { reports: [report({ analysis: { id: "j9", ranAt: "2026-10-07T11:00:00Z" } })] } }),
+      "POST /reports": () => ({ ok: true, status: 202, body: { reportId: "r3", version: 3, status: "GENERATING" } }),
+    });
+    expect(await screen.findByText(/Covers the analysis run of/)).toBeInTheDocument();
+    expect(await screen.findByText(/The next report covers the analysis run of/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /write a new version/i }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(true));
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
+    expect(JSON.parse(post![1].body as string)).toEqual({ companyId: "c1", analysisId: "j9" });
+  });
+
+  it("says when a report combined every run", async () => {
+    mount({ "GET /reports?companyId=c1": () => ({ ok: true, body: { reports: [report({ analysis: null })] } }) });
+    expect(await screen.findByText(/Covers all analysis runs together/)).toBeInTheDocument();
+    expect(screen.getByText(/The next report covers all analysis runs together/)).toBeInTheDocument();
+  });
 });

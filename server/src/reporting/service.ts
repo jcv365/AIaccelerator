@@ -49,13 +49,17 @@ function boundAsk(deps: ReportDeps): Ask {
 export type StartResult =
   | { kind: "started"; reportId: string; version: number }
   | { kind: "company_not_found" }
+  | { kind: "analysis_not_found" }
   | { kind: "busy" };
 
 /** Creates the next version for a company and starts writing it in the background. */
-export async function startReport(deps: ReportDeps, companyId: string): Promise<StartResult> {
+export async function startReport(deps: ReportDeps, companyId: string, analysisId?: string | null): Promise<StartResult> {
   const { prisma } = deps;
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) return { kind: "company_not_found" };
+  // A point-in-time report must name a finished run that belongs to this company.
+  const analysis = analysisId ? await prisma.analysisJob.findFirst({ where: { id: analysisId, companyId, status: "SUCCEEDED" } }) : null;
+  if (analysisId && !analysis) return { kind: "analysis_not_found" };
   // One report at a time: each is dozens of model calls, and the shared roster is small.
   if (await prisma.companyReport.findFirst({ where: { status: "GENERATING" } })) return { kind: "busy" };
 
@@ -64,7 +68,7 @@ export async function startReport(deps: ReportDeps, companyId: string): Promise<
     const report = await prisma.companyReport.create({
       data: { companyId, version: (latest?.version ?? 0) + 1, status: "GENERATING", stage: "Starting" },
     });
-    void runReportJob(deps, report.id, companyId);
+    void runReportJob(deps, report.id, companyId, analysis ? { id: analysis.id, ranAt: analysis.createdAt } : null);
     return { kind: "started", reportId: report.id, version: report.version };
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") return { kind: "busy" }; // lost a race for this version
@@ -77,7 +81,7 @@ function failedCheckNames(quality: QualityReport): string {
 }
 
 /** Never rejects: every outcome, including crashes, is recorded on the report row. */
-export async function runReportJob(deps: ReportDeps, reportId: string, companyId: string): Promise<void> {
+export async function runReportJob(deps: ReportDeps, reportId: string, companyId: string, analysis: { id: string; ranAt: Date } | null = null): Promise<void> {
   const { prisma } = deps;
   const started = Date.now();
   const fail = async (message: string, extra: Prisma.CompanyReportUpdateInput = {}) => {
@@ -91,7 +95,7 @@ export async function runReportJob(deps: ReportDeps, reportId: string, companyId
 
   try {
     logJson("info", "company report started", { reportId, companyId });
-    const facts = await (deps.collect ?? collectFacts)(prisma, companyId);
+    const facts = await (deps.collect ?? collectFacts)(prisma, companyId, analysis?.id);
     const content = await generateReportContent(facts, boundAsk(deps), {
       onStage: async (stage) => {
         await prisma.companyReport.update({ where: { id: reportId }, data: { stage: stage.slice(0, 200) } });
@@ -101,7 +105,7 @@ export async function runReportJob(deps: ReportDeps, reportId: string, companyId
 
     const quality = runQualityGates(content, facts);
     const titles = Object.fromEntries(facts.opportunities.map((o) => [o.id, o.title]));
-    const stored = { content: content as unknown as Prisma.InputJsonValue, sources: { sources: facts.sources, titles } as unknown as Prisma.InputJsonValue, qualityReport: quality as unknown as Prisma.InputJsonValue };
+    const stored = { content: content as unknown as Prisma.InputJsonValue, sources: { sources: facts.sources, titles, analysis: analysis ? { id: analysis.id, ranAt: analysis.ranAt.toISOString() } : null } as unknown as Prisma.InputJsonValue, qualityReport: quality as unknown as Prisma.InputJsonValue };
     if (!quality.passed) {
       await fail(`The report did not pass its quality checks: ${failedCheckNames(quality)}`, stored);
       return;
@@ -109,7 +113,7 @@ export async function runReportJob(deps: ReportDeps, reportId: string, companyId
 
     await prisma.companyReport.update({ where: { id: reportId }, data: { stage: "Building the files" } });
     const completedAt = new Date();
-    const files = await renderDeliverables({ content, sources: facts.sources, titles, meta: { version: await versionOf(prisma, reportId), status: "DRAFT", generatedAt: completedAt, author: AUTHOR } });
+    const files = await renderDeliverables({ content, sources: facts.sources, titles, meta: { version: await versionOf(prisma, reportId), status: "DRAFT", generatedAt: completedAt, author: AUTHOR, analysisRanAt: analysis?.ranAt ?? null } });
     await prisma.$transaction(async (tx) => {
       await tx.companyReport.update({ where: { id: reportId }, data: { ...stored, status: "DRAFT", stage: null, errorMessage: null, completedAt } });
       await tx.deliverable.createMany({
@@ -138,13 +142,13 @@ export function renderInputFromRow(
   meta: Pick<RenderMeta, "status" | "approvedAt" | "approvedBy">
 ): RenderInput | null {
   const content = reportContentSchema.safeParse(row.content);
-  const saved = row.sources as { sources?: SourceRef[]; titles?: Record<string, string> } | null;
+  const saved = row.sources as { sources?: SourceRef[]; titles?: Record<string, string>; analysis?: { id: string; ranAt: string } | null } | null;
   if (!content.success || !saved?.sources || !saved.titles) return null;
   return {
     content: content.data as ReportContent,
     sources: saved.sources,
     titles: saved.titles,
-    meta: { version: row.version, generatedAt: row.completedAt ?? row.createdAt, author: AUTHOR, ...meta },
+    meta: { version: row.version, generatedAt: row.completedAt ?? row.createdAt, author: AUTHOR, analysisRanAt: saved.analysis ? new Date(saved.analysis.ranAt) : null, ...meta },
   };
 }
 

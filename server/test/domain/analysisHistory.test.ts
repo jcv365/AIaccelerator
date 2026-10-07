@@ -3,6 +3,8 @@ import express from "express";
 import request from "supertest";
 import { createCompaniesRouter } from "../../src/domain/companies.js";
 import { createOpportunitiesRouter } from "../../src/domain/opportunities.js";
+import { createEvidenceListRouter, createExperimentsListRouter } from "../../src/domain/crossLists.js";
+import { createExportRouter, createReadinessRouter } from "../../src/scoring/routes.js";
 import { runAnalysisJob } from "../../src/domain/analysis.js";
 
 const appWith = (prisma: unknown) => {
@@ -80,5 +82,52 @@ describe("runAnalysisJob stores the run on each opportunity", () => {
     const ai = { runSession: vi.fn().mockResolvedValue({ ok: true, sessionId: "s", synthesis }) };
     await runAnalysisJob(prisma as never, ai as never, "job9", "Momentum", "c1");
     expect(create.mock.calls[0][0].data).toMatchObject({ companyId: "c1", analysisJobId: "job9" });
+  });
+});
+
+describe("one analysis run scopes the other lists too", () => {
+  const listApp = (prisma: unknown) => {
+    const app = express();
+    app.use(express.json());
+    app.use("/evidence", createEvidenceListRouter(prisma as never));
+    app.use("/experiments", createExperimentsListRouter(prisma as never));
+    app.use("/exports", createExportRouter(prisma as never));
+    return app;
+  };
+
+  it("filters evidence and experiments by the run through their opportunity", async () => {
+    const prisma = { evidence: { findMany: vi.fn().mockResolvedValue([]) }, experiment: { findMany: vi.fn().mockResolvedValue([]) } };
+    await request(listApp(prisma)).get("/evidence?companyId=c1&analysisId=j2");
+    await request(listApp(prisma)).get("/experiments?companyId=c1&analysisId=j2");
+    expect(prisma.evidence.findMany.mock.calls[0][0].where).toEqual({ opportunity: { companyId: "c1", analysisJobId: "j2" } });
+    expect(prisma.experiment.findMany.mock.calls[0][0].where).toEqual({ opportunity: { companyId: "c1", analysisJobId: "j2" } });
+  });
+
+  it("rejects a malformed run id on the cross lists and the export", async () => {
+    const prisma = { evidence: { findMany: vi.fn() }, experiment: { findMany: vi.fn() }, opportunity: { findMany: vi.fn() } };
+    expect((await request(listApp(prisma)).get("/evidence?analysisId[a]=1")).status).toBe(400);
+    expect((await request(listApp(prisma)).get("/exports/opportunities.csv?analysisId[a]=1")).status).toBe(400);
+    expect(prisma.evidence.findMany).not.toHaveBeenCalled();
+  });
+
+  it("filters the CSV export by run", async () => {
+    const prisma = { opportunity: { findMany: vi.fn().mockResolvedValue([]) } };
+    const res = await request(listApp(prisma)).get("/exports/opportunities.csv?companyId=c1&analysisId=j2");
+    expect(res.status).toBe(200);
+    expect(prisma.opportunity.findMany.mock.calls[0][0].where).toEqual({ companyId: "c1", analysisJobId: "j2" });
+  });
+
+  it("assesses readiness over only the chosen run's opportunities", async () => {
+    const prisma = {
+      company: { findUnique: vi.fn().mockResolvedValue({ id: "c1" }) },
+      opportunity: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    const app = express();
+    app.use(express.json());
+    app.use("/readiness", createReadinessRouter(prisma as never, { quickAsk: vi.fn(), runSession: vi.fn() } as never));
+    const res = await request(app).post("/readiness").send({ companyId: "c1", analysisId: "j2" });
+    expect(res.status).toBe(409); // no opportunities in that run
+    expect(prisma.opportunity.findMany.mock.calls[0][0].where).toEqual({ companyId: "c1", analysisJobId: "j2" });
+    expect((await request(app).post("/readiness").send({ companyId: "c1", analysisId: 5 })).status).toBe(400);
   });
 });

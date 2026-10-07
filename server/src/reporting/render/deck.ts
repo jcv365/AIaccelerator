@@ -1,6 +1,7 @@
 import PptxGenJSModule from "pptxgenjs";
 import {
   AUDIENCE_LABEL,
+  analysisLine,
   CONFIDENTIAL,
   THEME,
   badRatingColor,
@@ -123,7 +124,7 @@ export async function renderDeck(input: RenderInput, audience: Audience): Promis
   {
     const s = body("About this document", "What this briefing is based on", "Explain the evidence labels before presenting. Findings come from public material only; nothing here uses client-internal data.");
     card(s, M, BODY_TOP, 5.9, 2.2, "Basis", `${sources.length} public source${sources.length === 1 ? "" : "s"} reviewed across ${opps.length} opportunit${opps.length === 1 ? "y" : "ies"}. ${content.evidenceNote}`);
-    card(s, M + 6.2, BODY_TOP, 5.93, 2.2, "Document control", `Version ${meta.version}\nDate ${formatDate(meta.generatedAt)}\nPrepared by ${meta.author}\nStatus: ${statusLine(meta)}`);
+    card(s, M + 6.2, BODY_TOP, 5.93, 2.2, "Document control", `Version ${meta.version}\nDate ${formatDate(meta.generatedAt)}\nPrepared by ${meta.author}\nAnalysis: ${analysisLine(meta)}\nStatus: ${statusLine(meta)}`);
     card(
       s,
       M,

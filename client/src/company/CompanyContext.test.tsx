@@ -152,7 +152,79 @@ describe("useCompanyPath", () => {
     render(<CompanyProvider><Probe /></CompanyProvider>);
     await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent("companyId=c1"));
     fireEvent.click(screen.getByText("pick-acme"));
-    expect(screen.getByTestId("path")).toHaveTextContent("companyId=c2");
+    await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent("companyId=c2"));
+  });
+
+  describe("analysis runs", () => {
+    const runList = {
+      analyses: [
+        { id: "j3", status: "SUCCEEDED", createdAt: "2026-10-07T11:00:00Z", opportunities: 8 },
+        { id: "j2", status: "FAILED", createdAt: "2026-10-06T11:00:00Z", opportunities: 0 },
+        { id: "j1", status: "SUCCEEDED", createdAt: "2026-10-05T11:00:00Z", opportunities: 5 },
+      ],
+    };
+    const base = { "GET /companies": () => jsonResponse([maersk, acme]), "GET /companies/c1/analyses": () => jsonResponse(runList), "GET /companies/c2/analyses": () => jsonResponse({ analyses: [] }) };
+
+    function RunProbe() {
+      const c = useCompany();
+      const path = useCompanyPath("/opportunities");
+      return (
+        <div>
+          <div data-testid="path">{String(path)}</div>
+          <div data-testid="run">{c.runId ?? "all"}</div>
+          <div data-testid="count">{c.runs.map((r) => r.id).join(",")}</div>
+          <button onClick={() => c.selectRun("j1")}>pick-j1</button>
+          <button onClick={() => c.selectRun(null)}>pick-all</button>
+          <button onClick={() => c.select("c2")}>pick-acme</button>
+        </div>
+      );
+    }
+
+    it("selects the newest finished run by default and scopes every list path to it", async () => {
+      stubApi(base);
+      render(<CompanyProvider><RunProbe /></CompanyProvider>);
+      await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent("companyId=c1&analysisId=j3"));
+      expect(screen.getByTestId("count")).toHaveTextContent("j3,j1"); // failed runs are not offered
+    });
+
+    it("waits (undefined path) until the runs have loaded, so nothing is fetched with the wrong scope", async () => {
+      stubApi(base);
+      render(<CompanyProvider><RunProbe /></CompanyProvider>);
+      expect(screen.getByTestId("path")).toHaveTextContent("undefined");
+      await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent("analysisId=j3"));
+    });
+
+    it("lets you pick an older run or all runs, and remembers the choice", async () => {
+      stubApi(base);
+      const { unmount } = render(<CompanyProvider><RunProbe /></CompanyProvider>);
+      await waitFor(() => expect(screen.getByTestId("run")).toHaveTextContent("j3"));
+      fireEvent.click(screen.getByText("pick-j1"));
+      expect(screen.getByTestId("path")).toHaveTextContent("companyId=c1&analysisId=j1");
+      fireEvent.click(screen.getByText("pick-all"));
+      expect(screen.getByTestId("path")).not.toHaveTextContent("analysisId");
+      unmount();
+      render(<CompanyProvider><RunProbe /></CompanyProvider>);
+      await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent("companyId=c1"));
+      expect(screen.getByTestId("run")).toHaveTextContent("all");
+      expect(screen.getByTestId("path")).not.toHaveTextContent("analysisId");
+    });
+
+    it("never carries one company's run over to another company", async () => {
+      stubApi(base);
+      render(<CompanyProvider><RunProbe /></CompanyProvider>);
+      await waitFor(() => expect(screen.getByTestId("run")).toHaveTextContent("j3"));
+      fireEvent.click(screen.getByText("pick-acme"));
+      await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent("companyId=c2"));
+      expect(screen.getByTestId("path")).not.toHaveTextContent("analysisId");
+      expect(screen.getByTestId("run")).toHaveTextContent("all");
+    });
+
+    it("shows everything when the history cannot be loaded", async () => {
+      stubApi({ "GET /companies": () => jsonResponse([maersk]), "GET /companies/c1/analyses": () => jsonResponse({}, 500) });
+      render(<CompanyProvider><RunProbe /></CompanyProvider>);
+      await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent("companyId=c1"));
+      expect(screen.getByTestId("path")).not.toHaveTextContent("analysisId");
+    });
   });
 
   it("without a provider (isolated pages, older tests) leaves the path unfiltered", () => {

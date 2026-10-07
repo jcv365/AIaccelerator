@@ -36,6 +36,7 @@ interface ReportView {
   approvedAt: string | null;
   approvedBy: string | null;
   summary: { headline: string; opportunities: number; sources: number } | null;
+  analysis: { id: string; ranAt: string } | null;
   quality: { passed: boolean; checks: QualityCheck[] } | null;
   files: ReportFile[];
 }
@@ -74,7 +75,7 @@ async function saveFile(reportId: string, file: ReportFile): Promise<void> {
 }
 
 function CompanyReports({ pollIntervalMs = 5000 }: { pollIntervalMs?: number }) {
-  const { ready, current } = useCompany();
+  const { ready, current, runId, run, runsReady } = useCompany();
   const companyId = current?.id ?? null;
   const [reports, setReports] = useState<ReportView[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -114,7 +115,7 @@ function CompanyReports({ pollIntervalMs = 5000 }: { pollIntervalMs?: number }) 
     setBusy("start");
     setActionError(null);
     try {
-      await api.post("/reports", { companyId });
+      await api.post("/reports", { companyId, ...(runId ? { analysisId: runId } : {}) });
       setShownId(null); // show the new version as soon as it exists
       await load();
     } catch (err) {
@@ -197,10 +198,13 @@ function CompanyReports({ pollIntervalMs = 5000 }: { pollIntervalMs?: number }) 
   return (
     <>
       <div className="reports-toolbar">
-        <Button variant="primary" onClick={start} disabled={busy !== null || writing || noOpportunities}>
+        <Button variant="primary" onClick={start} disabled={busy !== null || writing || noOpportunities || !runsReady}>
           {busy === "start" ? "Starting…" : startLabel}
         </Button>
-        {writing && <span className="reports-toolbar__hint">Only one report is written at a time.</span>}
+        <span className="reports-toolbar__hint">
+          {writing ? "Only one report is written at a time. " : ""}
+          The next report covers {run ? `the analysis run of ${new Date(run.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : "all analysis runs together"}.
+        </span>
       </div>
       {actionError && <InlineAlert variant="error">{actionError}</InlineAlert>}
       {loadError && <InlineAlert variant="error">{loadError}</InlineAlert>}
@@ -216,6 +220,7 @@ function CompanyReports({ pollIntervalMs = 5000 }: { pollIntervalMs?: number }) 
           <div className="report-card__head">
             <h2>Version {shown.version}</h2>
             {statusBadge(shown)}
+            <span className="report-card__meta">{shown.analysis ? `Covers the analysis run of ${new Date(shown.analysis.ranAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : "Covers all analysis runs together"}</span>
             {shown.summary && (
               <span className="report-card__meta">
                 Written {date(shown.completedAt ?? shown.createdAt)} · {shown.summary.opportunities} {shown.summary.opportunities === 1 ? "opportunity" : "opportunities"} · {shown.summary.sources} public{" "}
@@ -335,7 +340,7 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 export default function ReportsAndExports({ pollIntervalMs, initialTab = "standard" }: { pollIntervalMs?: number; initialTab?: TabId }) {
-  const { current } = useCompany();
+  const { current, runId } = useCompany();
   const [tab, setTab] = useState<TabId>(initialTab);
 
   return (
@@ -344,7 +349,7 @@ export default function ReportsAndExports({ pollIntervalMs, initialTab = "standa
       <Tabs items={TABS} activeId={tab} onChange={(id) => setTab(id as TabId)} aria-label="Report types" />
 
       <TabPanel id="standard" activeId={tab}>
-        <StandardReports companyId={current?.id ?? null} />
+        <StandardReports companyId={current?.id ?? null} analysisId={runId} />
       </TabPanel>
 
       <TabPanel id="custom" activeId={tab}>

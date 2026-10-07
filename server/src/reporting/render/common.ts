@@ -26,6 +26,8 @@ export interface RenderMeta {
   generatedAt: Date;
   approvedAt?: Date | null;
   approvedBy?: string | null;
+  /** When the analysis run behind this report ran; absent means every run was combined. */
+  analysisRanAt?: Date | null;
   /** The organisation named as author on the cover and in file properties. */
   author: string;
 }
@@ -47,6 +49,11 @@ export const AUDIENCE_LABEL: Record<Audience, string> = {
 
 export function formatDate(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+/** How the report's evidence was scoped: one dated analysis run, or all runs together. */
+export function analysisLine(meta: RenderMeta): string {
+  return meta.analysisRanAt ? `Analysis run of ${formatDate(meta.analysisRanAt)}` : "All analysis runs combined";
 }
 
 /** The one status line used on covers, footers and document control. */

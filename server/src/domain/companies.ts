@@ -86,6 +86,24 @@ export function parseCompanyIdQuery(value: unknown): { ok: true; id: string | un
   return { ok: false };
 }
 
+/** Reads the optional ?analysisId= filter (one analysis run). Same rules as the company filter. */
+export function parseAnalysisIdQuery(value: unknown): { ok: true; id: string | undefined } | { ok: false } {
+  return parseCompanyIdQuery(value);
+}
+
+/** The same for a JSON body field: absent or null means "every run". */
+export function parseAnalysisIdBody(value: unknown): { ok: true; id: string | null } | { ok: false } {
+  if (value === undefined || value === null) return { ok: true, id: null };
+  if (typeof value === "string" && value.length >= 1 && value.length <= 64) return { ok: true, id: value };
+  return { ok: false };
+}
+
+/** The opportunity filter for a company and/or one analysis run, or undefined when nothing is selected. */
+export function opportunityScope(companyId?: string | null, analysisId?: string | null) {
+  if (!companyId && !analysisId) return undefined;
+  return { ...(companyId ? { companyId } : {}), ...(analysisId ? { analysisJobId: analysisId } : {}) };
+}
+
 const toDto = (c: Company) => ({ id: c.id, name: c.name, website: c.website, createdAt: c.createdAt });
 
 /** Mounted at /companies. */

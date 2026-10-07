@@ -45,12 +45,13 @@ const TYPE_TO_COUNT = {
   AI_HYPOTHESIS: "hypotheses",
 } as const;
 
-export async function collectFacts(prisma: PrismaClient, companyId: string): Promise<Facts> {
+/** `analysisId` limits the facts to the opportunities one analysis run found (a point-in-time report). */
+export async function collectFacts(prisma: PrismaClient, companyId: string, analysisId?: string | null): Promise<Facts> {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) throw new Error("Company not found");
 
   const rows = await prisma.opportunity.findMany({
-    where: { companyId },
+    where: { companyId, ...(analysisId ? { analysisJobId: analysisId } : {}) },
     orderBy: { createdAt: "asc" },
     include: { evidence: true, decisions: true, experiments: true },
   });

@@ -1,9 +1,9 @@
 import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { asyncHandler } from "../asyncHandler.js";
-import { parseCompanyIdQuery } from "./companies.js";
+import { opportunityScope, parseAnalysisIdQuery, parseCompanyIdQuery } from "./companies.js";
 
-const BAD_COMPANY = { error: { code: "VALIDATION_ERROR", message: "companyId must be a single id" } };
+const BAD_COMPANY = { error: { code: "VALIDATION_ERROR", message: "companyId and analysisId must each be a single id" } };
 
 /**
  * Read-only cross-opportunity lists backing the Evidence Explorer and PoV Pipeline screens.
@@ -15,12 +15,14 @@ export function createEvidenceListRouter(prisma: PrismaClient): Router {
     "/",
     asyncHandler(async (req, res) => {
       const company = parseCompanyIdQuery(req.query.companyId);
-      if (!company.ok) {
+      const run = parseAnalysisIdQuery(req.query.analysisId);
+      if (!company.ok || !run.ok) {
         res.status(400).json(BAD_COMPANY);
         return;
       }
+      const scope = opportunityScope(company.id, run.id);
       const evidence = await prisma.evidence.findMany({
-        where: company.id ? { opportunity: { companyId: company.id } } : undefined,
+        where: scope ? { opportunity: scope } : undefined,
         orderBy: { capturedAt: "desc" },
         include: { opportunity: { select: { id: true, title: true } } },
       });
@@ -36,12 +38,14 @@ export function createExperimentsListRouter(prisma: PrismaClient): Router {
     "/",
     asyncHandler(async (req, res) => {
       const company = parseCompanyIdQuery(req.query.companyId);
-      if (!company.ok) {
+      const run = parseAnalysisIdQuery(req.query.analysisId);
+      if (!company.ok || !run.ok) {
         res.status(400).json(BAD_COMPANY);
         return;
       }
+      const scope = opportunityScope(company.id, run.id);
       const experiments = await prisma.experiment.findMany({
-        where: company.id ? { opportunity: { companyId: company.id } } : undefined,
+        where: scope ? { opportunity: scope } : undefined,
         orderBy: { createdAt: "desc" },
         include: {
           opportunity: { select: { id: true, title: true, category: true } },

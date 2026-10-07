@@ -119,7 +119,7 @@ function decisionTone(decision: string): "success" | "danger" | "caution" {
 }
 
 export default function Dashboard() {
-  const { currentId } = useCompany();
+  const { currentId, runId } = useCompany();
   const [opportunities, setOpportunities] = useState<OpportunityRow[]>([]);
   const [experiments, setExperiments] = useState<ExperimentSummary[] | null>(null);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
@@ -174,7 +174,7 @@ export default function Dashboard() {
     setAssessing(true);
     setReadinessError(null);
     try {
-      const created = await api.post<Readiness>("/readiness", currentId ? { companyId: currentId } : {});
+      const created = await api.post<Readiness>("/readiness", { ...(currentId ? { companyId: currentId } : {}), ...(runId ? { analysisId: runId } : {}) });
       setReadiness(created);
     } catch (err) {
       setReadinessError(err instanceof Error ? err.message : "The readiness assessment failed.");

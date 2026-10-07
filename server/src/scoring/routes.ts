@@ -5,7 +5,7 @@ import type { AiClient } from "../ai/client.js";
 import { AiClientError, aiErrorStatus } from "../ai/errors.js";
 import { DATA_NOTICE, dataBlock } from "../ai/promptSafety.js";
 import { logJson } from "../logger.js";
-import { parseCompanyIdQuery } from "../domain/companies.js";
+import { opportunityScope, parseAnalysisIdBody, parseAnalysisIdQuery, parseCompanyIdQuery } from "../domain/companies.js";
 import { DEFAULT_ANALYSIS_CONFIG_PATH } from "../domain/analysis.js";
 import {
   BAD_AI_OUTPUT,
@@ -317,12 +317,17 @@ export function createReadinessRouter(prisma: PrismaClient, aiClient?: AiClient)
         }
         companyId = body.companyId;
       }
+      const run = parseAnalysisIdBody(body.analysisId);
+      if (!run.ok) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "analysisId must be an id" } });
+        return;
+      }
       if (!aiClient) {
         res.status(503).json(NOT_CONFIGURED);
         return;
       }
       const opportunities = await prisma.opportunity.findMany({
-        where: companyId ? { companyId } : undefined,
+        where: opportunityScope(companyId, run.id),
         orderBy: { createdAt: "desc" },
         take: MAX_ITEMS,
         include: { _count: { select: { evidence: true, decisions: true, experiments: true } } },
@@ -444,12 +449,17 @@ export function createStandardReportsRouter(prisma: PrismaClient, aiClient?: AiC
         }
         companyId = body.companyId;
       }
+      const run = parseAnalysisIdBody(body.analysisId);
+      if (!run.ok) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "analysisId must be an id" } });
+        return;
+      }
       if (!aiClient) {
         res.status(503).json(NOT_CONFIGURED);
         return;
       }
       const opportunities = await prisma.opportunity.findMany({
-        where: companyId ? { companyId } : undefined,
+        where: opportunityScope(companyId, run.id),
         orderBy: { createdAt: "desc" },
         take: MAX_ITEMS,
         include: {
@@ -520,8 +530,13 @@ export function createExportRouter(prisma: PrismaClient): Router {
         res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "companyId must be a single id" } });
         return;
       }
+      const run = parseAnalysisIdQuery(req.query.analysisId);
+      if (!run.ok) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "analysisId must be a single id" } });
+        return;
+      }
       const rows = await prisma.opportunity.findMany({
-        where: company.id ? { companyId: company.id } : undefined,
+        where: opportunityScope(company.id, run.id),
         orderBy: { createdAt: "desc" },
         include: {
           evidence: { select: { quality: true, confidence: true, capturedAt: true } },
