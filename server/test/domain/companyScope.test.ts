@@ -3,7 +3,7 @@ import express from "express";
 import request from "supertest";
 import { createOpportunitiesRouter } from "../../src/domain/opportunities.js";
 import { createEvidenceListRouter, createExperimentsListRouter } from "../../src/domain/crossLists.js";
-import { createAnalysisRouter, runAnalysisJob } from "../../src/domain/analysis.js";
+import { createAnalysisRouter } from "../../src/domain/analysis.js";
 
 type Mock = ReturnType<typeof vi.fn>;
 const m = (o: unknown, k: string, fn: string) => (o as Record<string, Record<string, Mock>>)[k][fn];
@@ -24,6 +24,7 @@ function makePrisma(overrides: Record<string, unknown> = {}) {
       findFirst: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({ id: "job1", status: "QUEUED" }),
       update: vi.fn().mockResolvedValue({}),
+      count: vi.fn().mockResolvedValue(1),
     },
     ...overrides,
   };
@@ -100,7 +101,7 @@ describe("POST /opportunities files the opportunity under a company", () => {
 });
 
 describe("POST /opportunities/analyze files the analysis under a company", () => {
-  const neverEnding = { runSession: vi.fn().mockReturnValue(new Promise(() => {})) };
+  const neverEnding = { startSession: vi.fn() };
 
   it("find-or-creates the company from companyName and stores its id on the job", async () => {
     const prisma = makePrisma();
@@ -139,20 +140,6 @@ describe("POST /opportunities/analyze files the analysis under a company", () =>
     const prisma = makePrisma();
     const res = await request(appWith(prisma, neverEnding)).post("/opportunities/analyze").send({});
     expect(res.status).toBe(400);
-  });
-});
-
-describe("runAnalysisJob files created opportunities under the company", () => {
-  it("sets companyId on every opportunity it saves", async () => {
-    const prisma = makePrisma();
-    const synthesis = JSON.stringify({
-      opportunities: [{ title: "A", description: "d", businessProblem: "b", evidence: [] }],
-    });
-    const aiClient = { runSession: vi.fn().mockResolvedValue({ ok: true, sessionId: "s", synthesis }) };
-    await runAnalysisJob(prisma as never, aiClient as never, "job1", "Maersk", "c1");
-    expect(m(prisma, "opportunity", "create")).toHaveBeenCalledWith({
-      data: expect.objectContaining({ title: "A", companyId: "c1" }),
-    });
   });
 });
 

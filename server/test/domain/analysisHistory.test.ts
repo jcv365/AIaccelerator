@@ -5,7 +5,6 @@ import { createCompaniesRouter } from "../../src/domain/companies.js";
 import { createOpportunitiesRouter } from "../../src/domain/opportunities.js";
 import { createEvidenceListRouter, createExperimentsListRouter } from "../../src/domain/crossLists.js";
 import { createExportRouter, createReadinessRouter } from "../../src/scoring/routes.js";
-import { runAnalysisJob } from "../../src/domain/analysis.js";
 
 const appWith = (prisma: unknown) => {
   const app = express();
@@ -65,23 +64,6 @@ describe("GET /opportunities?analysisId=", () => {
     const p = prisma();
     await request(appWith(p)).get("/opportunities");
     expect(p.opportunity.findMany.mock.calls[0][0].where).toBeUndefined();
-  });
-});
-
-describe("runAnalysisJob stores the run on each opportunity", () => {
-  it("tags every created opportunity with the job id", async () => {
-    const create = vi.fn().mockResolvedValue({ id: "opp1" });
-    const prisma: Record<string, unknown> = {
-      analysisJob: { update: vi.fn().mockResolvedValue({}) },
-      company: { findUnique: vi.fn().mockResolvedValue(null) },
-      opportunity: { create },
-      evidence: { create: vi.fn().mockResolvedValue({}) },
-    };
-    prisma.$transaction = vi.fn((cb: (tx: unknown) => unknown) => cb(prisma));
-    const synthesis = JSON.stringify({ opportunities: [{ title: "T", description: "D", businessProblem: "P", evidence: [] }] });
-    const ai = { runSession: vi.fn().mockResolvedValue({ ok: true, sessionId: "s", synthesis }) };
-    await runAnalysisJob(prisma as never, ai as never, "job9", "Momentum", "c1");
-    expect(create.mock.calls[0][0].data).toMatchObject({ companyId: "c1", analysisJobId: "job9" });
   });
 });
 

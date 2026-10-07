@@ -1,19 +1,14 @@
 import { Router } from "express";
-import type { PrismaClient, EvidenceType } from "@prisma/client";
+import type { Company, EvidenceType, Prisma, PrismaClient } from "@prisma/client";
 import { asyncHandler } from "../asyncHandler.js";
 import type { AiClient } from "../ai/client.js";
-import { AiClientError } from "../ai/errors.js";
 import { DATA_NOTICE, cleanForPrompt } from "../ai/promptSafety.js";
-import { logJson } from "../logger.js";
-import { findOrCreateCompany } from "./companies.js";
-import { buildContextBlock, type AnalysisContext } from "./analysisContext.js";
+import { buildContextBlock, contextFromCompany, parseAnalysisContext, type AnalysisContext } from "./analysisContext.js";
+import { findOrCreateCompany, normalizeNameKey } from "./companies.js";
 
 // Path of the analysis-specific expert roster as seen by the Conclave container, which mounts the
 // Code folder at /code/all-projects (see conclave/experts-analysis.yaml for why it is a small roster).
 export const DEFAULT_ANALYSIS_CONFIG_PATH = "/code/all-projects/AIaccelerator/conclave/experts-analysis.yaml";
-// A full web-research deliberation across five experts took 22-35 min in live runs (discuss, critique and
-// revise rounds); nothing user-facing waits on this call, so leave generous headroom.
-const SESSION_TIMEOUT_MS = 60 * 60_000;
 const MAX_COMPANY_NAME_LENGTH = 200;
 const EVIDENCE_TYPES = ["FACT", "INFERENCE", "ASSUMPTION", "AI_HYPOTHESIS"];
 
@@ -173,75 +168,16 @@ export async function persistOpportunities(
   });
 }
 
-/**
- * Runs one analysis end to end and records the outcome on the job row. Never rejects: it is started
- * fire-and-forget from the POST handler, so every failure must end up on the job, not as an unhandled rejection.
- */
-export async function runAnalysisJob(
-  prisma: PrismaClient,
-  aiClient: AiClient,
-  jobId: string,
-  companyName: string,
-  companyId?: string
-): Promise<void> {
-  const startedAtMs = Date.now();
-  const fail = async (errorCode: string, errorMessage: string) => {
-    logJson("error", "analysis failed", { jobId, errorCode, durationMs: Date.now() - startedAtMs });
-    try {
-      await prisma.analysisJob.update({
-        where: { id: jobId },
-        data: { status: "FAILED", errorCode, errorMessage, completedAt: new Date() },
-      });
-    } catch (err) {
-      logJson("error", "could not record analysis failure", { jobId, err: String(err) });
-    }
-  };
-
-  try {
-    logJson("info", "analysis started", { jobId });
-    await prisma.analysisJob.update({ where: { id: jobId }, data: { status: "RUNNING", startedAt: new Date() } });
-    const website = companyId ? ((await prisma.company.findUnique({ where: { id: companyId }, select: { website: true } }).catch(() => null))?.website ?? null) : null;
-    const result = await aiClient.runSession(buildGoal(companyName, website ? { website } : null), true, {
-      configPath: process.env.COUNCIL_ANALYSIS_CONFIG_PATH || DEFAULT_ANALYSIS_CONFIG_PATH,
-      timeoutMs: SESSION_TIMEOUT_MS,
-    });
-    const opportunityIds = await persistOpportunities(prisma, parseSynthesis(result.synthesis), companyId, jobId);
-    await prisma.analysisJob.update({
-      where: { id: jobId },
-      data: { status: "SUCCEEDED", opportunityIds, completedAt: new Date() },
-    });
-    logJson("info", "analysis succeeded", {
-      jobId,
-      opportunities: opportunityIds.length,
-      durationMs: Date.now() - startedAtMs,
-    });
-  } catch (err) {
-    if (err instanceof AiClientError) {
-      await fail(err.code, err.message);
-    } else if (err instanceof AnalysisParseError) {
-      await fail("AI_UPSTREAM_ERROR", err.message);
-    } else {
-      logJson("error", "analysis job crashed", { jobId, err: String(err) });
-      await fail("INTERNAL_ERROR", "Analysis failed unexpectedly");
-    }
-  }
+function secondsBetween(start: Date | null | undefined, end: Date): number | null {
+  return start ? Math.max(0, Math.round((end.getTime() - start.getTime()) / 1000)) : null;
 }
 
-/** Jobs run in-process, so any job still QUEUED/RUNNING at boot was killed by the restart. */
-export async function reconcileInterruptedJobs(prisma: PrismaClient): Promise<number> {
-  const result = await prisma.analysisJob.updateMany({
-    where: { status: { in: ["QUEUED", "RUNNING"] } },
-    data: {
-      status: "FAILED",
-      errorCode: "INTERRUPTED",
-      errorMessage: "The server restarted while this analysis was running",
-      completedAt: new Date(),
-    },
-  });
-  return result.count;
+/** 1-based place in the queue (jobs created at or before this one that are still QUEUED). */
+function queuePositionOf(prisma: PrismaClient, createdAt: Date): Promise<number> {
+  return prisma.analysisJob.count({ where: { status: "QUEUED", createdAt: { lte: createdAt } } });
 }
 
-/** Mounted at /opportunities/analyze (before the /:id routes). */
+/** Mounted at /opportunities/analyze (before the /:id routes). The worker (analysisWorker.ts) runs the queued jobs. */
 export function createAnalysisRouter(prisma: PrismaClient, aiClient?: AiClient): Router {
   const router = Router();
 
@@ -257,7 +193,7 @@ export function createAnalysisRouter(prisma: PrismaClient, aiClient?: AiClient):
 
       // The analysis is for a company: either an existing one (companyId) or one named by the user
       // (companyName), which is found or created below.
-      let existing: { id: string; name: string } | null = null;
+      let existing: Company | null = null;
       let companyName = "";
       if (body.companyId !== undefined) {
         const given = body.companyId;
@@ -279,20 +215,45 @@ export function createAnalysisRouter(prisma: PrismaClient, aiClient?: AiClient):
           return;
         }
       }
-      // The Conclave has a single session slot, so only one analysis may run at a time. Checked before a
-      // company is created so a rejected request leaves nothing behind.
-      const active = await prisma.analysisJob.findFirst({ where: { status: { in: ["QUEUED", "RUNNING"] } } });
-      if (active) {
-        res.status(409).json({
-          error: { code: "ANALYSIS_IN_PROGRESS", message: "Another analysis is already running. Try again when it finishes." },
-        });
-        return;
+
+      // Optional per-run context; without it the company's stored fields are used.
+      let contextOverride: AnalysisContext | undefined;
+      if (body.context !== undefined) {
+        const parsed = parseAnalysisContext(body.context);
+        if (!parsed.ok) {
+          res.status(400).json(validation(parsed.message));
+          return;
+        }
+        contextOverride = parsed.value;
       }
+
+      // Different companies queue behind each other, but one company never has two analyses at once. Checked
+      // before a company is created so a rejected request leaves nothing behind.
+      const known = existing ?? (await prisma.company.findUnique({ where: { nameKey: normalizeNameKey(companyName) } }));
+      if (known) {
+        const active = await prisma.analysisJob.findFirst({
+          where: { companyId: known.id, status: { in: ["QUEUED", "RUNNING"] } },
+        });
+        if (active) {
+          res.status(409).json({
+            error: { code: "ANALYSIS_IN_PROGRESS", message: "This company is already being analysed.", jobId: active.id },
+          });
+          return;
+        }
+      }
+
       const company = existing ?? (await findOrCreateCompany(prisma, { name: companyName })).company;
       companyName = company.name;
-      const job = await prisma.analysisJob.create({ data: { companyName, companyId: company.id } });
-      void runAnalysisJob(prisma, aiClient, job.id, companyName, company.id);
-      res.status(202).json({ jobId: job.id, status: job.status, companyId: company.id });
+      const context = contextOverride ?? contextFromCompany(company);
+      const job = await prisma.analysisJob.create({
+        data: {
+          companyName,
+          companyId: company.id,
+          ...(Object.keys(context).length > 0 ? { context: context as Prisma.InputJsonObject } : {}),
+        },
+      });
+      const queuePosition = await queuePositionOf(prisma, job.createdAt);
+      res.status(202).json({ jobId: job.id, status: job.status, companyId: company.id, queuePosition });
     })
   );
 
@@ -304,6 +265,12 @@ export function createAnalysisRouter(prisma: PrismaClient, aiClient?: AiClient):
         res.status(404).json({ error: { code: "NOT_FOUND", message: "Analysis job not found" } });
         return;
       }
+      const elapsedSeconds =
+        job.status === "RUNNING"
+          ? secondsBetween(job.startedAt, new Date())
+          : job.completedAt
+            ? secondsBetween(job.startedAt, job.completedAt)
+            : null;
       res.json({
         id: job.id,
         companyName: job.companyName,
@@ -315,6 +282,11 @@ export function createAnalysisRouter(prisma: PrismaClient, aiClient?: AiClient):
         createdAt: job.createdAt,
         startedAt: job.startedAt,
         completedAt: job.completedAt,
+        stage: job.stage ?? null,
+        progress: job.progress ?? null,
+        queuePosition: job.status === "QUEUED" ? await queuePositionOf(prisma, job.createdAt) : null,
+        councilSessionId: job.councilSessionId ?? null,
+        elapsedSeconds,
       });
     })
   );

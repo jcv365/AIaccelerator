@@ -3,7 +3,7 @@ import { loadConfig } from "./config.js";
 import { createPool } from "./db.js";
 import { createAiClient } from "./ai/client.js";
 import { createPrismaClient } from "./db/prisma.js";
-import { reconcileInterruptedJobs } from "./domain/analysis.js";
+import { reconcileOnBoot, startAnalysisWorker } from "./domain/analysisWorker.js";
 import { reconcileInterruptedReports } from "./reporting/service.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -30,9 +30,14 @@ const app = createApp({
   prisma,
 });
 
-reconcileInterruptedJobs(prisma)
-  .then((n) => n > 0 && console.log(JSON.stringify({ level: "warn", msg: `marked ${n} interrupted analysis job(s) as failed` })))
-  .catch((err) => console.error(JSON.stringify({ level: "error", msg: "analysis job reconcile failed", err: String(err) })));
+// Jobs live in the database: one that never reached the Conclave goes back in the queue, and the worker
+// reattaches to the ones that did.
+reconcileOnBoot(prisma)
+  .then((n) => n > 0 && console.log(JSON.stringify({ level: "warn", msg: `requeued ${n} analysis job(s) that had not reached the Conclave` })))
+  .catch((err: unknown) => console.error(JSON.stringify({ level: "error", msg: "analysis job reconcile failed", err: String(err) })))
+  .finally(() => {
+    if (aiClient) startAnalysisWorker(prisma, aiClient);
+  });
 
 reconcileInterruptedReports(prisma)
   .then((n) => n > 0 && console.log(JSON.stringify({ level: "warn", msg: `marked ${n} interrupted report(s) as failed` })))
