@@ -195,3 +195,88 @@ describe("createAiClient.runSession", () => {
     expect((fetch as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
   });
 });
+
+describe("createAiClient.startSession", () => {
+  it("posts to /api/external/session/start with the API key and returns the session id", async () => {
+    mockFetchOnce({ ok: true, status: 202, json: async () => ({ ok: true, session_id: "ab12cd34ef56" }) });
+    const client = createAiClient(config);
+
+    const result = await client.startSession("the goal", true, { configPath: "/code/roster.yaml" });
+
+    expect(result).toEqual({ sessionId: "ab12cd34ef56" });
+    const [url, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(url).toBe("http://conclave.test/api/external/session/start");
+    expect(init.method).toBe("POST");
+    expect(init.headers["X-API-Key"]).toBe("test-key");
+    expect(JSON.parse(init.body)).toEqual({ goal: "the goal", web_research: true, config_path: "/code/roster.yaml" });
+  });
+
+  it("maps a 409 busy response to AI_BUSY without retrying", async () => {
+    mockFetchOnce({ ok: false, status: 409, json: async () => ({ ok: false, error: { kind: "busy" } }) });
+    await expect(createAiClient(config).startSession("g")).rejects.toMatchObject({ code: "AI_BUSY" });
+    expect(fetch as ReturnType<typeof vi.fn>).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps a network failure to AI_UNREACHABLE", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNREFUSED")));
+    await expect(createAiClient(config).startSession("g")).rejects.toMatchObject({ code: "AI_UNREACHABLE" });
+  });
+
+  it("rejects an unexpected response shape", async () => {
+    mockFetchOnce({ ok: true, status: 202, json: async () => ({ ok: true }) });
+    await expect(createAiClient(config).startSession("g")).rejects.toMatchObject({ code: "AI_UPSTREAM_ERROR" });
+  });
+});
+
+describe("createAiClient.getSession", () => {
+  it("maps the Conclave's snake_case status to camelCase", async () => {
+    mockFetchOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        ok: true, session_id: "s1", status: "running", stage: "critiques", round: 1, elapsed_seconds: 912,
+        progress: { expected: ["A", "B"], responded: ["A"], missing: ["B"] }, result: null, error: null,
+      }),
+    });
+    const result = await createAiClient(config).getSession("s1");
+
+    expect(result).toEqual({
+      sessionId: "s1", status: "running", stage: "critiques", round: 1, elapsedSeconds: 912,
+      progress: { expected: ["A", "B"], responded: ["A"], missing: ["B"] }, result: null, error: null,
+    });
+    const [url, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(url).toBe("http://conclave.test/api/external/session/s1");
+    expect(init.method).toBe("GET");
+    expect(init.headers["X-API-Key"]).toBe("test-key");
+  });
+
+  it("returns the result of a concluded session and the error of a failed one", async () => {
+    mockFetchOnce({
+      ok: true, status: 200,
+      json: async () => ({
+        ok: true, session_id: "s1", status: "failed", stage: "done", round: 1, elapsed_seconds: 60, progress: null,
+        result: { synthesis: "raw", chairman: null, attempts: 0, passed: false },
+        error: { kind: "chairman_failed", message: "Fusion: Request timed out." },
+      }),
+    });
+    const result = await createAiClient(config).getSession("s1");
+    expect(result.status).toBe("failed");
+    expect(result.error).toEqual({ kind: "chairman_failed", message: "Fusion: Request timed out." });
+    expect(result.result).toMatchObject({ synthesis: "raw", passed: false });
+  });
+
+  it("maps a 404 to AI_SESSION_NOT_FOUND", async () => {
+    mockFetchOnce({ ok: false, status: 404, json: async () => ({}) });
+    await expect(createAiClient(config).getSession("nope")).rejects.toMatchObject({ code: "AI_SESSION_NOT_FOUND" });
+  });
+
+  it("maps a network failure to AI_UNREACHABLE", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("ECONNRESET")));
+    await expect(createAiClient(config).getSession("s1")).rejects.toMatchObject({ code: "AI_UNREACHABLE" });
+  });
+
+  it("rejects an unknown status value", async () => {
+    mockFetchOnce({ ok: true, status: 200, json: async () => ({ ok: true, status: "weird", stage: "x" }) });
+    await expect(createAiClient(config).getSession("s1")).rejects.toMatchObject({ code: "AI_UPSTREAM_ERROR" });
+  });
+});

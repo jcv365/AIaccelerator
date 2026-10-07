@@ -3,7 +3,8 @@ export type AiErrorCode =
   | "AI_UPSTREAM_ERROR"
   | "AI_BUSY"
   | "AI_BAD_REQUEST"
-  | "AI_UNREACHABLE";
+  | "AI_UNREACHABLE"
+  | "AI_SESSION_NOT_FOUND";
 
 export class AiClientError extends Error {
   constructor(
@@ -23,6 +24,8 @@ export function aiErrorStatus(code: AiErrorCode): number {
       return 409;
     case "AI_BAD_REQUEST":
       return 400;
+    case "AI_SESSION_NOT_FOUND":
+      return 404;
     case "AI_UPSTREAM_ERROR":
     case "AI_UNREACHABLE":
       return 502;
