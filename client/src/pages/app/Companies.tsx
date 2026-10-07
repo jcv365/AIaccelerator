@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../api";
 import { useCompany, type Company } from "../../company/CompanyContext";
-import { Button, InlineAlert, PageHeader, ProgressIndicator, TextField } from "../../components/ui";
+import { Button, InlineAlert, PageHeader, ProgressIndicator, StatusBadge, TextField } from "../../components/ui";
 import "./lists.css";
 import "./companies.css";
 
@@ -10,13 +10,27 @@ interface OpportunityRow {
   title: string;
 }
 
+interface AnalysisRun {
+  id: string;
+  status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
+  createdAt: string;
+  completedAt: string | null;
+  opportunities: number;
+  error: { code: string; message: string | null } | null;
+}
+
+const when = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+const isActive = (r: AnalysisRun) => r.status === "QUEUED" || r.status === "RUNNING";
+
 async function errorOf(res: Response, fallback: string): Promise<string> {
   const body = await res.json().catch(() => null);
   return body?.error?.message ?? fallback;
 }
 
 /** One place to add, rename, change the web address of, and delete companies, and to remove wrong opportunities. */
-export default function Companies() {
+export default function Companies({ pollIntervalMs = 10_000 }: { pollIntervalMs?: number }) {
   const { ready, companies, currentId, select, refresh, createCompany } = useCompany();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -35,6 +49,10 @@ export default function Companies() {
   const [opps, setOpps] = useState<OpportunityRow[] | null>(null);
   const [removeOppId, setRemoveOppId] = useState<string | null>(null);
 
+  const [runs, setRuns] = useState<AnalysisRun[] | null>(null);
+  const [runFilter, setRunFilter] = useState<string | null>(null); // null = every run
+  const [rerunning, setRerunning] = useState(false);
+
   const current = companies.find((c) => c.id === currentId) ?? null;
 
   const loadOpps = useCallback(async () => {
@@ -43,9 +61,64 @@ export default function Companies() {
       return;
     }
     setOpps(null);
-    const res = await apiFetch(`/opportunities?companyId=${encodeURIComponent(currentId)}`);
+    const run = runFilter ? `&analysisId=${encodeURIComponent(runFilter)}` : "";
+    const res = await apiFetch(`/opportunities?companyId=${encodeURIComponent(currentId)}${run}`);
     setOpps(res.ok ? ((await res.json()) as OpportunityRow[]) : []);
+  }, [currentId, runFilter]);
+
+  const loadRuns = useCallback(async () => {
+    if (!currentId) {
+      setRuns([]);
+      return;
+    }
+    const res = await apiFetch(`/companies/${encodeURIComponent(currentId)}/analyses`);
+    setRuns(res.ok ? ((await res.json()) as { analyses: AnalysisRun[] }).analyses : []);
   }, [currentId]);
+
+  // A different company starts again from its own history, showing every run.
+  useEffect(() => {
+    setRuns(null);
+    setRunFilter(null);
+    void loadRuns();
+  }, [loadRuns]);
+
+  // While a run is going, watch it; when it finishes, bring in its opportunities and the new counts.
+  const active = runs?.some(isActive) ?? false;
+  useEffect(() => {
+    if (!active) return;
+    const timer = setInterval(() => void loadRuns(), pollIntervalMs);
+    return () => clearInterval(timer);
+  }, [active, loadRuns, pollIntervalMs]);
+  const wasActive = useRef(false);
+  useEffect(() => {
+    if (wasActive.current && !active) {
+      void loadOpps();
+      void refresh();
+    }
+    wasActive.current = active;
+  }, [active, loadOpps, refresh]);
+
+  async function rerun() {
+    if (!currentId) return;
+    setError(null);
+    setNotice(null);
+    setRerunning(true);
+    try {
+      const res = await apiFetch("/opportunities/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId: currentId }),
+      });
+      if (!res.ok) {
+        setError(await errorOf(res, "Could not start the analysis."));
+        return;
+      }
+      setNotice("Analysis started. It takes 20 to 40 minutes and keeps running if you leave this page.");
+      await loadRuns();
+    } finally {
+      setRerunning(false);
+    }
+  }
 
   useEffect(() => {
     void loadOpps();
@@ -220,8 +293,50 @@ export default function Companies() {
       </section>
 
       {current && (
+        <section className="company-card" aria-label={`Analysis history for ${current.name}`}>
+          <div className="company-card__head">
+            <h2>Analysis history for {current.name}</h2>
+            <Button variant="primary" onClick={() => void rerun()} disabled={rerunning || active}>
+              {active ? "Analysis running…" : rerunning ? "Starting…" : runs && runs.length > 0 ? "Rerun analysis" : "Run analysis"}
+            </Button>
+          </div>
+          <p className="company-hint">Every run is kept with the date it ran. A rerun adds a new dated set of opportunities and never replaces or changes earlier ones.</p>
+          {runs === null && <ProgressIndicator label="Loading history…" />}
+          {runs && runs.length === 0 && <p className="company-hint">No analysis has been run for this company yet.</p>}
+          <ul className="company-list">
+            {(runs ?? []).map((r) => (
+              <li key={r.id} className={`company-row${r.id === runFilter ? " is-current" : ""}`}>
+                <div className="company-row__text">
+                  <strong>{when(r.createdAt)}</strong>
+                  <span>
+                    {r.status === "SUCCEEDED" && `${r.opportunities} ${r.opportunities === 1 ? "opportunity" : "opportunities"} found`}
+                    {isActive(r) && "Running"}
+                    {r.status === "FAILED" && `Failed: ${r.error?.message ?? r.error?.code ?? "unknown reason"}`}
+                  </span>
+                </div>
+                <div className="company-row__actions">
+                  <StatusBadge label={r.status === "SUCCEEDED" ? "Finished" : r.status === "FAILED" ? "Failed" : "Running"} tone={r.status === "SUCCEEDED" ? "success" : r.status === "FAILED" ? "danger" : "accent"} />
+                  {r.status === "SUCCEEDED" && (
+                    <Button onClick={() => setRunFilter(r.id === runFilter ? null : r.id)} aria-label={`${r.id === runFilter ? "Stop showing" : "Show"} run of ${when(r.createdAt)}`}>
+                      {r.id === runFilter ? "Showing" : "Show"}
+                    </Button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {current && (
         <section className="company-card" aria-label={`Opportunities for ${current.name}`}>
-          <h2>Opportunities for {current.name}</h2>
+          <div className="company-card__head">
+            <h2>
+              Opportunities for {current.name}
+              {runFilter && runs?.find((r) => r.id === runFilter) ? `, run of ${when(runs.find((r) => r.id === runFilter)!.createdAt)}` : ", all runs"}
+            </h2>
+            {runFilter && <Button onClick={() => setRunFilter(null)}>Show all runs</Button>}
+          </div>
           <p className="company-hint">Remove any result that is about the wrong company or does not belong. This cannot be undone.</p>
           {opps === null && <ProgressIndicator label="Loading opportunities…" />}
           {opps && opps.length === 0 && <p className="company-hint">No opportunities.</p>}

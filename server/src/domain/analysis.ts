@@ -126,7 +126,8 @@ const optionalString = (v: unknown): string | undefined => (typeof v === "string
 async function persistOpportunities(
   prisma: PrismaClient,
   parsed: ParsedOpportunity[],
-  companyId?: string
+  companyId?: string,
+  analysisJobId?: string
 ): Promise<string[]> {
   const valid = parsed.filter(
     (o) => isNonEmptyString(o.title) && isNonEmptyString(o.description) && isNonEmptyString(o.businessProblem)
@@ -144,6 +145,7 @@ async function persistOpportunities(
           businessProblem: opp.businessProblem as string,
           status: "DISCOVERED",
           ...(companyId ? { companyId } : {}),
+          ...(analysisJobId ? { analysisJobId } : {}),
         },
       });
       ids.push(created.id);
@@ -200,7 +202,7 @@ export async function runAnalysisJob(
       configPath: process.env.COUNCIL_ANALYSIS_CONFIG_PATH || DEFAULT_ANALYSIS_CONFIG_PATH,
       timeoutMs: SESSION_TIMEOUT_MS,
     });
-    const opportunityIds = await persistOpportunities(prisma, parseSynthesis(result.synthesis), companyId);
+    const opportunityIds = await persistOpportunities(prisma, parseSynthesis(result.synthesis), companyId, jobId);
     await prisma.analysisJob.update({
       where: { id: jobId },
       data: { status: "SUCCEEDED", opportunityIds, completedAt: new Date() },

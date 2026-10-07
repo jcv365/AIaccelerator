@@ -162,6 +162,8 @@ User request: "The reporting should be per company and not opportunity. We also 
 - **Conclave advice (session d50d01c398a6) compared:** consistent with the design (derived vs written split, qualitative bands, source register, draft/approve, reproducible files). Optional follow-ups it raised: a decisions-and-experiments timeline section, and tighter C-level decks (12 to 16 slides; ours is 24 for a 10-opportunity company).
 - **Known limits:** contents list has no page numbers; drafts are unreviewed AI text by design (approve gate); Admin123 is still the password; deck text uses shrink-to-fit that LibreOffice honours but PowerPoint applies only on edit, so very long text could look tighter in PowerPoint (schema length limits keep it bounded).
 
+**Analysis history and rerun (2026-10-07):** every opportunity now records the run that found it (`Opportunity.analysisJobId`, migration `20261007120000`, backfilled from `AnalysisJob.opportunityIds`). `GET /companies/:id/analyses` lists a company's runs with date, outcome and opportunity count; `GET /opportunities?analysisId=` filters to one run. The Companies page has an analysis history with Rerun analysis (polls until finished) and Show/Show all runs. A rerun adds a new dated set and never changes earlier ones. Not yet done: portfolio, dashboard and company reports still use all runs together (no per-run scope).
+
 ### Important note for future agents
 Do not re-litigate the auth issue; that is already fixed. Treat NVIDIA rate limiting in `freellmapi` as a per-key quota problem, not a single shared bucket problem. Each NVIDIA key should be bounded to its own account-level limit (40 RPM) unless a different override is explicitly set.
 

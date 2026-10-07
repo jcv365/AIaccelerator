@@ -148,8 +148,14 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
         res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "companyId must be a single id" } });
         return;
       }
+      // Optional: only the opportunities one analysis run found. One short id, never an operator object.
+      const run = req.query.analysisId;
+      if (run !== undefined && (typeof run !== "string" || run.length < 1 || run.length > 64)) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "analysisId must be a single id" } });
+        return;
+      }
       const opportunities = await prisma.opportunity.findMany({
-        where: company.id ? { companyId: company.id } : undefined,
+        where: company.id || run ? { ...(company.id ? { companyId: company.id } : {}), ...(run ? { analysisJobId: run } : {}) } : undefined,
         orderBy: { createdAt: "desc" },
         include: {
           _count: { select: { evidence: true, decisions: true } },

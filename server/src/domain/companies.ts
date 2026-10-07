@@ -120,6 +120,37 @@ export function createCompaniesRouter(prisma: PrismaClient): Router {
     })
   );
 
+  // The company's analysis history, newest first: one entry per run with the date it ran, how it ended and how
+  // many opportunities it found (counted from what is still stored, so removed ones are not counted).
+  router.get(
+    "/:id/analyses",
+    asyncHandler(async (req, res) => {
+      const company = await prisma.company.findUnique({ where: { id: req.params.id } });
+      if (!company) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Company not found" } });
+        return;
+      }
+      const jobs = await prisma.analysisJob.findMany({ where: { companyId: company.id }, orderBy: { createdAt: "desc" }, take: 50 });
+      const counts = await prisma.opportunity.groupBy({
+        by: ["analysisJobId"],
+        where: { companyId: company.id, analysisJobId: { in: jobs.map((j) => j.id) } },
+        _count: { _all: true },
+      });
+      const byJob = new Map(counts.map((c) => [c.analysisJobId, c._count._all]));
+      res.status(200).json({
+        analyses: jobs.map((j) => ({
+          id: j.id,
+          status: j.status,
+          createdAt: j.createdAt,
+          startedAt: j.startedAt,
+          completedAt: j.completedAt,
+          opportunities: byJob.get(j.id) ?? 0,
+          error: j.errorCode ? { code: j.errorCode, message: j.errorMessage } : null,
+        })),
+      });
+    })
+  );
+
   // Edit the name and/or website. A name that another company already uses (any capitalisation) is refused.
   router.patch(
     "/:id",

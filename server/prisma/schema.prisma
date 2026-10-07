@@ -60,8 +60,12 @@ model Opportunity {
   priority        Priority?
   companyId       String?
   company         Company?          @relation(fields: [companyId], references: [id])
+  // The analysis run that found this opportunity (AnalysisJob.id). A plain id, not a foreign key, so deleting
+  // history never blocks and a manually created opportunity simply has none.
+  analysisJobId   String?
 
   @@index([companyId])
+  @@index([analysisJobId])
 }
 
 enum Priority {

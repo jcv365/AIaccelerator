@@ -26,6 +26,8 @@ function routeFetch(handlers: Record<string, Handler>) {
 }
 
 let companies: Array<Record<string, unknown>>;
+let runs: Array<Record<string, unknown>>;
+const run = (id: string, createdAt: string, over: Record<string, unknown> = {}) => ({ id, status: "SUCCEEDED", createdAt, completedAt: createdAt, opportunities: 8, error: null, ...over });
 const momentum = () => ({ id: "c1", name: "Momentum", website: "https://www.momentum.co.za", opportunityCount: 2 });
 const maersk = () => ({ id: "c2", name: "Maersk", website: null, opportunityCount: 1 });
 const opps = [
@@ -35,15 +37,19 @@ const opps = [
 
 function mount(extra: Record<string, Handler> = {}) {
   companies = [momentum(), maersk()];
+  runs = [run("j2", "2026-10-07T11:00:00Z"), run("j1", "2026-10-06T08:00:00Z", { status: "FAILED", opportunities: 0, error: { code: "AI_UNREACHABLE", message: "Could not reach the conclave" } })];
   const fetchMock = routeFetch({
     "GET /companies": () => ({ ok: true, body: companies }),
     "GET /opportunities?companyId=c1": () => ({ ok: true, body: opps }),
     "GET /opportunities?companyId=c2": () => ({ ok: true, body: [] }),
+    "GET /companies/c1/analyses": () => ({ ok: true, body: { analyses: runs } }),
+    "GET /companies/c2/analyses": () => ({ ok: true, body: { analyses: [] } }),
+    "GET /companies/c3/analyses": () => ({ ok: true, body: { analyses: [] } }),
     ...extra,
   });
   render(
     <CompanyProvider>
-      <Companies />
+      <Companies pollIntervalMs={20} />
     </CompanyProvider>
   );
   return fetchMock;
@@ -130,5 +136,52 @@ describe("Companies page", () => {
     await waitFor(() => expect(screen.queryByText("Momentum.io: Wrong thing")).not.toBeInTheDocument());
     expect(screen.getByText("Claims intake")).toBeInTheDocument();
     expect(screen.getByText(/Removed “Momentum.io: Wrong thing”/)).toBeInTheDocument();
+  });
+
+  it("shows every analysis run with its date and outcome", async () => {
+    mount();
+    expect(await screen.findByText("8 opportunities found")).toBeInTheDocument();
+    expect(screen.getByText(/Failed: Could not reach the conclave/)).toBeInTheDocument();
+    expect(screen.getAllByText(/2026/, { selector: "strong" })).toHaveLength(2);
+  });
+
+  it("shows only one run's opportunities when asked, and all runs again after", async () => {
+    const fetchMock = mount({ "GET /opportunities?companyId=c1&analysisId=j2": () => ({ ok: true, body: [opps[1]] }) });
+    fireEvent.click(await screen.findByRole("button", { name: /^Show run of/ }));
+    await waitFor(() => expect(screen.queryByText("Momentum.io: Wrong thing")).not.toBeInTheDocument());
+    expect(screen.getByText("Claims intake")).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("analysisId=j2"))).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Show all runs" }));
+    expect(await screen.findByText("Momentum.io: Wrong thing")).toBeInTheDocument();
+  });
+
+  it("reruns the analysis for the selected company and watches it until it finishes", async () => {
+    let started = false;
+    let polls = 0;
+    const fetchMock = mount({
+      "POST /opportunities/analyze": () => {
+        started = true;
+        return { ok: true, status: 202, body: { jobId: "j3", status: "QUEUED", companyId: "c1" } };
+      },
+      "GET /companies/c1/analyses": () => {
+        if (!started) return { ok: true, body: { analyses: runs } };
+        polls += 1;
+        const status = polls < 3 ? "RUNNING" : "SUCCEEDED";
+        return { ok: true, body: { analyses: [run("j3", "2026-10-07T13:00:00Z", { status, opportunities: status === "SUCCEEDED" ? 9 : 0 }), ...runs] } };
+      },
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Rerun analysis" }));
+    expect(await screen.findByText(/Analysis started/)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Analysis running…" })).toBeDisabled();
+    expect(await screen.findByText("9 opportunities found", {}, { timeout: 3000 })).toBeInTheDocument();
+    const post = fetchMock.mock.calls.find(([url, init]) => url === "/api/opportunities/analyze" && init?.method === "POST");
+    expect(JSON.parse(post![1].body as string)).toEqual({ companyId: "c1" });
+    expect(await screen.findByRole("button", { name: "Rerun analysis" })).toBeEnabled();
+  });
+
+  it("shows the reason when a rerun cannot start", async () => {
+    mount({ "POST /opportunities/analyze": () => ({ ok: false, status: 409, body: { error: { message: "Another analysis is already running. Try again when it finishes." } } }) });
+    fireEvent.click(await screen.findByRole("button", { name: "Rerun analysis" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/already running/);
   });
 });
