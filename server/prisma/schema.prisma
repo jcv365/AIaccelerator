@@ -141,6 +141,10 @@ model Company {
   name          String
   nameKey       String        @unique
   website       String?
+  description   String?
+  industry      String?
+  focusAreas    String[]      @default([])
+  notes         String?
   createdAt     DateTime      @default(now())
   opportunities Opportunity[]
   analysisJobs  AnalysisJob[]
@@ -281,6 +285,12 @@ model AnalysisJob {
   createdAt      DateTime          @default(now())
   startedAt      DateTime?
   completedAt    DateTime?
+  councilSessionId String?
+  stage            String?
+  progress         Json?
+  context          Json?
+  lastPolledAt     DateTime?
+  unreachableSince DateTime?
   companyId      String?
   company        Company?          @relation(fields: [companyId], references: [id])
 
