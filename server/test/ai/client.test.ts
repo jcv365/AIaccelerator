@@ -31,7 +31,7 @@ describe("createAiClient.quickAsk", () => {
     const client = createAiClient(config);
 
     await expect(client.quickAsk("Claude", "sys", "prompt")).rejects.toMatchObject({
-      code: "AI_UPSTREAM_ERROR",
+      code: "AI_AUTH_FAILED",
     });
   });
 
@@ -209,6 +209,20 @@ describe("createAiClient.startSession", () => {
     expect(init.method).toBe("POST");
     expect(init.headers["X-API-Key"]).toBe("test-key");
     expect(JSON.parse(init.body)).toEqual({ goal: "the goal", web_research: true, config_path: "/code/roster.yaml" });
+  });
+
+  it("sends clientRef as client_ref for idempotent starts", async () => {
+    mockFetchOnce({ ok: true, status: 202, json: async () => ({ ok: true, session_id: "ab12cd34ef56" }) });
+    await createAiClient(config).startSession("g", false, { clientRef: "job-1" });
+    const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body)).toMatchObject({ client_ref: "job-1" });
+  });
+
+  it("omits client_ref when no clientRef is given", async () => {
+    mockFetchOnce({ ok: true, status: 202, json: async () => ({ ok: true, session_id: "ab12cd34ef56" }) });
+    await createAiClient(config).startSession("g");
+    const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(JSON.parse(init.body)).not.toHaveProperty("client_ref");
   });
 
   it("maps a 409 busy response to AI_BUSY without retrying", async () => {

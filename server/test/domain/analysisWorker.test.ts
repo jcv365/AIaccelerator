@@ -58,7 +58,7 @@ function job(partial: Partial<Job> & { id: string }): Job {
   };
 }
 
-function fakePrisma(jobs: Job[]) {
+function fakePrisma(jobs: Job[], existingOpps: { id: string; analysisJobId: string }[] = []) {
   const matches = (j: Job, where: Record<string, unknown>) =>
     Object.entries(where).every(([key, value]) => (j as unknown as Record<string, unknown>)[key] === value);
   let oppCount = 0;
@@ -78,7 +78,12 @@ function fakePrisma(jobs: Job[]) {
         return { count: hit.length };
       }),
     },
-    opportunity: { create: vi.fn(async () => ({ id: `opp${++oppCount}` })) },
+    opportunity: {
+      create: vi.fn(async () => ({ id: `opp${++oppCount}` })),
+      findMany: vi.fn(async ({ where }: { where: { analysisJobId: string } }) =>
+        existingOpps.filter((o) => o.analysisJobId === where.analysisJobId).map((o) => ({ id: o.id }))
+      ),
+    },
     evidence: { create: vi.fn(async () => ({})) },
   };
   prisma.$transaction = (cb: (tx: unknown) => unknown) => cb(prisma);
@@ -127,7 +132,7 @@ describe("analysis worker: starting jobs", () => {
     expect(goal).toContain('<data field="industry">');
     expect(goal).toContain('"https://cassava.com"');
     expect(web).toBe(true);
-    expect(opts).toEqual({ configPath: "/code/roster.yaml" });
+    expect(opts).toEqual({ configPath: "/code/roster.yaml", clientRef: "j1" });
   });
 
   it("does not start a second job while one is running", async () => {
@@ -153,9 +158,9 @@ describe("analysis worker: starting jobs", () => {
 
   it("fails the job on any other start error", async () => {
     const queued = job({ id: "j1" });
-    const ai = fakeAi({ startSession: vi.fn().mockRejectedValue(new AiClientError("AI_UPSTREAM_ERROR", "Conclave rejected the API key")) });
+    const ai = fakeAi({ startSession: vi.fn().mockRejectedValue(new AiClientError("AI_UPSTREAM_ERROR", "Conclave returned status 500")) });
     await createAnalysisWorker(fakePrisma([queued]) as never, ai as never).tick();
-    expect(queued).toMatchObject({ status: "FAILED", errorCode: "AI_UPSTREAM_ERROR", errorMessage: "Conclave rejected the API key" });
+    expect(queued).toMatchObject({ status: "FAILED", errorCode: "AI_UPSTREAM_ERROR", errorMessage: "Conclave returned status 500" });
   });
 });
 
@@ -201,7 +206,7 @@ describe("analysis worker: running jobs", () => {
     const survivor = job({ id: "j1", status: "RUNNING", councilSessionId: "s1", startedAt: new Date("2026-10-07T08:00:00Z") });
     const ai = fakeAi({ getSession: vi.fn().mockResolvedValue(concluded()) });
     // A brand new worker instance, as after a server restart: it knows nothing but the database.
-    await createAnalysisWorker(fakePrisma([survivor]) as never, ai as never).tick();
+    await createAnalysisWorker(fakePrisma([survivor]) as never, ai as never, { now: () => new Date("2026-10-07T08:30:00Z") }).tick();
     expect(survivor.status).toBe("SUCCEEDED");
     expect(ai.startSession).not.toHaveBeenCalled();
   });
@@ -226,10 +231,12 @@ describe("analysis worker: running jobs", () => {
     expect(lost).toMatchObject({ status: "FAILED", errorCode: "COUNCIL_SESSION_LOST" });
 
     const unknown = job({ id: "j2", status: "RUNNING", councilSessionId: "s2" });
-    await createAnalysisWorker(
+    const unknownWorker = createAnalysisWorker(
       fakePrisma([unknown]) as never,
       fakeAi({ getSession: vi.fn().mockRejectedValue(new AiClientError("AI_SESSION_NOT_FOUND", "gone")) }) as never
-    ).tick();
+    );
+    await unknownWorker.tick();
+    await unknownWorker.tick(); // a single 404 is tolerated; two in a row fail the job
     expect(unknown).toMatchObject({ status: "FAILED", errorCode: "COUNCIL_SESSION_LOST" });
   });
 
@@ -272,13 +279,58 @@ describe("analysis worker: Council unreachable while running", () => {
 });
 
 describe("analysis worker: robustness", () => {
-  it("tick never throws, even on an unexpected error", async () => {
+  it("tick never throws on unexpected errors; after 5 in a row the job fails INTERNAL_ERROR and the queue moves on", async () => {
     const active = job({ id: "j1", status: "RUNNING", councilSessionId: "s1" });
+    const waiting = job({ id: "j2", createdAt: new Date("2026-10-07T09:00:00Z") });
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const ai = fakeAi({ getSession: vi.fn().mockRejectedValue(new Error("boom")) });
-    await expect(createAnalysisWorker(fakePrisma([active]) as never, ai as never).tick()).resolves.toBeUndefined();
-    expect(active.status).toBe("RUNNING");
+    const worker = createAnalysisWorker(fakePrisma([active, waiting]) as never, ai as never);
+    for (let i = 0; i < 4; i++) {
+      await expect(worker.tick()).resolves.toBeUndefined();
+      expect(active.status).toBe("RUNNING");
+    }
     expect(log).toHaveBeenCalled();
+    await worker.tick();
+    expect(active).toMatchObject({ status: "FAILED", errorCode: "INTERNAL_ERROR" });
+    expect(waiting.status).toBe("QUEUED");
+    await worker.tick();
+    expect(waiting).toMatchObject({ status: "RUNNING", councilSessionId: "s1" });
+  });
+
+  it("a success resets the unexpected-error count", async () => {
+    const active = job({ id: "j1", status: "RUNNING", councilSessionId: "s1" });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const getSession = vi.fn();
+    const worker = createAnalysisWorker(fakePrisma([active]) as never, fakeAi({ getSession }) as never);
+    for (let i = 0; i < 4; i++) { getSession.mockRejectedValueOnce(new Error("boom")); await worker.tick(); }
+    getSession.mockResolvedValueOnce(running("x")); await worker.tick();
+    for (let i = 0; i < 4; i++) { getSession.mockRejectedValueOnce(new Error("boom")); await worker.tick(); }
+    expect(active.status).toBe("RUNNING");
+  });
+
+  it("fails a job running longer than maxRunMs with ANALYSIS_TIMEOUT and then starts the next queued job", async () => {
+    const active = job({ id: "j1", status: "RUNNING", councilSessionId: "s1", startedAt: new Date("2026-10-07T08:00:00Z") });
+    const waiting = job({ id: "j2", createdAt: new Date("2026-10-07T09:00:00Z") });
+    const clock = { t: new Date("2026-10-07T09:29:00Z") };
+    const ai = fakeAi({ getSession: vi.fn().mockResolvedValue(running("proposals")) });
+    const worker = createAnalysisWorker(fakePrisma([active, waiting]) as never, ai as never, { now: () => clock.t });
+    await worker.tick();
+    expect(active.status).toBe("RUNNING");
+    clock.t = new Date("2026-10-07T09:31:00Z"); // 91 minutes
+    await worker.tick();
+    expect(active).toMatchObject({ status: "FAILED", errorCode: "ANALYSIS_TIMEOUT" });
+    expect(active.errorMessage).toMatch(/90 minutes/);
+    await worker.tick();
+    expect(waiting.status).toBe("RUNNING");
+  });
+
+  it("honours WorkerOptions.maxRunMs", async () => {
+    const active = job({ id: "j1", status: "RUNNING", councilSessionId: "s1", startedAt: new Date("2026-10-07T08:00:00Z") });
+    const ai = fakeAi({ getSession: vi.fn().mockResolvedValue(running("x")) });
+    await createAnalysisWorker(fakePrisma([active]) as never, ai as never, {
+      maxRunMs: 60_000, now: () => new Date("2026-10-07T08:05:00Z"),
+    }).tick();
+    expect(active).toMatchObject({ status: "FAILED", errorCode: "ANALYSIS_TIMEOUT" });
   });
 
   it("startAnalysisWorker polls on an interval, does not overlap slow ticks, and stops", async () => {
@@ -291,6 +343,97 @@ describe("analysis worker: robustness", () => {
     expect(ai.getSession).toHaveBeenCalledTimes(1); // the immediate tick; later intervals skip while it is in flight
 
     handle.stop();
+  });
+});
+
+describe("analysis worker: idempotency and hardening", () => {
+  it("passes the job id as clientRef when starting", async () => {
+    const queued = job({ id: "job-77" });
+    const ai = fakeAi();
+    await createAnalysisWorker(fakePrisma([queued]) as never, ai as never).tick();
+    expect(ai.startSession.mock.calls[0][2]).toMatchObject({ clientRef: "job-77" });
+  });
+
+  it("retries recording the session id up to 2 more times", async () => {
+    const queued = job({ id: "j1" });
+    const prisma = fakePrisma([queued]);
+    const update = (prisma.analysisJob as { update: ReturnType<typeof vi.fn> }).update;
+    const real = update.getMockImplementation()!;
+    update.mockRejectedValueOnce(new Error("db")).mockRejectedValueOnce(new Error("db"));
+    update.mockImplementation(real);
+    await createAnalysisWorker(prisma as never, fakeAi() as never).tick();
+    expect(update).toHaveBeenCalledTimes(3);
+    expect(queued).toMatchObject({ status: "RUNNING", councilSessionId: "s1" });
+  });
+
+  it("gives up after 3 attempts at recording the session id; tick still does not throw", async () => {
+    const queued = job({ id: "j1" });
+    const prisma = fakePrisma([queued]);
+    const update = (prisma.analysisJob as { update: ReturnType<typeof vi.fn> }).update;
+    update.mockRejectedValue(new Error("db"));
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(createAnalysisWorker(prisma as never, fakeAi() as never).tick()).resolves.toBeUndefined();
+    expect(update).toHaveBeenCalledTimes(3);
+    expect(log).toHaveBeenCalled();
+  });
+
+  it("does not save opportunities again when the job already has some", async () => {
+    const active = job({ id: "j1", status: "RUNNING", councilSessionId: "s1" });
+    const prisma = fakePrisma([active], [{ id: "oldA", analysisJobId: "j1" }, { id: "oldB", analysisJobId: "j1" }]);
+    const ai = fakeAi({ getSession: vi.fn().mockResolvedValue(concluded()) });
+    await createAnalysisWorker(prisma as never, ai as never).tick();
+    expect(active).toMatchObject({ status: "SUCCEEDED", opportunityIds: ["oldA", "oldB"] });
+    expect((prisma.opportunity as { create: ReturnType<typeof vi.fn> }).create).not.toHaveBeenCalled();
+  });
+
+  it("leaves a queued job queued and logs loudly when the Council rejects the API key", async () => {
+    const queued = job({ id: "j1" });
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const ai = fakeAi({ startSession: vi.fn().mockRejectedValue(new AiClientError("AI_AUTH_FAILED", "Conclave rejected the API key")) });
+    await createAnalysisWorker(fakePrisma([queued]) as never, ai as never).tick();
+    expect(queued.status).toBe("QUEUED");
+    expect(queued.errorCode).toBeNull();
+    expect(log).toHaveBeenCalled();
+    expect(JSON.stringify(log.mock.calls)).toMatch(/API key/);
+  });
+
+  it("fails COUNCIL_SESSION_LOST only after two consecutive 404 polls", async () => {
+    const active = job({ id: "j1", status: "RUNNING", councilSessionId: "s1" });
+    const getSession = vi.fn().mockRejectedValue(new AiClientError("AI_SESSION_NOT_FOUND", "gone"));
+    const worker = createAnalysisWorker(fakePrisma([active]) as never, fakeAi({ getSession }) as never);
+    await worker.tick();
+    expect(active.status).toBe("RUNNING");
+    await worker.tick();
+    expect(active).toMatchObject({ status: "FAILED", errorCode: "COUNCIL_SESSION_LOST" });
+  });
+
+  it("a successful poll resets the 404 count", async () => {
+    const active = job({ id: "j1", status: "RUNNING", councilSessionId: "s1" });
+    const getSession = vi.fn();
+    const worker = createAnalysisWorker(fakePrisma([active]) as never, fakeAi({ getSession }) as never);
+    getSession.mockRejectedValueOnce(new AiClientError("AI_SESSION_NOT_FOUND", "gone")); await worker.tick();
+    getSession.mockResolvedValueOnce(running("x")); await worker.tick();
+    getSession.mockRejectedValueOnce(new AiClientError("AI_SESSION_NOT_FOUND", "gone")); await worker.tick();
+    expect(active.status).toBe("RUNNING");
+  });
+
+  it("caps stage and keeps only string-array progress fields plus elapsedSeconds", async () => {
+    const active = job({ id: "j1", status: "RUNNING", councilSessionId: "s1" });
+    const many = Array.from({ length: 30 }, () => "y".repeat(150));
+    const ai = fakeAi({
+      getSession: vi.fn().mockResolvedValue({
+        ...running("z"), stage: "s".repeat(500),
+        progress: { expected: many, responded: ["A"], missing: ["B", 5], evil: { a: 1 }, note: "x" },
+      }),
+    });
+    await createAnalysisWorker(fakePrisma([active]) as never, ai as never).tick();
+    expect(active.stage).toBe("s".repeat(100));
+    const p = active.progress as Record<string, unknown>;
+    expect(Object.keys(p).sort()).toEqual(["elapsedSeconds", "expected", "responded"]);
+    expect((p.expected as string[]).length).toBe(20);
+    expect((p.expected as string[])[0]).toBe("y".repeat(100));
+    expect(p.responded).toEqual(["A"]);
+    expect(p.elapsedSeconds).toBe(60);
   });
 });
 

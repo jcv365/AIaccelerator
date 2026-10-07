@@ -22,6 +22,8 @@ export interface SessionOptions {
   /** Conclave-side path of the experts roster to use (default: the full /app/experts.yaml). */
   configPath?: string;
   timeoutMs?: number;
+  /** Idempotency key for startSession: the Conclave returns the existing session for a repeated ref (max 64 chars). */
+  clientRef?: string;
 }
 
 export type CouncilSessionState = "running" | "concluded" | "failed" | "lost";
@@ -121,7 +123,7 @@ async function parseJson(res: Response): Promise<unknown> {
 }
 
 function mapStatusToError(status: number): AiClientError {
-  if (status === 403) return new AiClientError("AI_UPSTREAM_ERROR", "Conclave rejected the API key");
+  if (status === 401 || status === 403) return new AiClientError("AI_AUTH_FAILED", "Conclave rejected the API key");
   if (status === 409) return new AiClientError("AI_BUSY", "Conclave is busy with another session");
   if (status === 400) return new AiClientError("AI_BAD_REQUEST", "Conclave rejected the request");
   return new AiClientError("AI_UPSTREAM_ERROR", `Conclave returned status ${status}`);
@@ -176,7 +178,12 @@ export function createAiClient(config: AiClientConfig): AiClient {
       const res = await requestOnce(`${config.baseUrl}/api/external/session/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-API-Key": config.apiKey },
-        body: JSON.stringify({ goal, web_research: webResearch, config_path: opts.configPath ?? "/app/experts.yaml" }),
+        body: JSON.stringify({
+          goal,
+          web_research: webResearch,
+          config_path: opts.configPath ?? "/app/experts.yaml",
+          ...(opts.clientRef ? { client_ref: opts.clientRef } : {}),
+        }),
       });
       if (!res.ok) throw mapStatusToError(res.status);
       const body = (await parseJson(res)) as { ok?: boolean; session_id?: unknown };

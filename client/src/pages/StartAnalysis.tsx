@@ -193,15 +193,15 @@ export default function StartAnalysis({ pollIntervalMs = 5000 }: { pollIntervalM
         <InlineAlert variant="info">
           Waiting for the Council to finish another analysis
           {live.queuePosition && live.queuePosition > 1 ? ` (position ${live.queuePosition} in the queue)` : ""}. Yours
-          starts by itself — {formatElapsed(now - job.startedAtMs)} so far. You can leave this page and come back.
+          starts by itself â€” {formatElapsed(now - job.startedAtMs)} so far. You can leave this page and come back.
         </InlineAlert>
       )}
 
       {isRunning && job && live?.status !== "QUEUED" && (
         <InlineAlert variant="info">
-          Researching {job.companyName}… {formatElapsed(now - job.startedAtMs)} elapsed
-          {live?.stage && live.stage !== "starting" ? ` — stage: ${live.stage}` : ""}. This usually takes several
-          minutes — you can leave this page and come back.
+          Researching {job.companyName}â€¦ {formatElapsed(now - job.startedAtMs)} elapsed
+          {live?.stage && live.stage !== "starting" ? ` â€” stage: ${live.stage}` : ""}. This usually takes several
+          minutes â€” you can leave this page and come back.
         </InlineAlert>
       )}
 
