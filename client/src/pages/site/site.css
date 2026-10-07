@@ -509,7 +509,7 @@
   }
 
   .hero-art {
-    opacity: 0.4;
+    opacity: 0.22;
   }
 
   .hero__copy {
@@ -566,12 +566,3 @@
   }
 }
 
-@media (max-width: 520px) {
-  .journey-label span {
-    display: none;
-  }
-
-  .journey-label {
-    margin-left: 18px;
-  }
-}

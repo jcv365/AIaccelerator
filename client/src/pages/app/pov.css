@@ -9,7 +9,7 @@
 
 .pov-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) 96px auto minmax(120px, auto);
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) 96px 110px 130px;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-4);

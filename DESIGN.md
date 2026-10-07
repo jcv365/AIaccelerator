@@ -17,6 +17,8 @@ direction is more colorful, not "AI slop": no gradients, no glow, no glassmorphi
 (Portfolio, Evidence, PoV pipeline) still renders as real tables, matching the reference image
 itself, which uses tables for every list.
 
+**Revision 2026-10-07 (light app theme).** The user judged the dark app "not close to the mockup" and asked for it to match the supplied image, which reverses the 2026-10-06 "keep dark app" decision. The authenticated app and the sign-in form card now use `[data-theme="light"]` tokens (white cards on a pale page, a deep-navy sidebar via `--sidebar-*`, soft shadows, pastel `--tint-*` for KPI cards and pills, pill radius `--radius-pill`). The public site and the sign-in brand panel stay dark. Text accents are darkened under the light theme to hold 4.5:1. New components: `BrandMark`, KPI cards with icon and tone, `DonutChart` with icon rows, `BarList` tones, pill `Tabs`, numbered `Pagination`, `PriorityBadge` High/Medium/Low as green/blue/red. The landing hero is a drawn SVG night mountain (`--art-*` tokens), not a photograph. No new approved exceptions were needed: the mockup uses solid colours, and SVG gradients are not CSS gradients.
+
 ## Base tokens
 
 ```css

@@ -192,3 +192,19 @@
   color: var(--color-text-muted);
   font-size: 12.5px;
 }
+
+.report-item .btn {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  font-weight: 600;
+}
+
+.report-item .btn:disabled {
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
+.report-check__mark {
+  display: inline-flex;
+  vertical-align: middle;
+}
