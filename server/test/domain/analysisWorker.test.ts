@@ -186,6 +186,17 @@ describe("analysis worker: running jobs", () => {
     );
   });
 
+  it("files each saved opportunity under the job's company", async () => {
+    const active = job({ id: "j1", status: "RUNNING", councilSessionId: "s1", companyId: "co1" });
+    const prisma = fakePrisma([active]);
+    const ai = fakeAi({ getSession: vi.fn().mockResolvedValue(concluded()) });
+    await createAnalysisWorker(prisma as never, ai as never).tick();
+
+    expect((prisma.opportunity as { create: ReturnType<typeof vi.fn> }).create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ companyId: "co1" }) })
+    );
+  });
+
   it("a new worker reattaches to a RUNNING job with a session id (restart safety)", async () => {
     const survivor = job({ id: "j1", status: "RUNNING", councilSessionId: "s1", startedAt: new Date("2026-10-07T08:00:00Z") });
     const ai = fakeAi({ getSession: vi.fn().mockResolvedValue(concluded()) });
