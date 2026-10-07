@@ -25,14 +25,14 @@ interface ParsedEvidence {
   excerpt?: unknown;
 }
 
-interface ParsedOpportunity {
+export interface ParsedOpportunity {
   title?: unknown;
   description?: unknown;
   businessProblem?: unknown;
   evidence?: unknown;
 }
 
-class AnalysisParseError extends Error {}
+export class AnalysisParseError extends Error {}
 
 export function buildGoal(companyName: string, context?: AnalysisContext | null): string {
   // The name is user-entered: flatten it to one line and quote it as a JSON string so it cannot start a new instruction.
@@ -113,7 +113,7 @@ function extractJson(text: string): unknown {
   throw new AnalysisParseError("AI returned an unparseable response");
 }
 
-function parseSynthesis(synthesis: unknown): ParsedOpportunity[] {
+export function parseSynthesis(synthesis: unknown): ParsedOpportunity[] {
   const data: unknown = typeof synthesis === "string" ? extractJson(synthesis) : synthesis;
   const opportunities = (data as { opportunities?: unknown } | null)?.opportunities;
   if (!Array.isArray(opportunities)) {
@@ -126,7 +126,7 @@ const isNonEmptyString = (v: unknown): v is string => typeof v === "string" && v
 const optionalString = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
 
 /** Stores every valid opportunity (and its valid evidence) atomically; returns the new opportunity ids. */
-async function persistOpportunities(
+export async function persistOpportunities(
   prisma: PrismaClient,
   parsed: ParsedOpportunity[],
   companyId?: string,
