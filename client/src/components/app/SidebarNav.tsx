@@ -75,6 +75,7 @@ const icon = {
 // aren't built yet — rendered as disabled items, not links to a route that
 // would 404, per the same "visibly not yet available" pattern used for SSO.
 const items: NavItem[] = [
+  { label: "New analysis", to: "/app/wizard", icon: icon.pov },
   { label: "Dashboard", to: "/app", icon: icon.dashboard },
   { label: "Companies", to: "/app/companies", icon: icon.portfolio },
   { label: "Opportunity Portfolio", to: "/app/portfolio", icon: icon.portfolio },

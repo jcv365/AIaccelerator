@@ -12,6 +12,7 @@ import PovPipeline from "./pages/app/PovPipeline";
 import NoAiOpportunities from "./pages/app/NoAiOpportunities";
 import ReportsAndExports from "./pages/app/ReportsAndExports";
 import Companies from "./pages/app/Companies";
+import Wizard from "./pages/wizard/Wizard";
 import SystemHealth from "./pages/admin/SystemHealth";
 import Landing from "./pages/site/Landing";
 import SignIn from "./pages/site/SignIn";
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="/app/no-ai" element={<NoAiOpportunities />} />
           <Route path="/app/reports" element={<ReportsAndExports />} />
           <Route path="/app/companies" element={<Companies />} />
+          <Route path="/app/wizard" element={<Wizard />} />
           <Route path="/app/opportunities/new" element={<NewOpportunity />} />
           <Route path="/app/opportunities/:id" element={<OpportunityDetail />} />
           <Route path="/app/opportunities/:id/experiments/:experimentId" element={<ExperimentDetail />} />

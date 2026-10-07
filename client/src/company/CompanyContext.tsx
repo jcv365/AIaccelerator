@@ -5,6 +5,10 @@ export interface Company {
   id: string;
   name: string;
   website: string | null;
+  description?: string | null;
+  industry?: string | null;
+  focusAreas?: string[];
+  notes?: string | null;
   opportunityCount?: number;
 }
 
