@@ -120,3 +120,35 @@ describe("StartAnalysis", () => {
     expect(sessionStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 });
+
+describe("StartAnalysis with queued and staged jobs", () => {
+  function resumeJob() {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ jobId: "job1", companyName: "Cassava", startedAtMs: Date.now() }));
+  }
+
+  it("tells the user the analysis is waiting for the Council, with its queue position", async () => {
+    resumeJob();
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "job1", status: "QUEUED", opportunitiesFound: 0, error: null, queuePosition: 2, stage: "queued",
+    });
+    render(<StartAnalysis pollIntervalMs={60_000} />);
+    await waitFor(() => expect(screen.getByText(/waiting for the council/i)).toBeInTheDocument());
+    expect(screen.getByText(/position 2/i)).toBeInTheDocument();
+  });
+
+  it("shows the current stage of a running analysis", async () => {
+    resumeJob();
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "job1", status: "RUNNING", opportunitiesFound: 0, error: null, stage: "critiques", queuePosition: null,
+    });
+    render(<StartAnalysis pollIntervalMs={60_000} />);
+    await waitFor(() => expect(screen.getByText(/critiques/i)).toBeInTheDocument());
+  });
+
+  it("still shows the plain researching message before the first poll answers", () => {
+    resumeJob();
+    (api.get as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+    render(<StartAnalysis pollIntervalMs={60_000} />);
+    expect(screen.getByText(/researching cassava/i)).toBeInTheDocument();
+  });
+});

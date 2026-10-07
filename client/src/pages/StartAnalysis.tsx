@@ -11,6 +11,8 @@ type AnalysisJob = {
   status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
   opportunitiesFound: number;
   error: { code: string; message: string | null } | null;
+  stage?: string | null;
+  queuePosition?: number | null;
 };
 
 type StoredJob = { jobId: string; companyName: string; startedAtMs: number };
@@ -61,6 +63,7 @@ export default function StartAnalysis({ pollIntervalMs = 5000 }: { pollIntervalM
   const [announcement, setAnnouncement] = useState("");
   const [opportunitiesFound, setOpportunitiesFound] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [live, setLive] = useState<{ status: AnalysisJob["status"]; stage: string | null; queuePosition: number | null } | null>(null);
 
   const isRunning = status === "running";
 
@@ -80,6 +83,7 @@ export default function StartAnalysis({ pollIntervalMs = 5000 }: { pollIntervalM
     let consecutiveErrors = 0;
 
     function finish(next: Status, message: string) {
+      setLive(null);
       storeJob(null);
       setJob(null);
       setStatus(next);
@@ -91,6 +95,7 @@ export default function StartAnalysis({ pollIntervalMs = 5000 }: { pollIntervalM
         const result = await api.get<AnalysisJob>(`/opportunities/analyze/${job!.jobId}`);
         if (cancelled) return;
         consecutiveErrors = 0;
+        setLive({ status: result.status, stage: result.stage ?? null, queuePosition: result.queuePosition ?? null });
         if (result.status === "SUCCEEDED") {
           setOpportunitiesFound(result.opportunitiesFound);
           finish("success", "Analysis complete.");
@@ -184,10 +189,19 @@ export default function StartAnalysis({ pollIntervalMs = 5000 }: { pollIntervalM
         {announcement}
       </span>
 
-      {isRunning && job && (
+      {isRunning && job && live?.status === "QUEUED" && (
         <InlineAlert variant="info">
-          Researching {job.companyName}â€¦ {formatElapsed(now - job.startedAtMs)} elapsed. This usually takes several
-          minutes â€” you can leave this page and come back.
+          Waiting for the Council to finish another analysis
+          {live.queuePosition && live.queuePosition > 1 ? ` (position ${live.queuePosition} in the queue)` : ""}. Yours
+          starts by itself — {formatElapsed(now - job.startedAtMs)} so far. You can leave this page and come back.
+        </InlineAlert>
+      )}
+
+      {isRunning && job && live?.status !== "QUEUED" && (
+        <InlineAlert variant="info">
+          Researching {job.companyName}… {formatElapsed(now - job.startedAtMs)} elapsed
+          {live?.stage && live.stage !== "starting" ? ` — stage: ${live.stage}` : ""}. This usually takes several
+          minutes — you can leave this page and come back.
         </InlineAlert>
       )}
 
