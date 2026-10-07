@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Company, PrismaClient } from "@prisma/client";
 import { asyncHandler } from "../asyncHandler.js";
 import { removeCompany } from "./removal.js";
+import { parseAnalysisContext } from "./analysisContext.js";
 
 const MAX_NAME_LENGTH = 120;
 const MAX_WEBSITE_LENGTH = 200;
@@ -104,7 +105,47 @@ export function opportunityScope(companyId?: string | null, analysisId?: string 
   return { ...(companyId ? { companyId } : {}), ...(analysisId ? { analysisJobId: analysisId } : {}) };
 }
 
-const toDto = (c: Company) => ({ id: c.id, name: c.name, website: c.website, createdAt: c.createdAt });
+const toDto = (c: Company) => ({
+  id: c.id,
+  name: c.name,
+  website: c.website,
+  description: c.description ?? null,
+  industry: c.industry ?? null,
+  focusAreas: c.focusAreas ?? [],
+  notes: c.notes ?? null,
+  createdAt: c.createdAt,
+});
+
+const CONTEXT_FIELDS = ["industry", "description", "focusAreas", "notes"] as const;
+
+/**
+ * Validates a partial update of the context fields (name and website are handled by parseCompanyInput). A field
+ * that is present but empty (or null, or an empty list) clears it; an absent field is left alone. An empty
+ * result is valid: the caller may be changing only the name or website.
+ */
+export function parseCompanyContextPatch(
+  body: Record<string, unknown>
+): { ok: true; data: Record<string, unknown> } | { ok: false; message: string } {
+  const data: Record<string, unknown> = {};
+  for (const key of CONTEXT_FIELDS) {
+    if (!(key in body)) continue;
+    const raw = body[key];
+    const clearing =
+      raw === null ||
+      (typeof raw === "string" && raw.trim() === "") ||
+      (Array.isArray(raw) && raw.length === 0);
+    if (clearing) {
+      data[key] = key === "focusAreas" ? [] : null;
+      continue;
+    }
+    const parsed = parseAnalysisContext({ [key]: raw });
+    if (!parsed.ok) return parsed;
+    data[key] = parsed.value[key] ?? (key === "focusAreas" ? [] : null);
+  }
+  return { ok: true, data };
+}
+
+const validId = (id: unknown): id is string => typeof id === "string" && id.length >= 1 && id.length <= 64;
 
 /** Mounted at /companies. */
 export function createCompaniesRouter(prisma: PrismaClient): Router {
@@ -169,7 +210,7 @@ export function createCompaniesRouter(prisma: PrismaClient): Router {
     })
   );
 
-  // Edit the name and/or website. A name that another company already uses (any capitalisation) is refused.
+  // Edit the name, website and/or context fields (description, industry, focus areas, notes). A name that another company already uses (any capitalisation) is refused.
   router.patch(
     "/:id",
     asyncHandler(async (req, res) => {
@@ -179,17 +220,29 @@ export function createCompaniesRouter(prisma: PrismaClient): Router {
         return;
       }
       const body = (req.body ?? {}) as Record<string, unknown>;
-      const parsed = parseCompanyInput({ name: existing.name, website: existing.website, ...body });
-      if (!parsed.ok) {
-        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: parsed.message } });
+      const context = parseCompanyContextPatch(body);
+      if (!context.ok) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: context.message } });
         return;
       }
-      const nameKey = normalizeNameKey(parsed.value.name);
+      const touchesIdentity = "name" in body || "website" in body;
+      if (!touchesIdentity && Object.keys(context.data).length === 0) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "nothing to update" } });
+        return;
+      }
+      const data: Record<string, unknown> = { ...context.data };
+      if (touchesIdentity) {
+        const parsed = parseCompanyInput({ name: existing.name, website: existing.website, ...body });
+        if (!parsed.ok) {
+          res.status(400).json({ error: { code: "VALIDATION_ERROR", message: parsed.message } });
+          return;
+        }
+        data.name = parsed.value.name;
+        data.nameKey = normalizeNameKey(parsed.value.name);
+        data.website = parsed.value.website ?? null;
+      }
       try {
-        const updated = await prisma.company.update({
-          where: { id: existing.id },
-          data: { name: parsed.value.name, nameKey, website: parsed.value.website ?? null },
-        });
+        const updated = await prisma.company.update({ where: { id: existing.id }, data });
         res.status(200).json(toDto(updated));
       } catch (err) {
         if ((err as { code?: string }).code === "P2002") {
@@ -221,6 +274,31 @@ export function createCompaniesRouter(prisma: PrismaClient): Router {
         return;
       }
       res.status(200).json({ deleted: true, opportunities: result.opportunities });
+    })
+  );
+
+  // Lets the client find a running or past analysis without relying on browser storage.
+  router.get(
+    "/:id/analysis-jobs",
+    asyncHandler(async (req, res) => {
+      const id = req.params.id;
+      if (!validId(id)) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Company not found" } });
+        return;
+      }
+      const jobs = await prisma.analysisJob.findMany({ where: { companyId: id }, orderBy: { createdAt: "desc" }, take: 20 });
+      res.status(200).json(
+        jobs.map((j) => ({
+          id: j.id,
+          status: j.status,
+          stage: j.stage ?? null,
+          opportunitiesFound: j.opportunityIds.length,
+          error: j.errorCode ? { code: j.errorCode, message: j.errorMessage } : null,
+          createdAt: j.createdAt,
+          startedAt: j.startedAt,
+          completedAt: j.completedAt,
+        }))
+      );
     })
   );
 
