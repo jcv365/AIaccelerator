@@ -50,6 +50,62 @@
   --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px -4px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.3), 0 16px 32px -8px rgba(0, 0, 0, 0.45);
   --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Pills (badges, tabs) and soft tints for KPI cards and status chips (dark-theme values). */
+  --radius-pill: 999px;
+  --color-ink-on-brand: #ffffff;
+  --tint-blue: rgba(59, 130, 246, 0.16);
+  --tint-purple: rgba(167, 139, 250, 0.16);
+  --tint-orange: rgba(251, 146, 60, 0.16);
+  --tint-green: rgba(52, 211, 153, 0.16);
+  --tint-red: rgba(248, 113, 113, 0.16);
+  --tint-grey: rgba(137, 147, 171, 0.16);
+}
+
+/* Light theme — the authenticated app and the sign-in form card, per the 2026-10-07 mockup revision.
+   Text accents are darkened so they hold 4.5:1 on white; the tints are the mockup's sampled card colours. */
+[data-theme="light"] {
+  --color-bg: #f5f8fc;
+  --color-surface: #ffffff;
+  --color-surface-raised: #eef3fa;
+  --color-border: #e1e7f0;
+  --color-text: #0f1c3f;
+  --color-text-muted: #55627f;
+  --color-on-accent: #ffffff;
+  --color-focus-ring: rgba(11, 100, 244, 0.25);
+
+  --color-accent-blue: #0b64f4;
+  --color-accent-cyan: #0e7490;
+  --color-accent-purple: #6d3fe0;
+  --color-accent-orange: #b45309;
+  --color-accent-green: #15803d;
+  --color-accent-red: #c62839;
+
+  /* Aliases are re-declared: var() is resolved where a property is defined, so :root's copies would stay dark. */
+  --color-accent: var(--color-accent-blue);
+  --color-danger: var(--color-accent-red);
+  --color-caution: var(--color-accent-orange);
+  --color-success: var(--color-accent-green);
+
+  --tint-blue: #eaf3fe;
+  --tint-purple: #f3f0fe;
+  --tint-orange: #fff4e0;
+  --tint-green: #e6f6ef;
+  --tint-red: #fdecee;
+  --tint-grey: #eef2f7;
+
+  --shadow-sm: 0 1px 2px rgba(15, 28, 63, 0.06);
+  --shadow-md: 0 1px 2px rgba(15, 28, 63, 0.06), 0 6px 16px -6px rgba(15, 28, 63, 0.12);
+  --shadow-lg: 0 2px 4px rgba(15, 28, 63, 0.06), 0 16px 32px -10px rgba(15, 28, 63, 0.18);
+
+  /* The sidebar stays dark inside the light shell. */
+  --sidebar-bg: #0a1a2e;
+  --sidebar-border: #1b2d47;
+  --sidebar-text: #aab6cc;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover: #12263f;
+  --sidebar-ok: #22c55e;
+  --sidebar-bad: #ef4444;
 }
 
 [data-surface="site"] {

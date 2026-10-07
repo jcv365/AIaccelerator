@@ -8,7 +8,8 @@ export interface PriorityBadgeProps {
 }
 
 const LABEL: Record<PriorityValue, string> = { HIGH: "High", MEDIUM: "Medium", LOW: "Low" };
-const TONE = { HIGH: "success", MEDIUM: "caution", LOW: "default" } as const;
+// High green, Medium blue, Low red - the mockup's pills. The word is always shown, so colour only reinforces it.
+const TONE = { HIGH: "success", MEDIUM: "accent", LOW: "danger" } as const;
 
 export function PriorityBadge({ priority }: PriorityBadgeProps) {
   if (!priority) return <span className="priority-unset">Not set</span>;

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import "./ui.css";
 
 export interface KpiTileProps {
@@ -5,6 +6,10 @@ export interface KpiTileProps {
   label: string;
   /** Omit when there's nothing meaningful to compare against yet. */
   delta?: string;
+  /** A decorative icon; the label carries the meaning. */
+  icon?: ReactNode;
+  /** Tints the card and icon, as in the dashboard mockup. */
+  tone?: "blue" | "purple" | "orange" | "green";
 }
 
 /**
@@ -13,12 +18,19 @@ export interface KpiTileProps {
  * waiver, 2026-10-01) — not a general-purpose card. Don't reuse it as a
  * substitute for a real table elsewhere.
  */
-export function KpiTile({ value, label, delta }: KpiTileProps) {
+export function KpiTile({ value, label, delta, icon, tone }: KpiTileProps) {
   return (
-    <div className="kpi-tile">
-      <div className="kpi-tile__value">{value}</div>
-      <div className="kpi-tile__label">{label}</div>
-      {delta && <div className="kpi-tile__delta">{delta}</div>}
+    <div className={`kpi-tile${tone ? ` kpi-tile--${tone}` : ""}`}>
+      {icon && (
+        <span className="kpi-tile__icon" aria-hidden="true">
+          {icon}
+        </span>
+      )}
+      <div className="kpi-tile__body">
+        <div className="kpi-tile__value">{value}</div>
+        <div className="kpi-tile__label">{label}</div>
+        {delta && <div className="kpi-tile__delta">{delta}</div>}
+      </div>
     </div>
   );
 }

@@ -1,95 +1,126 @@
+/* The shell is the light theme (data-theme="light" on .app-shell); the sidebar keeps its own dark tokens. */
 .app-shell {
   display: flex;
   min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 .app-sidebar {
-  width: 216px;
+  width: 232px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
   padding: var(--space-3);
 }
 
 .app-sidebar__brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 600;
+  gap: 10px;
+  color: var(--sidebar-text-active);
+  font-weight: 700;
   font-size: 14px;
-  letter-spacing: -0.01em;
-  padding: 0 var(--space-2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: var(--space-1) var(--space-2);
   margin-bottom: var(--space-4);
-}
-
-.app-sidebar__mark {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  background: var(--color-accent-blue);
-  flex-shrink: 0;
 }
 
 .app-sidebar__footer {
   margin-top: auto;
   padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--sidebar-border);
+  display: grid;
+  gap: var(--space-3);
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .sidebar-nav__link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px var(--space-2);
-  color: var(--color-text-muted);
+  gap: 12px;
+  padding: 9px var(--space-3);
+  color: var(--sidebar-text);
   text-decoration: none;
   font-size: var(--text-body-size);
   font-weight: 500;
-  border-radius: 7px;
+  border-radius: 8px;
   transition: background var(--motion-duration) var(--ease), color var(--motion-duration) var(--ease);
 }
 
 .sidebar-nav__link svg {
-  width: 15px;
-  height: 15px;
-  opacity: 0.85;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
 
 .sidebar-nav a.sidebar-nav__link:hover {
-  background: var(--color-surface-raised);
-  color: var(--color-text);
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text-active);
 }
 
 .sidebar-nav__link.active {
-  background: var(--color-surface-raised);
-  color: var(--color-text);
-  box-shadow: inset 2px 0 0 var(--color-accent-blue);
+  background: var(--color-accent-blue);
+  color: var(--sidebar-text-active);
 }
 
 .sidebar-nav__link--disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.55;
+}
+
+.sidebar-nav__text {
+  display: grid;
+  line-height: 1.25;
 }
 
 .sidebar-nav__soon {
-  margin-left: auto;
   font-size: 10px;
+  font-weight: 500;
+  color: var(--sidebar-text);
+}
+
+.app-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 var(--space-2);
+}
+
+.app-user__text {
+  display: grid;
+  min-width: 0;
+}
+
+.app-user__name {
+  color: var(--sidebar-text-active);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  padding: 1px 4px;
+  overflow-wrap: anywhere;
+}
+
+.app-user__role {
+  font-size: 12px;
+}
+
+.app-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-accent-blue);
+  color: var(--color-on-accent);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .app-main {
@@ -103,8 +134,27 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: var(--space-2) var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
+}
+
+.app-topbar__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.app-topbar__date {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.app-topbar .app-avatar {
+  width: 32px;
+  height: 32px;
 }
 
 .app-shell__content {
@@ -124,9 +174,9 @@
 .company-switcher select {
   font-family: var(--font-family);
   font-size: 12px;
-  font-weight: 500;
-  padding: 6px var(--space-2);
-  border-radius: 7px;
+  font-weight: 600;
+  padding: 7px var(--space-3);
+  border-radius: 8px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text);
@@ -139,7 +189,7 @@
   align-items: stretch;
   gap: var(--space-2);
   font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--sidebar-text);
 }
 
 .status-indicator__label {
@@ -157,15 +207,29 @@
 }
 
 .status-indicator__dot--ok {
-  background: var(--color-success);
+  background: var(--sidebar-ok);
 }
 
 .status-indicator__dot--unreachable {
-  background: var(--color-danger);
+  background: var(--sidebar-bad);
 }
 
 .status-indicator__dot--loading {
-  background: var(--color-text-muted);
+  background: var(--sidebar-text);
+}
+
+/* Buttons inside the dark sidebar (Log out) read as quiet outlines. */
+.app-sidebar .btn {
+  background: transparent;
+  border-color: var(--sidebar-border);
+  color: var(--sidebar-text-active);
+  box-shadow: none;
+}
+
+.app-sidebar .btn:hover:not(:disabled) {
+  background: var(--sidebar-hover);
+  border-color: var(--sidebar-text);
+  transform: none;
 }
 
 /* Menu toggle and panel wrapper. On desktop the panel is just the sidebar's body and the toggle is hidden. */
@@ -180,18 +244,17 @@
   display: none;
   padding: var(--space-2) var(--space-3);
   border-radius: 8px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
+  border: 1px solid var(--sidebar-border);
+  background: transparent;
+  color: var(--sidebar-text-active);
   font-family: var(--font-family);
   font-size: var(--text-body-size);
   font-weight: 500;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
 }
 
 .app-sidebar__menu-btn[aria-expanded="true"] {
-  border-color: var(--color-accent);
+  border-color: var(--color-accent-blue);
 }
 
 /* Phone / narrow tablet: the fixed sidebar becomes a top bar; its links open in a drawer below it. */
@@ -206,8 +269,6 @@
     flex-wrap: wrap;
     align-items: center;
     padding: var(--space-2) var(--space-3);
-    border-right: none;
-    border-bottom: 1px solid var(--color-border);
   }
 
   .app-sidebar__brand {
@@ -235,6 +296,7 @@
 
   .app-topbar {
     justify-content: flex-start;
+    gap: var(--space-3);
     padding: var(--space-2) var(--space-3);
   }
 

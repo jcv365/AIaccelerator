@@ -55,6 +55,19 @@ const icon = {
       <path d="M6 8.5h4M6 11h4" />
     </svg>
   ),
+  competitive: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <circle cx="8" cy="8" r="6" />
+      <circle cx="8" cy="8" r="2.2" />
+      <path d="M8 1v2.5M8 12.5V15M1 8h2.5M12.5 8H15" />
+    </svg>
+  ),
+  settings: (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <circle cx="8" cy="8" r="2.3" />
+      <path d="M8 1.5v1.8M8 12.7v1.8M1.5 8h1.8M12.7 8h1.8M3.4 3.4l1.3 1.3M11.3 11.3l1.3 1.3M12.6 3.4l-1.3 1.3M4.7 11.3l-1.3 1.3" />
+    </svg>
+  ),
 };
 
 // Only Dashboard and Portfolio have a real route so far (APP-DASH/APP-01 are
@@ -68,7 +81,10 @@ const items: NavItem[] = [
   { label: "Hypothesis Engine", to: "/app/hypothesis", icon: icon.hypothesis },
   { label: "14-Day PoV Pipeline", to: "/app/pov", icon: icon.pov },
   { label: "No-AI Opportunities", to: "/app/no-ai", icon: icon.noAi },
+  // Shown as in the mockup but disabled: no screens exist behind these two yet.
+  { label: "Competitive Intelligence", icon: icon.competitive },
   { label: "Reports & Exports", to: "/app/reports", icon: icon.reports },
+  { label: "Settings", icon: icon.settings },
   { label: "System Health", to: "/admin/health", icon: icon.health },
 ];
 
@@ -95,8 +111,10 @@ export function SidebarNav({ onNavigate }: SidebarNavProps) {
         ) : (
           <span key={item.label} className="sidebar-nav__link sidebar-nav__link--disabled" aria-disabled="true">
             {item.icon}
-            {item.label}
-            <span className="sidebar-nav__soon">Soon</span>
+            <span className="sidebar-nav__text">
+              {item.label}
+              <span className="sidebar-nav__soon">Coming soon</span>
+            </span>
           </span>
         ),
       )}

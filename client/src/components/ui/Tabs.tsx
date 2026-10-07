@@ -13,11 +13,13 @@ export interface TabsProps {
   activeId: string;
   onChange: (id: string) => void;
   "aria-label": string;
+  /** "line" is the underlined tab row; "pill" is the rounded status filter (PoV pipeline, Reports). */
+  variant?: "line" | "pill";
 }
 
-export function Tabs({ items, activeId, onChange, "aria-label": ariaLabel }: TabsProps) {
+export function Tabs({ items, activeId, onChange, "aria-label": ariaLabel, variant = "line" }: TabsProps) {
   return (
-    <div className="tabs__list" role="tablist" aria-label={ariaLabel}>
+    <div className={`tabs__list${variant === "pill" ? " tabs__list--pill" : ""}`} role="tablist" aria-label={ariaLabel}>
       {items.map((item) => (
         <button
           key={item.id}

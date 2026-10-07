@@ -34,6 +34,12 @@ function statusTone(status: string) {
   return "accent";
 }
 
+/** "NO_AI" -> "No-AI", "PROVING" -> "Proving". */
+function statusLabel(status: string): string {
+  if (status === "NO_AI") return "No-AI";
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
+
 export default function Portfolio() {
   const [opportunities, setOpportunities] = useState<OpportunityRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,17 +98,17 @@ export default function Portfolio() {
     <main>
       <PageHeader
         title="Opportunity Portfolio"
-        description="Every opportunity with its value, evidence and priority."
-        actions={
-          <Link className="btn btn--primary" to="/app/opportunities/new">
-            Add opportunity
-          </Link>
-        }
+        description="All identified AI opportunities, scored and prioritised using evidence."
       />
       {loading && <ProgressIndicator label="Loading opportunities…" />}
       {!loading && error && <InlineAlert variant="error">{error}</InlineAlert>}
       {!loading && !error && opportunities.length === 0 && (
-        <InlineAlert variant="info">No opportunities yet. Start a new analysis or add one manually.</InlineAlert>
+        <>
+          <InlineAlert variant="info">No opportunities yet. Start a new analysis or add one manually.</InlineAlert>
+          <Link className="btn btn--primary" to="/app/opportunities/new">
+            <span aria-hidden="true">+</span> Add opportunity
+          </Link>
+        </>
       )}
 
       {!loading && !error && opportunities.length > 0 && (
@@ -127,10 +133,13 @@ export default function Portfolio() {
               <option value="">All statuses</option>
               {STATUS_ORDER.map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {statusLabel(s)}
                 </option>
               ))}
             </Select>
+            <Link className="btn btn--primary portfolio__add" to="/app/opportunities/new">
+              <span aria-hidden="true">+</span> Add opportunity
+            </Link>
           </div>
 
           <DataTable
@@ -153,7 +162,7 @@ export default function Portfolio() {
               },
               { key: "evidence", header: "Evidence score", render: (row) => (row.evidenceScore === null ? "Not scored" : `${row.evidenceScore}/100`) },
               { key: "priority", header: "Priority", render: (row) => <PriorityBadge priority={effectivePriority(row)} /> },
-              { key: "status", header: "Status", render: (row) => <StatusBadge label={row.status} tone={statusTone(row.status)} /> },
+              { key: "status", header: "Status", render: (row) => <StatusBadge label={statusLabel(row.status)} tone={statusTone(row.status)} /> },
             ]}
           />
           <Pagination page={currentPage} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} />

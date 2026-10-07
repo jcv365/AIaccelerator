@@ -76,7 +76,7 @@ describe("Dashboard", () => {
     expect(screen.getByText("Opportunities").parentElement).toHaveTextContent("2");
     expect(screen.getByText("Evidence Sources").parentElement).toHaveTextContent("5");
     expect(screen.getByText("No values set yet")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /open the opportunity portfolio/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /view all/i })).toHaveAttribute("href", "/app/portfolio");
   });
 
   it("totals the user's value first, falls back to the AI value, and says how many are AI-estimated", async () => {

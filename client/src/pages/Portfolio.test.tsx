@@ -63,7 +63,7 @@ describe("Portfolio", () => {
     expect(routing).toHaveTextContent("R1.2M");
     expect(routing).toHaveTextContent("82/100");
     expect(routing).toHaveTextContent("High");
-    expect(routing).toHaveTextContent("QUALIFIED");
+    expect(routing).toHaveTextContent("Qualified");
 
     const forecasting = screen.getByRole("link", { name: "Forecasting" }).closest("tr")!;
     expect(forecasting).toHaveTextContent("Not scored");

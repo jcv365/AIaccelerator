@@ -83,7 +83,7 @@
   padding: var(--space-2) var(--space-3);
   border-radius: 8px;
   border: 1px solid var(--color-border);
-  background: var(--color-bg);
+  background: var(--color-surface);
   color: var(--color-text);
   transition: border-color var(--motion-duration) var(--ease), box-shadow var(--motion-duration) var(--ease);
 }
@@ -164,8 +164,12 @@ select.text-field__input {
 .data-table td {
   text-align: left;
   vertical-align: middle;
-  padding: var(--space-2) var(--space-3);
+  padding: 12px var(--space-3);
   border-bottom: 1px solid var(--color-border);
+}
+
+.data-table thead th {
+  background: var(--color-bg);
 }
 
 .data-table tbody tr:last-child td {
@@ -192,35 +196,37 @@ select.text-field__input {
   color: var(--color-text-muted);
 }
 
+/* Pill badge: tinted fill + same-hue text. The label is always words, so colour only reinforces. */
 .status-badge {
-  display: inline-block;
-  padding: 3px var(--space-2);
-  border-radius: 6px;
-  border: 1px solid var(--color-border);
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--tint-grey);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 
 .status-badge--accent {
+  background: var(--tint-blue);
   color: var(--color-accent);
-  border-color: var(--color-accent);
 }
 
 .status-badge--caution {
+  background: var(--tint-orange);
   color: var(--color-caution);
-  border-color: var(--color-caution);
 }
 
 .status-badge--danger {
+  background: var(--tint-red);
   color: var(--color-danger);
-  border-color: var(--color-danger);
 }
 
 .status-badge--success {
+  background: var(--tint-green);
   color: var(--color-success);
-  border-color: var(--color-success);
 }
 
 .lifecycle-stepper {
@@ -330,7 +336,11 @@ select.text-field__input {
   border: 0;
 }
 
+/* Dashboard KPI card: soft tint, a white icon tile, the number, its label, an optional sub-line. */
 .kpi-tile {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -338,9 +348,58 @@ select.text-field__input {
   box-shadow: var(--shadow-sm);
 }
 
+.kpi-tile--blue {
+  background: var(--tint-blue);
+  --kpi-ink: var(--color-accent-blue);
+}
+
+.kpi-tile--purple {
+  background: var(--tint-purple);
+  --kpi-ink: var(--color-accent-purple);
+}
+
+.kpi-tile--orange {
+  background: var(--tint-orange);
+  --kpi-ink: var(--color-accent-orange);
+}
+
+.kpi-tile--green {
+  background: var(--tint-green);
+  --kpi-ink: var(--color-accent-green);
+}
+
+.kpi-tile--blue,
+.kpi-tile--purple,
+.kpi-tile--orange,
+.kpi-tile--green {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.kpi-tile__icon {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--kpi-ink, var(--color-accent));
+}
+
+.kpi-tile__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.kpi-tile__body {
+  min-width: 0;
+}
+
 .kpi-tile__value {
   font-size: 26px;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.15;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
@@ -360,17 +419,40 @@ select.text-field__input {
 
 .donut-row {
   display: flex;
-  gap: calc(var(--space-4) * 1.2);
+  flex-wrap: wrap;
+  gap: var(--space-4);
   align-items: center;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: var(--space-4);
-  box-shadow: var(--shadow-sm);
+}
+
+.donut-ring__track {
+  stroke: var(--color-border);
+}
+
+.donut-ring__value--good {
+  stroke: var(--color-success);
+}
+
+.donut-ring__value--fair {
+  stroke: var(--color-caution);
+}
+
+.donut-ring__value--weak {
+  stroke: var(--color-danger);
+}
+
+.donut-ring__number {
+  fill: var(--color-text);
+}
+
+.donut-ring__caption {
+  fill: var(--color-text-muted);
 }
 
 .donut-row--empty {
-  justify-content: center;
+  padding: var(--space-3);
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
 }
 
 .donut-empty-message {
@@ -388,15 +470,74 @@ select.text-field__input {
   border-collapse: collapse;
 }
 
+.donut-table {
+  flex: 1 1 200px;
+}
+
 .donut-table td {
-  padding: 5px var(--space-2);
-  color: var(--color-text-muted);
+  padding: 9px var(--space-2);
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.donut-table tr:last-child td {
+  border-bottom: none;
 }
 
 .donut-table td:last-child {
-  color: var(--color-text);
-  font-weight: 500;
+  font-weight: 700;
+  text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* A tinted tile holding the row's glyph (or a dot when none is given). */
+.donut-table__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-right: var(--space-2);
+  vertical-align: middle;
+  border-radius: 7px;
+}
+
+.donut-table__icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.donut-table__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.donut-table__icon--good {
+  background: var(--tint-green);
+  color: var(--color-success);
+}
+
+.donut-table__icon--fair {
+  background: var(--tint-orange);
+  color: var(--color-caution);
+}
+
+.donut-table__icon--weak {
+  background: var(--tint-red);
+  color: var(--color-danger);
+}
+
+.donut-table__pct--good {
+  color: var(--color-success);
+}
+
+.donut-table__pct--fair {
+  color: var(--color-caution);
+}
+
+.donut-table__pct--weak {
+  color: var(--color-danger);
 }
 
 /* Page header: title, one-line description, optional actions. */
@@ -543,7 +684,8 @@ select.text-field__input {
 
 .bar-list__row {
   display: grid;
-  grid-template-columns: minmax(110px, 30%) minmax(0, 1fr) auto;
+  /* Label, then the count, then the bar - the mockup's order. */
+  grid-template-columns: minmax(150px, 44%) 3ch minmax(0, 1fr);
   align-items: center;
   gap: var(--space-3);
 }
@@ -645,4 +787,95 @@ select.text-field__input {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+/* Pill tabs: a rounded status filter row (PoV pipeline, Reports). */
+.tabs__list--pill {
+  gap: var(--space-2);
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.tabs__list--pill .tabs__tab {
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+}
+
+.tabs__list--pill .tabs__tab[aria-selected="true"] {
+  background: var(--tint-blue);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.tabs__list--pill .tabs__count {
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
+}
+
+/* Bar list tones: the fill colour follows the row's meaning; the number stays as text. */
+.bar-list__fill--green {
+  background: var(--color-success);
+}
+
+.bar-list__fill--blue {
+  background: var(--color-accent-blue);
+}
+
+.bar-list__fill--orange {
+  background: var(--color-caution);
+}
+
+.bar-list__fill--purple {
+  background: var(--color-accent-purple);
+}
+
+.bar-list__fill--grey {
+  background: var(--color-text-muted);
+}
+
+.bar-list__label {
+  color: var(--color-text);
+}
+
+/* Cards and panels that sit on the light page: white, soft border and shadow. */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+}
+
+/* Links inside tables read as plain dark text (the mockup), with the accent only on hover. */
+.data-table a {
+  color: var(--color-text);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.data-table a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.bar-list__value {
+  text-align: right;
+}
+
+.pagination__num {
+  min-width: 32px;
+  padding: 6px 0;
+}
+
+.pagination__num--current {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.data-table thead th {
+  color: var(--color-text);
+  font-weight: 600;
 }

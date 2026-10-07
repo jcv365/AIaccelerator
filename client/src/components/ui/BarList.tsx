@@ -5,6 +5,8 @@ export interface BarListItem {
   value: number;
   /** Text shown at the end of the row; defaults to the number. */
   display?: string;
+  /** Fill colour; defaults to the accent. Colour is reinforcement only - the value is always shown as text. */
+  tone?: "green" | "blue" | "orange" | "purple" | "grey";
 }
 
 export interface BarListProps {
@@ -22,10 +24,10 @@ export function BarList({ items, max, caption }: BarListProps) {
       {items.map((item) => (
         <li key={item.label} className="bar-list__row">
           <span className="bar-list__label">{item.label}</span>
-          <span className="bar-list__track" aria-hidden="true">
-            <span className="bar-list__fill" style={{ width: `${Math.min(100, (item.value / top) * 100)}%` }} />
-          </span>
           <span className="bar-list__value">{item.display ?? item.value}</span>
+          <span className="bar-list__track" aria-hidden="true">
+            <span className={`bar-list__fill${item.tone ? ` bar-list__fill--${item.tone}` : ""}`} style={{ width: `${Math.min(100, (item.value / top) * 100)}%` }} />
+          </span>
         </li>
       ))}
     </ul>

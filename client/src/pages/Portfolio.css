@@ -1,8 +1,32 @@
+/* One filter row: search, three selects, then the primary action. Labels stay for screen readers only. */
 .portfolio__filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
   margin-bottom: var(--space-3);
+}
+
+.portfolio__filters .text-field {
+  flex: 1 1 220px;
+}
+
+.portfolio__filters .text-field:not(:first-child) {
+  flex: 0 1 170px;
+}
+
+.portfolio__filters .text-field__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.portfolio__add {
+  margin-left: auto;
 }
 
 .portfolio__ai-tag {

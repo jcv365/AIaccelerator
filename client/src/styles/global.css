@@ -81,6 +81,33 @@ a {
   border: 1px solid var(--color-border);
 }
 
+/* Product mark (components/BrandMark.tsx): used in the sidebar, on the landing page and on sign-in. */
+.brand-mark {
+  flex-shrink: 0;
+}
+
+.brand-mark__tile {
+  fill: var(--color-accent-blue);
+}
+
+.brand-mark__leg-left,
+.brand-mark__leg-right,
+.brand-mark__bar {
+  fill: none;
+  stroke: var(--color-ink-on-brand);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.brand-mark__bar {
+  stroke-width: 2.2;
+}
+
+.brand-mark__dot {
+  fill: var(--color-ink-on-brand);
+}
+
 /* AI-generated report text: keep its line breaks but wrap long lines instead of overflowing the page. */
 .report-output {
   white-space: pre-wrap;
