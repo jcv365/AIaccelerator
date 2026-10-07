@@ -251,7 +251,11 @@ export default function HypothesisEngine() {
               )}
 
               <div className="hypothesis-layout">
-                <div>
+                <div className="panel hypothesis__main">
+                  <div className="hypothesis__head">
+                    <h2>{detail.title}</h2>
+                    {assessment?.recommendation === "PROCEED_TO_POV" && <StatusBadge label="Ready for PoV" tone="success" />}
+                  </div>
                   <Tabs items={TABS} activeId={tab} onChange={setTab} aria-label="Hypothesis sections" />
 
                   <TabPanel id="hypothesis" activeId={tab}>
@@ -340,11 +344,11 @@ export default function HypothesisEngine() {
                   ) : (
                     <p className="hypothesis__muted">No AI assessment has been run for this opportunity yet. Nothing is estimated until one is.</p>
                   )}
-                  <Button variant={assessment ? "default" : "primary"} onClick={() => void runAssessment()} disabled={assessing}>
-                    {assessing ? "Assessing…" : assessment ? "Re-run assessment" : "Run assessment"}
-                  </Button>
-                  <Button onClick={() => void createPov()} disabled={!!createdPov}>
+                  <Button variant="primary" className="recommendation__cta" onClick={() => void createPov()} disabled={!!createdPov}>
                     Create 14-day PoV
+                  </Button>
+                  <Button onClick={() => void runAssessment()} disabled={assessing}>
+                    {assessing ? "Assessing…" : assessment ? "Re-run assessment" : "Run assessment"}
                   </Button>
                 </aside>
               </div>

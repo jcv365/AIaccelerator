@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, apiFetch } from "../../api";
 import { useCompany } from "../../company/CompanyContext";
-import { Button, DataTable, InlineAlert, PageHeader, ProgressIndicator, StatusBadge } from "../../components/ui";
+import { Button, DataTable, InlineAlert, PageHeader, ProgressIndicator, StatusBadge, TabPanel, Tabs } from "../../components/ui";
+import { StandardReports } from "./StandardReports";
 import "./lists.css";
 import "./reports.css";
 
@@ -72,7 +73,7 @@ async function saveFile(reportId: string, file: ReportFile): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
-export default function ReportsAndExports({ pollIntervalMs = 5000 }: { pollIntervalMs?: number }) {
+function CompanyReports({ pollIntervalMs = 5000 }: { pollIntervalMs?: number }) {
   const { ready, current } = useCompany();
   const companyId = current?.id ?? null;
   const [reports, setReports] = useState<ReportView[] | null>(null);
@@ -145,55 +146,40 @@ export default function ReportsAndExports({ pollIntervalMs = 5000 }: { pollInter
     }
   }
 
-  const header = (
-    <PageHeader
-      title="Reports & Exports"
-      description={
-        current
-          ? `${current.name} · one report set for the whole company: an executive briefing and a technical briefing, each as a deck and a proposal.`
-          : "One report set for a whole company: an executive briefing and a technical briefing, each as a deck and a proposal."
-      }
-    />
-  );
 
   if (!ready) {
     return (
-      <main>
-        {header}
+      <>
         <ProgressIndicator label="Loading…" />
-      </main>
+      </>
     );
   }
   if (!current) {
     return (
-      <main>
-        {header}
+      <>
         <InlineAlert variant="info">Add or select a company (top right) to see its reports.</InlineAlert>
-      </main>
+      </>
     );
   }
   if (loadError && !reports) {
     return (
-      <main>
-        {header}
+      <>
         <InlineAlert variant="error">{loadError}</InlineAlert>
-      </main>
+      </>
     );
   }
   if (!reports) {
     return (
-      <main>
-        {header}
+      <>
         <ProgressIndicator label="Loading reports…" />
-      </main>
+      </>
     );
   }
 
   const noOpportunities = current.opportunityCount === 0;
   if (reports.length === 0 && noOpportunities) {
     return (
-      <main>
-        {header}
+      <>
         <div className="reports-empty">
           <h2>No opportunities for {current.name} yet</h2>
           <p>Run an analysis first. A report brings together all of a company's opportunities, evidence, decisions and experiments.</p>
@@ -201,7 +187,7 @@ export default function ReportsAndExports({ pollIntervalMs = 5000 }: { pollInter
             Start an analysis
           </Link>
         </div>
-      </main>
+      </>
     );
   }
 
@@ -209,8 +195,7 @@ export default function ReportsAndExports({ pollIntervalMs = 5000 }: { pollInter
   const startLabel = reports.length === 0 ? "Write the first report" : "Write a new version";
 
   return (
-    <main>
-      {header}
+    <>
       <div className="reports-toolbar">
         <Button variant="primary" onClick={start} disabled={busy !== null || writing || noOpportunities}>
           {busy === "start" ? "Starting…" : startLabel}
@@ -290,7 +275,12 @@ export default function ReportsAndExports({ pollIntervalMs = 5000 }: { pollInter
           <ul className="report-checks">
             {shown.quality.checks.map((c) => (
               <li key={c.id} className={c.passed ? "is-pass" : "is-fail"}>
-                <span aria-hidden="true">{c.passed ? "✓" : "✕"}</span> <span className="sr-only">{c.passed ? "Passed: " : "Failed: "}</span>
+                <span aria-hidden="true" className="report-check__mark">
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {c.passed ? <path d="M3 8.5l3.2 3L13 4.5" /> : <path d="M4 4l8 8M12 4l-8 8" />}
+                  </svg>
+                </span>{" "}
+                <span className="sr-only">{c.passed ? "Passed: " : "Failed: "}</span>
                 {c.name}
                 {!c.passed && c.details.length > 0 && (
                   <ul className="report-checks__details">
@@ -331,6 +321,48 @@ export default function ReportsAndExports({ pollIntervalMs = 5000 }: { pollInter
           />
         </section>
       )}
+    </>
+  );
+}
+
+type TabId = "standard" | "custom" | "scheduled" | "company";
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: "standard", label: "Standard Reports" },
+  { id: "custom", label: "Custom Reports" },
+  { id: "scheduled", label: "Scheduled Reports" },
+  { id: "company", label: "Company Briefings" },
+];
+
+export default function ReportsAndExports({ pollIntervalMs, initialTab = "standard" }: { pollIntervalMs?: number; initialTab?: TabId }) {
+  const { current } = useCompany();
+  const [tab, setTab] = useState<TabId>(initialTab);
+
+  return (
+    <main>
+      <PageHeader title="Reports & Exports" description="Generate reports for stakeholders and track progress." />
+      <Tabs items={TABS} activeId={tab} onChange={(id) => setTab(id as TabId)} aria-label="Report types" />
+
+      <TabPanel id="standard" activeId={tab}>
+        <StandardReports companyId={current?.id ?? null} />
+      </TabPanel>
+
+      <TabPanel id="custom" activeId={tab}>
+        <InlineAlert variant="info">Custom reports are not available yet. The five standard reports and the data export cover what can be generated today.</InlineAlert>
+      </TabPanel>
+
+      <TabPanel id="scheduled" activeId={tab}>
+        <InlineAlert variant="info">Scheduled reports are not available yet. They need a background scheduler that does not exist, so nothing is sent automatically.</InlineAlert>
+      </TabPanel>
+
+      <TabPanel id="company" activeId={tab}>
+        <p className="report-note">
+          {current
+            ? `${current.name} · one report set for the whole company: an executive briefing and a technical briefing, each as a deck and a proposal.`
+            : "One report set for a whole company: an executive briefing and a technical briefing, each as a deck and a proposal."}
+        </p>
+        <CompanyReports pollIntervalMs={pollIntervalMs} />
+      </TabPanel>
     </main>
   );
 }

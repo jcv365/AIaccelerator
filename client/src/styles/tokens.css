@@ -54,6 +54,27 @@
   /* Pills (badges, tabs) and soft tints for KPI cards and status chips (dark-theme values). */
   --radius-pill: 999px;
   --color-ink-on-brand: #ffffff;
+
+  /* Landing hero illustration (a night mountain, drawn in SVG). Used only by pages/site/Landing.tsx. */
+  --art-sky-top: #050b1a;
+  --art-sky-bottom: #12264a;
+  --art-glow: #2c5fb8;
+  --art-ridge-far: #16294a;
+  --art-ridge-mid: #1c3358;
+  --art-ridge-shade: #0f1f3b;
+  --art-ridge-near: #0a1630;
+  --art-snow: #cfdcf5;
+  --art-star: #9db8e8;
+  --art-path: #8fb4ff;
+  --art-flag: #3b82f6;
+  --art-headline-accent: #3b82f6;
+  --art-facet-lit: #3d6199;
+  --art-facet-lit2: #2f4f82;
+  --art-facet-shade: #0d1b35;
+  --art-facet-shade2: #112242;
+  --art-ridge-lit: #29476f;
+  --art-crack: #6d8fcc;
+  --art-strip-bg: rgba(7, 14, 32, 0.88);
   --tint-blue: rgba(59, 130, 246, 0.16);
   --tint-purple: rgba(167, 139, 250, 0.16);
   --tint-orange: rgba(251, 146, 60, 0.16);

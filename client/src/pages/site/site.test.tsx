@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import "@testing-library/jest-dom";
 import Landing from "./Landing";
@@ -33,7 +33,10 @@ describe("Landing", () => {
         <Landing />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("button", { name: /book a demo/i })).toBeDisabled();
+    // The header and the hero each offer it; every one is disabled.
+    const buttons = screen.getAllByRole("button", { name: /book a demo/i });
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const b of buttons) expect(b).toBeDisabled();
   });
 });
 
@@ -46,7 +49,7 @@ describe("Landing sections", () => {
     );
     const nav = screen.getByRole("navigation", { name: /on this page/i });
     const links = Array.from(nav.querySelectorAll("a"));
-    expect(links.map((a) => a.textContent)).toEqual(["Why", "How it works", "Features"]);
+    expect(links.map((a) => a.textContent)).toEqual(["Why AI Accelerator", "How it works", "Use cases", "Results"]);
     for (const a of links) {
       expect(container.querySelector(a.getAttribute("href")!)).not.toBeNull();
     }
@@ -60,8 +63,9 @@ describe("Landing sections", () => {
     );
     expect(screen.getByRole("img", { name: /mountain path.*discover.*learn/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Turn AI potential into measurable business value.");
-    for (const feature of ["Opportunity Portfolio", "Evidence Explorer", "Hypothesis Engine", "14-Day PoV Pipeline", "Reports & Exports"]) {
-      expect(screen.getByText(feature)).toBeInTheDocument();
+    const strip = screen.getByRole("list", { name: /what sets it apart/i });
+    for (const feature of ["Evidence-Based", "Fail-Fast", "Real Business", "Measurable", "Expert-Guided"]) {
+      expect(within(strip).getByText(feature)).toBeInTheDocument();
     }
     expect(screen.queryByText(/watch overview/i)).toBeNull();
   });
@@ -75,7 +79,7 @@ describe("SignIn", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("heading", { name: "Welcome back" })).toBeInTheDocument();
-    expect(screen.getByText(/shows its model, date and reasoning/i)).toBeInTheDocument();
+    expect(screen.getByText(/validate with evidence/i)).toBeInTheDocument();
     expect(screen.getByText(/ask your administrator/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
   });

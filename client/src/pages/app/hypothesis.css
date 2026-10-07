@@ -66,3 +66,44 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Mockup treatment: sentence-case dark headings, a white main panel, a full-width call to action. */
+.hypothesis-layout h3 {
+  font-size: 14px;
+  color: var(--color-text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.hypothesis__main {
+  min-width: 0;
+}
+
+.hypothesis__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.hypothesis__head h2 {
+  font-size: 18px;
+}
+
+.recommendation {
+  justify-items: stretch;
+}
+
+.recommendation .status-badge {
+  justify-self: start;
+}
+
+.recommendation__facts dd {
+  justify-self: start;
+}
+
+.recommendation__cta {
+  width: 100%;
+  padding: 12px var(--space-3);
+}

@@ -55,7 +55,7 @@ function mount(handlers: Record<string, Handler>, props: { pollIntervalMs?: numb
   render(
     <MemoryRouter>
       <CompanyProvider>
-        <ReportsAndExports {...props} />
+        <ReportsAndExports initialTab="company" {...props} />
       </CompanyProvider>
     </MemoryRouter>
   );
@@ -68,7 +68,7 @@ describe("ReportsAndExports (company level)", () => {
     render(
       <MemoryRouter>
         <CompanyProvider>
-          <ReportsAndExports />
+          <ReportsAndExports initialTab="company" />
         </CompanyProvider>
       </MemoryRouter>
     );
@@ -83,7 +83,7 @@ describe("ReportsAndExports (company level)", () => {
     render(
       <MemoryRouter>
         <CompanyProvider>
-          <ReportsAndExports />
+          <ReportsAndExports initialTab="company" />
         </CompanyProvider>
       </MemoryRouter>
     );

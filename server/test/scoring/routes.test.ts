@@ -349,6 +349,51 @@ describe("standard reports", () => {
   });
 });
 
+describe("company scope for standard reports and the CSV export", () => {
+  const reportRows = [
+    { title: "A", status: "DISCOVERED", category: null, priority: null, estimatedAnnualValue: null, evidence: [], experiments: [], assessments: [] },
+  ];
+
+  it("limits a standard report to the given company", async () => {
+    const prisma = {
+      company: { findUnique: vi.fn().mockResolvedValue({ id: "c1" }) },
+      opportunity: { findMany: vi.fn().mockResolvedValue(reportRows) },
+      standardReport: { create: vi.fn().mockResolvedValue({ id: "s1", createdAt: new Date() }), findMany: vi.fn() },
+    };
+    const res = await request(appWith("/reports/standard", createStandardReportsRouter(prisma as never, ai("ok") as never)))
+      .post("/reports/standard/portfolio")
+      .send({ companyId: "c1" });
+
+    expect(res.status).toBe(200);
+    expect(prisma.opportunity.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { companyId: "c1" } }));
+  });
+
+  it("rejects a malformed or unknown company before any AI call", async () => {
+    const client = ai("never");
+    const prisma = {
+      company: { findUnique: vi.fn().mockResolvedValue(null) },
+      opportunity: { findMany: vi.fn() },
+      standardReport: { create: vi.fn(), findMany: vi.fn() },
+    };
+    const app = appWith("/reports/standard", createStandardReportsRouter(prisma as never, client as never));
+
+    expect((await request(app).post("/reports/standard/portfolio").send({ companyId: 42 })).status).toBe(400);
+    expect((await request(app).post("/reports/standard/portfolio").send({ companyId: "x".repeat(65) })).status).toBe(400);
+    expect((await request(app).post("/reports/standard/portfolio").send({ companyId: "nope" })).status).toBe(400);
+    expect(client.quickAsk).not.toHaveBeenCalled();
+    expect(prisma.opportunity.findMany).not.toHaveBeenCalled();
+  });
+
+  it("limits the CSV to the given company and rejects a repeated companyId", async () => {
+    const prisma = { opportunity: { findMany: vi.fn().mockResolvedValue([]) } };
+    const app = appWith("/exports", createExportRouter(prisma as never));
+
+    expect((await request(app).get("/exports/opportunities.csv?companyId=c1")).status).toBe(200);
+    expect(prisma.opportunity.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { companyId: "c1" } }));
+    expect((await request(app).get("/exports/opportunities.csv?companyId=a&companyId=b")).status).toBe(400);
+  });
+});
+
 describe("GET /exports/opportunities.csv", () => {
   it("returns a CSV download with formula-like titles neutralised", async () => {
     const prisma = {

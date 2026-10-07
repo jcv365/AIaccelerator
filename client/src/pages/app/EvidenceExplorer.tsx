@@ -141,12 +141,7 @@ export default function EvidenceExplorer() {
     <main>
       <PageHeader
         title="Evidence Explorer"
-        description="Every claim recorded against your opportunities, with where it came from and how good it is."
-        actions={
-          <Button variant="primary" onClick={() => setAdding((v) => !v)} disabled={opportunities.length === 0}>
-            {adding ? "Cancel" : "Add evidence"}
-          </Button>
-        }
+        description="Source-backed evidence to validate opportunities."
       />
       {actionError && <InlineAlert variant="error">{actionError}</InlineAlert>}
       {actionNote && <InlineAlert variant="info">{actionNote}</InlineAlert>}
@@ -177,9 +172,10 @@ export default function EvidenceExplorer() {
         </form>
       )}
 
-      <div className="toolbar">
+      <div className="evidence-filters">
         <TextField
           label="Search claims or opportunities"
+          placeholder="Search evidence…"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -197,10 +193,19 @@ export default function EvidenceExplorer() {
         >
           {TYPES.map((t) => (
             <option key={t} value={t}>
-              {t}
+              {t === "ALL" ? "All types" : t}
             </option>
           ))}
         </Select>
+        <Button variant="primary" className="evidence-filters__add" onClick={() => setAdding((v) => !v)} disabled={opportunities.length === 0}>
+          {adding ? (
+            "Cancel"
+          ) : (
+            <>
+              <span aria-hidden="true">+</span> Add evidence
+            </>
+          )}
+        </Button>
       </div>
 
       {loading && <ProgressIndicator label="Loading evidence…" />}
@@ -222,12 +227,20 @@ export default function EvidenceExplorer() {
                     aria-pressed={selected?.id === r.id}
                     onClick={() => setSelectedId(r.id)}
                   >
-                    <span className="source-card__claim">{r.claim}</span>
-                    <span className="source-card__meta">
-                      <EvidenceTag type={r.type} />
-                      <span>{r.opportunity.title}</span>
-                      <span>{new Date(r.capturedAt).toLocaleDateString()}</span>
-                      {r.quality ? <StatusBadge label={`Relevance ${LEVEL_LABEL[r.quality.relevance]}`} tone={LEVEL_TONE[r.quality.relevance]} /> : <span>Not scored</span>}
+                    <span className={`source-card__icon source-card__icon--${r.type.toLowerCase()}`} aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M7 3h7l4 4v14H7z" />
+                        <path d="M14 3v4h4M10 12h5M10 16h5" />
+                      </svg>
+                    </span>
+                    <span className="source-card__text">
+                      <span className="source-card__claim">{r.claim}</span>
+                      <span className="source-card__meta">
+                        <EvidenceTag type={r.type} />
+                        <span>{r.opportunity.title}</span>
+                        <span>{new Date(r.capturedAt).toLocaleDateString()}</span>
+                        {r.quality ? <StatusBadge label={`Relevance ${LEVEL_LABEL[r.quality.relevance]}`} tone={LEVEL_TONE[r.quality.relevance]} /> : <span>Not scored</span>}
+                      </span>
                     </span>
                   </button>
                 </li>
@@ -243,13 +256,26 @@ export default function EvidenceExplorer() {
                 <EvidenceTag type={selected.type} /> ·{" "}
                 <Link to={`/app/opportunities/${selected.opportunity.id}`}>{selected.opportunity.title}</Link>
               </p>
-              <h3>Key findings</h3>
-              <p className="evidence-detail__text">{selected.excerpt || "No excerpt recorded for this source."}</p>
-              <h3>Source</h3>
-              <p className="evidence-detail__text">
-                {selected.source || "No source recorded."}
-                {selected.location ? ` · ${selected.location}` : ""}
-              </p>
+              <section className="evidence-block">
+                <h3>Key findings</h3>
+                <p className="evidence-detail__text">{selected.excerpt || "No excerpt recorded for this source."}</p>
+              </section>
+              <section className="evidence-block">
+                <h3>Source</h3>
+                <p className="evidence-detail__text">
+                  {selected.source || "No source recorded."}
+                  {selected.location ? ` · ${selected.location}` : ""}
+                </p>
+              </section>
+              {selected.quality && (
+                <section className="evidence-block">
+                  <div className="evidence-block__head">
+                    <h3>Relevance to our opportunity</h3>
+                    <StatusBadge label={`${LEVEL_LABEL[selected.quality.relevance]} relevance`} tone={LEVEL_TONE[selected.quality.relevance]} />
+                  </div>
+                  <p className="evidence-detail__text">{selected.quality.rationale}</p>
+                </section>
+              )}
               <h3>Evidence quality</h3>
               <table className="evidence-quality">
                 <tbody>
@@ -263,12 +289,14 @@ export default function EvidenceExplorer() {
                   ).map(([label, level]) => (
                     <tr key={label}>
                       <th scope="row">{label}</th>
-                      <td>{level ? LEVEL_LABEL[level] : "Not scored"}</td>
+                      <td>{level ? <StatusBadge label={LEVEL_LABEL[level]} tone={LEVEL_TONE[level]} /> : <span className="hypothesis__muted">Not scored</span>}</td>
                     </tr>
                   ))}
                   <tr>
                     <th scope="row">Recency</th>
-                    <td>{LEVEL_LABEL[recencyLevel(selected.capturedAt)]}</td>
+                    <td>
+                      <StatusBadge label={LEVEL_LABEL[recencyLevel(selected.capturedAt)]} tone={LEVEL_TONE[recencyLevel(selected.capturedAt)]} />
+                    </td>
                   </tr>
                 </tbody>
               </table>

@@ -53,7 +53,7 @@ export default function NoAiOpportunities() {
             {
               key: "decision",
               header: "Decision",
-              render: (o: NoAiRow) => <StatusBadge label={o.latestDecision?.decision ?? "NO_AI"} tone="caution" />,
+              render: (o: NoAiRow) => <StatusBadge label={o.latestDecision?.decision ?? "NO_AI"} tone="danger" />,
             },
             {
               key: "date",

@@ -29,23 +29,23 @@ const STATUS_LABELS: Record<ExperimentStatusValue, string> = {
 };
 
 const DAY_MS = 86_400_000;
+const shortDate = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-/** Schedule for one card, derived from the start date and planned length. Nothing is stored for it. */
-function schedule(r: ExperimentRow, now: number): { percent: number; text: string } {
+/** Schedule for one row, derived from the start date and planned length. Nothing is stored for it. */
+function schedule(r: ExperimentRow, now: number): { percent: number; text: string; date: string | null } {
   const planned = r.plannedDays ?? 14;
   if (r.status === "COMPLETE") {
-    return { percent: 100, text: r.completedAt ? `Completed ${new Date(r.completedAt).toLocaleDateString()}` : "Completed" };
+    return { percent: 100, text: "Completed", date: r.completedAt ? shortDate(new Date(r.completedAt).getTime()) : null };
   }
-  if (r.status === "ABANDONED") return { percent: 0, text: "Stopped" };
-  if (!r.startedAt) return { percent: 0, text: `Not started · ${planned}-day plan` };
+  if (r.status === "ABANDONED") return { percent: 0, text: "Stopped", date: null };
+  if (!r.startedAt) return { percent: 0, text: `Not started · ${planned}-day plan`, date: null };
 
   const start = new Date(r.startedAt).getTime();
   const end = start + planned * DAY_MS;
   const elapsed = Math.min(planned, Math.max(0, Math.floor((now - start) / DAY_MS)));
   const left = Math.ceil((end - now) / DAY_MS);
-  const ends = new Date(end).toLocaleDateString();
-  const text = left > 0 ? `${left} day${left === 1 ? "" : "s"} left · ends ${ends}` : `Overdue by ${-left} day${left === -1 ? "" : "s"} · was due ${ends}`;
-  return { percent: (elapsed / planned) * 100, text };
+  const text = left > 0 ? `${left} day${left === 1 ? "" : "s"} left` : `Overdue by ${-left} day${left === -1 ? "" : "s"}`;
+  return { percent: (elapsed / planned) * 100, text, date: shortDate(end) };
 }
 
 export default function PovPipeline() {
@@ -86,13 +86,13 @@ export default function PovPipeline() {
     <main>
       <PageHeader
         title="14-Day PoV Pipeline"
-        description="Every proof-of-value experiment across your opportunities, grouped by where it stands."
+        description="Run fast, focused experiments to prove value."
       />
       {loading && <ProgressIndicator label="Loading experiments…" />}
       {!loading && error && <InlineAlert variant="error">{error}</InlineAlert>}
       {!loading && !error && (
         <>
-          <Tabs items={tabs} activeId={active} onChange={setActive} aria-label="PoV status" />
+          <Tabs items={tabs} activeId={active} onChange={setActive} aria-label="PoV status" variant="pill" />
           <TabPanel id={active} activeId={active}>
             {visible.length === 0 ? (
               <p className="pov__empty">
@@ -101,29 +101,33 @@ export default function PovPipeline() {
                   : "No experiments in this status."}
               </p>
             ) : (
-              <ul className="pov-grid">
+              <ul className="pov-list">
                 {visible.map((r) => {
-                  const { percent, text } = schedule(r, now);
+                  const { percent, text, date } = schedule(r, now);
+                  const learnings = r._count?.learnings ?? 0;
                   return (
-                    <li key={r.id} className="pov-card">
-                      <div className="pov-card__head">
+                    <li key={r.id} className="pov-row">
+                      <div className="pov-row__main">
                         <Link to={`/app/opportunities/${r.opportunity.id}/experiments/${r.id}`}>{r.title}</Link>
+                        <span className="pov-row__category">
+                          {r.opportunity.title}
+                          {r.opportunity.category ? ` · ${r.opportunity.category}` : ""}
+                        </span>
+                      </div>
+                      <div className="pov-row__progress">
+                        <ProgressBar percent={percent} label={`${r.title} schedule`} />
+                        <span className="pov-row__meta">{text}</span>
+                      </div>
+                      <span className="pov-row__date">{date ?? "—"}</span>
+                      <Avatars names={r.team ?? []} />
+                      <div className="pov-row__status">
                         <StatusBadge
                           label={STATUS_LABELS[r.status as ExperimentStatusValue] ?? r.status}
-                          tone={r.status === "RUNNING" ? "accent" : r.status === "ABANDONED" ? "danger" : r.status === "COMPLETE" ? "success" : "default"}
+                          tone={r.status === "RUNNING" ? "success" : r.status === "ABANDONED" ? "danger" : r.status === "COMPLETE" ? "accent" : "default"}
                         />
-                      </div>
-                      <p className="pov-card__meta">
-                        {r.opportunity.title}
-                        {r.opportunity.category ? ` · ${r.opportunity.category}` : ""}
-                      </p>
-                      <ProgressBar percent={percent} label={`${r.title} schedule`} />
-                      <p className="pov-card__meta">{text}</p>
-                      <div className="pov-card__foot">
-                        <Avatars names={r.team ?? []} />
-                        <span className="pov-card__meta">
+                        <span className="pov-row__meta">
                           {r.success == null ? "" : r.success ? "Success · " : "Not successful · "}
-                          {r._count?.learnings ?? 0} learning{(r._count?.learnings ?? 0) === 1 ? "" : "s"}
+                          {learnings} learning{learnings === 1 ? "" : "s"}
                         </span>
                       </div>
                     </li>

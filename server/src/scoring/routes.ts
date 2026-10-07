@@ -419,11 +419,27 @@ export function createStandardReportsRouter(prisma: PrismaClient, aiClient?: AiC
         });
         return;
       }
+      // Optional company scope, validated the same way as the readiness assessment's.
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      let companyId: string | null = null;
+      if (body.companyId !== undefined && body.companyId !== null) {
+        if (typeof body.companyId !== "string" || body.companyId.length < 1 || body.companyId.length > 64) {
+          res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "companyId must be an id" } });
+          return;
+        }
+        const exists = await prisma.company.findUnique({ where: { id: body.companyId } });
+        if (!exists) {
+          res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "companyId must be an existing company" } });
+          return;
+        }
+        companyId = body.companyId;
+      }
       if (!aiClient) {
         res.status(503).json(NOT_CONFIGURED);
         return;
       }
       const opportunities = await prisma.opportunity.findMany({
+        where: companyId ? { companyId } : undefined,
         orderBy: { createdAt: "desc" },
         take: MAX_ITEMS,
         include: {
@@ -488,8 +504,14 @@ export function createExportRouter(prisma: PrismaClient): Router {
 
   router.get(
     "/opportunities.csv",
-    asyncHandler(async (_req, res) => {
+    asyncHandler(async (req, res) => {
+      const company = parseCompanyIdQuery(req.query.companyId);
+      if (!company.ok) {
+        res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "companyId must be a single id" } });
+        return;
+      }
       const rows = await prisma.opportunity.findMany({
+        where: company.id ? { companyId: company.id } : undefined,
         orderBy: { createdAt: "desc" },
         include: {
           evidence: { select: { quality: true, confidence: true, capturedAt: true } },
