@@ -56,3 +56,9 @@
 ## Risks
 
 - Council-of-ai-experts exposes `/api/external/quick` and `/api/external/session`; the AI Accelerator depends on that deployment being reachable and on the conclave's single-session slot (409 when busy).
+
+## Analysis backbone and guided wizard: rolled out and verified live (2026-10-08)
+
+The Council (async `POST /api/external/session/start` and `GET /api/external/session/{id}`) and the app (queue, worker, company context, migration `20261007130000_analysis_backbone`) were deployed in that order while both were idle. Verified on the live system: the unknown-session route returns 404 `not_found` and `start` without a key returns 403; the migration added the new columns; a first analysis (Equinix) went QUEUED, RUNNING with stage and per-expert progress updating; a second company (Cloudflare) requested straight after returned 202 and waited as QUEUED, then started by itself when the first finished, and a repeat request for the running company returned 409 `ANALYSIS_IN_PROGRESS` with its job id; restarting the server container mid-run left the job RUNNING and it carried on (reattached by session id); Cloudflare finished SUCCEEDED with 11 opportunities stored. The Equinix run reached the end but FAILED with "AI response missing opportunities array": the chairman returned a prose plan with only the revised entries as JSON (the Council marked it `passed: false`), so nothing was stored and the real reason was shown. Retrying is the remedy; making the app fall back to a fuller contribution is a possible follow-up.
+
+The guided wizard (`/app/wizard`, "New analysis" in the sidebar) is built on top: Company, Analysis, Opportunities, Report. It reads all state from the server, so closing the page loses nothing.
