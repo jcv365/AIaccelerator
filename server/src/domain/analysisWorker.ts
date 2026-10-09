@@ -151,7 +151,12 @@ export function createAnalysisWorker(prisma: PrismaClient, aiClient: AiClient, o
       logJson("info", "analysis succeeded", { jobId: job.id, opportunities: opportunityIds.length });
     } catch (err) {
       if (err instanceof AnalysisParseError) {
-        await fail(job, "AI_UPSTREAM_ERROR", err.message);
+        // A panel that did not agree on its own final answer often returns it incomplete; say so plainly.
+        const unreviewed =
+          session.result?.passed === false
+            ? " The expert panel's final answer was incomplete and did not pass its own review, so nothing was saved. Run the analysis again."
+            : "";
+        await fail(job, "AI_UPSTREAM_ERROR", `${err.message}.${unreviewed}`.replace(/\.\./g, "."));
         return;
       }
       throw err;

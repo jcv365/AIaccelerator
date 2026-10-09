@@ -248,6 +248,30 @@ describe("analysis worker: running jobs", () => {
     expect(active).toMatchObject({ status: "FAILED", errorCode: "AI_UPSTREAM_ERROR" });
     expect((prisma.opportunity as { create: ReturnType<typeof vi.fn> }).create).not.toHaveBeenCalled();
   });
+
+  it("never stores a partial list: a fenced array of only the revised entries fails, and says the panel's answer was incomplete", async () => {
+    // The shape a live run returned: prose, then a JSON array holding just two revised entries (not the full list).
+    const partial =
+      'Revised plan.\n\n**Revised JSON entries.** The others are unchanged from my previous draft.\n```json\n[{"title":"A","description":"d","businessProblem":"b","evidence":[]},{"title":"B","description":"d","businessProblem":"b","evidence":[]}]\n```';
+    const active = job({ id: "j1", status: "RUNNING", councilSessionId: "s1" });
+    const prisma = fakePrisma([active]);
+    const answer = { ...concluded(partial), result: { synthesis: partial, chairman: "Claude", attempts: 2, passed: false } };
+    const ai = fakeAi({ getSession: vi.fn().mockResolvedValue(answer) });
+    await createAnalysisWorker(prisma as never, ai as never).tick();
+
+    expect((prisma.opportunity as { create: ReturnType<typeof vi.fn> }).create).not.toHaveBeenCalled();
+    expect(active).toMatchObject({ status: "FAILED", errorCode: "AI_UPSTREAM_ERROR" });
+    expect(active.errorMessage).toMatch(/incomplete and did not pass its own review/i);
+    expect(active.errorMessage).toMatch(/run the analysis again/i);
+    expect(active.errorMessage).not.toContain("..");
+  });
+
+  it("does not blame the panel's review when the answer passed but could not be read", async () => {
+    const active = job({ id: "j1", status: "RUNNING", councilSessionId: "s1" });
+    const ai = fakeAi({ getSession: vi.fn().mockResolvedValue(concluded("not json at all")) });
+    await createAnalysisWorker(fakePrisma([active]) as never, ai as never).tick();
+    expect(active.errorMessage).not.toMatch(/did not pass its own review/i);
+  });
 });
 
 describe("analysis worker: Council unreachable while running", () => {

@@ -69,6 +69,7 @@ Return the results as a JSON object with this exact structure:
   ]
 }
 
+Your final answer must contain this one JSON object with EVERY opportunity written out in full, including the ones you did not change when revising. Never return only changed or revised entries, and never refer to an earlier draft: the reader sees only your final answer.
 Only return valid JSON. Do not include any explanatory text.`;
 }
 

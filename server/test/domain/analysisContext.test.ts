@@ -99,6 +99,13 @@ describe("buildContextBlock", () => {
 });
 
 describe("buildGoal", () => {
+  it("tells the experts the final answer must list every opportunity in full, never only the revised ones", () => {
+    const goal = buildGoal("Equinix");
+    expect(goal).toMatch(/EVERY opportunity written out in full/);
+    expect(goal).toMatch(/Never return only changed or revised entries/);
+    expect(goal.indexOf("EVERY opportunity")).toBeLessThan(goal.indexOf("Only return valid JSON"));
+  });
+
   it("is unchanged when there is no context", () => {
     const goal = buildGoal("Maersk");
     expect(goal).toContain('Research the company "Maersk" and identify AI opportunities.');
