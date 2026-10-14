@@ -150,6 +150,7 @@ model Company {
   analysisJobs  AnalysisJob[]
   reports       CompanyReport[]
   readiness     ReadinessAssessment[]
+  evidenceDocuments EvidenceDocument[]
 }
 
 enum CompanyReportStatus {
@@ -234,6 +235,33 @@ model Evidence {
   quality       Json?
   qualityModel  String?
   qualityAt     DateTime?
+  // Set when the claim cites a document the user uploaded for the company (customer evidence).
+  documentId    String?
+  document      EvidenceDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([documentId])
+}
+
+// A file the user uploaded as evidence for a company. Only the extracted text is kept, never the original file.
+// The same file (same sha256) is stored once per company; removing one hides it from future scans (deletedAt)
+// but keeps the text so past runs and the evidence that cites it stay explainable.
+model EvidenceDocument {
+  id            String     @id @default(cuid())
+  companyId     String
+  company       Company    @relation(fields: [companyId], references: [id])
+  filename      String
+  mimeType      String
+  sizeBytes     Int
+  sha256        String
+  extractedText String
+  charCount     Int
+  truncated     Boolean    @default(false)
+  uploadedAt    DateTime   @default(now())
+  deletedAt     DateTime?
+  evidence      Evidence[]
+
+  @@unique([companyId, sha256])
+  @@index([companyId, uploadedAt])
 }
 
 model Decision {
