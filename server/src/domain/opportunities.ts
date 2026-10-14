@@ -244,9 +244,14 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
         res.status(400).json({ error: { code: "VALIDATION_ERROR", message: picked.error } });
         return;
       }
+      // Saving a field the scan drafted counts as a person having looked at it: it stops being an AI draft.
+      const saved = Object.keys(picked.data);
+      const drafts = existing.aiDraftFields ?? [];
+      const stillDrafts = drafts.filter((f) => !saved.includes(f));
+      const clearsDrafts = stillDrafts.length !== drafts.length;
       const updated = await prisma.opportunity.update({
         where: { id: req.params.id },
-        data: picked.data,
+        data: clearsDrafts ? { ...picked.data, aiDraftFields: stillDrafts } : picked.data,
       });
       res.status(200).json(updated);
     })

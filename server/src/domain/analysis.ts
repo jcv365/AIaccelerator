@@ -6,6 +6,7 @@ import { DATA_NOTICE, cleanForPrompt } from "../ai/promptSafety.js";
 import { buildContextBlock, contextFromCompany, parseAnalysisContext, type AnalysisContext } from "./analysisContext.js";
 import { findOrCreateCompany, normalizeNameKey } from "./companies.js";
 import { buildEvidenceSection, loadScanEvidence } from "../evidence/scanEvidence.js";
+import { parseDraftFields } from "./opportunityDraft.js";
 
 // Path of the analysis-specific expert roster as seen by the Conclave container, which mounts the
 // Code folder at /code/all-projects (see conclave/experts-analysis.yaml for why it is a small roster).
@@ -22,6 +23,7 @@ interface ParsedEvidence {
 }
 
 export interface ParsedOpportunity {
+  [field: string]: unknown;
   title?: unknown;
   description?: unknown;
   businessProblem?: unknown;
@@ -59,6 +61,15 @@ Return the results as a JSON object with this exact structure:
       "title": "string",
       "description": "string",
       "businessProblem": "string",
+      "hypothesis": "We believe [the AI change] will [outcome], measured by [metric]",
+      "potentialValue": "string: the business value in plain words",
+      "estimatedAnnualValue": number,
+      "category": "string: a business area such as Finance, Operations or Sales",
+      "priority": "HIGH|MEDIUM|LOW",
+      "complexity": "string: how hard it is to build, and why",
+      "dependencies": "string: the data and systems it needs",
+      "aiSuitability": "string: why AI fits this problem, or why it may not",
+      "risks": "string: the main risks",
       "evidence": [
         {
           "claim": "string",
@@ -71,6 +82,8 @@ Return the results as a JSON object with this exact structure:
     }
   ]
 }
+
+The fields from hypothesis to risks are optional. Fill one in only when the evidence supports it and leave it out otherwise: never guess a value. Give estimatedAnnualValue (whole rand per year) only when a figure in the evidence or your research supports it.
 
 Your final answer must contain this one JSON object with EVERY opportunity written out in full, including the ones you did not change when revising. Never return only changed or revised entries, and never refer to an earlier draft: the reader sees only your final answer.
 Only return valid JSON. Do not include any explanatory text.`;
@@ -157,8 +170,11 @@ export async function persistOpportunities(
   return prisma.$transaction(async (tx) => {
     const ids: string[] = [];
     for (const opp of valid) {
+      const draft = parseDraftFields(opp);
       const created = await tx.opportunity.create({
         data: {
+          ...(draft.data as Partial<Prisma.OpportunityUncheckedCreateInput>),
+          ...(draft.fields.length > 0 ? { aiDraftFields: draft.fields } : {}),
           title: opp.title as string,
           description: opp.description as string,
           businessProblem: opp.businessProblem as string,

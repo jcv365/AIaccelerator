@@ -56,6 +56,8 @@ model Opportunity {
   assessments     OpportunityAssessment[]
   category        String?
   // Whole rand per year. User-entered; the AI assessment keeps its own estimate separately.
+  // Fields the scan drafted that no one has saved since. Saving a field (even unchanged) takes it off this list.
+  aiDraftFields String[] @default([])
   estimatedAnnualValue Int?
   priority        Priority?
   companyId       String?
