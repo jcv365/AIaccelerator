@@ -10,6 +10,7 @@ import {
   persistOpportunities,
 } from "./analysis.js";
 import type { AnalysisContext } from "./analysisContext.js";
+import { evidenceDocsOf } from "../evidence/scanEvidence.js";
 
 export const DEFAULT_POLL_MS = 15_000;
 // How long a running job tolerates an unreachable (or erroring) Conclave before it is failed.
@@ -143,7 +144,13 @@ export function createAnalysisWorker(prisma: PrismaClient, aiClient: AiClient, o
       const opportunityIds =
         existing.length > 0
           ? existing.map((o) => o.id)
-          : await persistOpportunities(prisma, parseSynthesis(session.result?.synthesis), job.companyId ?? undefined, job.id);
+          : await persistOpportunities(
+              prisma,
+              parseSynthesis(session.result?.synthesis),
+              job.companyId ?? undefined,
+              job.id,
+              evidenceDocsOf(job.context)
+            );
       await prisma.analysisJob.update({
         where: { id: job.id },
         data: { status: "SUCCEEDED", opportunityIds, completedAt: now() },

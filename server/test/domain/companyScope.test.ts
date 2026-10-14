@@ -19,6 +19,7 @@ function makePrisma(overrides: Record<string, unknown> = {}) {
       create: vi.fn().mockResolvedValue({ id: "opp1" }),
     },
     evidence: { findMany: vi.fn().mockResolvedValue([]), create: vi.fn().mockResolvedValue({}) },
+    evidenceDocument: { findMany: vi.fn().mockResolvedValue([]) },
     experiment: { findMany: vi.fn().mockResolvedValue([]) },
     analysisJob: {
       findFirst: vi.fn().mockResolvedValue(null),

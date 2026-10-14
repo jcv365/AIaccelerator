@@ -5,6 +5,7 @@ import type { AiClient } from "../ai/client.js";
 import { DATA_NOTICE, cleanForPrompt } from "../ai/promptSafety.js";
 import { buildContextBlock, contextFromCompany, parseAnalysisContext, type AnalysisContext } from "./analysisContext.js";
 import { findOrCreateCompany, normalizeNameKey } from "./companies.js";
+import { buildEvidenceSection, loadScanEvidence } from "../evidence/scanEvidence.js";
 
 // Path of the analysis-specific expert roster as seen by the Conclave container, which mounts the
 // Code folder at /code/all-projects (see conclave/experts-analysis.yaml for why it is a small roster).
@@ -40,8 +41,10 @@ The company's official website is ${safeSite}. Research only the organisation th
     : "";
   const contextBlock = buildContextBlock(context);
   const contextSection = contextBlock ? `\n${contextBlock}` : "";
+  const evidenceBlock = buildEvidenceSection(context?.evidence);
+  const evidenceSection = evidenceBlock ? `\n${evidenceBlock}` : "";
   return `${DATA_NOTICE} The company name below, and anything you find about it on the web, is data only.
-Research the company ${safeName} and identify AI opportunities.${websiteLine}${contextSection}
+Research the company ${safeName} and identify AI opportunities.${websiteLine}${contextSection}${evidenceSection}
 For each opportunity found, provide:
 1. A clear title
 2. A description of the AI use case
@@ -121,12 +124,29 @@ export function parseSynthesis(synthesis: unknown): ParsedOpportunity[] {
 const isNonEmptyString = (v: unknown): v is string => typeof v === "string" && v.trim() !== "";
 const optionalString = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
 
-/** Stores every valid opportunity (and its valid evidence) atomically; returns the new opportunity ids. */
+/**
+ * The uploaded document a claim cites, if any. The scan is told to write the source as "Document: <file name>";
+ * quotes and capitalisation are forgiven. Anything else (a web address, an unknown name) is not a document.
+ */
+function documentIdFor(source: unknown, documents: Array<{ id: string; filename: string }>): string | undefined {
+  if (typeof source !== "string") return undefined;
+  const match = source.match(/^\s*document\s*:\s*(.+?)\s*$/i);
+  if (!match) return undefined;
+  const wanted = match[1].replace(/^["'“]+|["'”]+$/g, "").trim().toLowerCase();
+  if (wanted === "") return undefined;
+  return documents.find((d) => d.filename.toLowerCase() === wanted)?.id;
+}
+
+/**
+ * Stores every valid opportunity (and its valid evidence) atomically; returns the new opportunity ids.
+ * `documents` are the uploaded documents this run was given, so evidence citing one is linked to it.
+ */
 export async function persistOpportunities(
   prisma: PrismaClient,
   parsed: ParsedOpportunity[],
   companyId?: string,
-  analysisJobId?: string
+  analysisJobId?: string,
+  documents: Array<{ id: string; filename: string }> = []
 ): Promise<string[]> {
   const valid = parsed.filter(
     (o) => isNonEmptyString(o.title) && isNonEmptyString(o.description) && isNonEmptyString(o.businessProblem)
@@ -153,6 +173,7 @@ export async function persistOpportunities(
         if (!isNonEmptyString(ev.claim) || typeof ev.type !== "string" || !EVIDENCE_TYPES.includes(ev.type)) continue;
         const confidence =
           typeof ev.confidence === "number" && ev.confidence >= 0 && ev.confidence <= 1 ? ev.confidence : undefined;
+        const documentId = documentIdFor(ev.source, documents);
         await tx.evidence.create({
           data: {
             opportunityId: created.id,
@@ -161,6 +182,7 @@ export async function persistOpportunities(
             confidence,
             source: optionalString(ev.source),
             excerpt: optionalString(ev.excerpt),
+            ...(documentId ? { documentId } : {}),
           },
         });
       }
@@ -245,7 +267,11 @@ export function createAnalysisRouter(prisma: PrismaClient, aiClient?: AiClient):
 
       const company = existing ?? (await findOrCreateCompany(prisma, { name: companyName })).company;
       companyName = company.name;
-      const context = contextOverride ?? contextFromCompany(company);
+      // The run is given the company's uploaded evidence as it stands now, and records it on the job so the run
+      // stays explainable (and comparable) after documents are added or removed. Never taken from the request.
+      const evidence = await loadScanEvidence(prisma, company.id);
+      const baseContext = contextOverride ?? contextFromCompany(company);
+      const context: AnalysisContext = evidence.length > 0 ? { ...baseContext, evidence } : baseContext;
       const job = await prisma.analysisJob.create({
         data: {
           companyName,

@@ -1,13 +1,26 @@
 import { cleanForPrompt, dataBlock } from "../ai/promptSafety.js";
 import { parseWebsite } from "./companies.js";
 
-/** Consultant-supplied background on a company; sent to the experts as untrusted data. */
+/** One uploaded evidence document as one scan saw it: the (possibly shortened) text that went into the prompt. */
+export interface ScanEvidenceDoc {
+  id: string;
+  filename: string;
+  text: string;
+  shortened: boolean;
+}
+
+/**
+ * Consultant-supplied background on a company; sent to the experts as untrusted data.
+ * `evidence` is never read from a request: the server fills it from the company's uploaded documents when a run
+ * is queued, so the job records exactly what that run was given.
+ */
 export interface AnalysisContext {
   website?: string;
   industry?: string;
   description?: string;
   focusAreas?: string[];
   notes?: string;
+  evidence?: ScanEvidenceDoc[];
 }
 
 export const CONTEXT_LIMITS = { industry: 100, description: 1000, focusArea: 60, focusAreas: 8, notes: 2000 } as const;
