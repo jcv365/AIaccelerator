@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=1280"><title>Mockup 14 - Quick stage move</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockup.css"><link rel="stylesheet" href="phase1.css"></head><body>
+<div class="caption">14 · Stage change from the Portfolio row, with sortable columns. Two states. <a href="index.html">All mockups</a></div>
+
+<div class="state"><h2>A · Row stage menu: one click opens it, one click moves</h2><div class="pg">
+  <div class="head"><div><h1>Portfolio</h1><div class="sub">Click a column header to sort</div></div></div>
+  <table>
+    <tr><th>Opportunity</th><th>Stage</th><th>Value ↕</th><th>Evidence score ↕</th><th>Priority ↕</th></tr>
+    <tr><td>Container damage detection</td><td><span class="sel">Qualified</span></td><td>R6.5m</td><td>78</td><td>High</td></tr>
+    <tr><td>Predictive berth scheduling</td><td><span class="sel">Discovered</span></td><td>R3.1m</td><td>71</td><td>Medium</td></tr>
+    <tr><td>Demand forecasting</td><td><span class="sel" style="background:var(--blue-strong)">Hypothesis</span>
+      <div class="card menu"><span class="muted">Move to:</span><strong>Experiment</strong><span>Defer</span><span style="color:var(--red)">Reject…</span></div></td><td>R2.0m</td><td>64</td><td>Medium</td></tr>
+  </table>
+  <div class="small" style="margin-top:80px">Only valid next stages are offered. Moving Qualified → Hypothesis opens the checklist (mockup 13).</div>
+</div></div>
+
+<div class="state"><h2>B · Final moves ask for a reason, saved as a decision</h2><div class="pg"><div class="modal">
+  <h3 style="margin:0">Reject "Generic customer chatbot"?</h3>
+  <div class="small">Rejecting is final. Say why; this is saved as a decision on the opportunity.</div>
+  <div class="ta">Reason (required)</div>
+  <div class="row" style="justify-content:flex-end"><span class="btn sm secondary">Cancel</span><span class="btn sm" style="background:var(--red);color:#2a0a0a">Reject</span></div>
+</div></div></div>
+</body></html>

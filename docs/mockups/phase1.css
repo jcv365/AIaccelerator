@@ -1,0 +1,32 @@
+/* Shared by mockups 10-14 (Phase 1: evidence-driven scanning). Builds on mockup.css tokens. */
+.state { width: 1200px; margin: 0 auto 28px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.state h2 { margin: 0; padding: 14px 24px; font-size: 13px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface); }
+.pg { padding: 24px 32px 32px; display: flex; flex-direction: column; gap: 18px; }
+.pg h1 { margin: 0; font-size: 22px; }
+.sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.card h3 { margin: 0; font-size: 15px; }
+.row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pill { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); color: var(--soft); }
+.pill.new { color: var(--green); border-color: rgba(52,211,153,.5); background: rgba(52,211,153,.1); }
+.pill.drop { color: var(--red); border-color: rgba(248,113,113,.5); background: rgba(248,113,113,.1); }
+.pill.chg { color: var(--orange); border-color: rgba(251,146,60,.5); background: rgba(251,146,60,.1); }
+.pill.doc { color: #a9c8ff; border-color: rgba(59,130,246,.5); background: rgba(59,130,246,.1); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--soft); vertical-align: middle; }
+.dropzone { border: 2px dashed var(--border); border-radius: 10px; padding: 28px; text-align: center; color: var(--muted); font-size: 14px; }
+.sel { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--raised); color: var(--text); font-size: 12.5px; }
+.sel::after { content: "\25BE"; color: var(--muted); }
+.checks { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--soft); }
+.checks .ok::before { content: "\2713  "; color: var(--green); font-weight: 700; }
+.checks .no::before { content: "\2715  "; color: var(--red); font-weight: 700; }
+.checks a { margin-left: 8px; font-size: 12px; }
+.note { padding: 10px 12px; border-radius: 8px; font-size: 12.5px; border: 1px solid rgba(251,146,60,.35); background: rgba(251,146,60,.08); color: #fde2c7; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.muted { color: var(--muted); }
+.gap { color: var(--orange); font-style: italic; }
+.modal { width: 460px; margin: 0 auto; background: var(--raised); border: 1px solid var(--border); border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.ta { min-height: 70px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--muted); font-size: 13px; background: var(--surface); }
+.menu { position: absolute; margin-top: 6px; padding: 8px 12px; gap: 6px; font-size: 13px; }
