@@ -5,8 +5,8 @@
 # its mount of the Code folder at /code/all-projects - no secrets here, only
 # env var names.
 #
-# Fusion / Nemotron / GPT-OSS route through freellmapi and are the experts that
-# receive the web_search tool. Claude / ChatGPT (subscription CLIs) get no web
+# Fusion / Nemotron route through freellmapi and are the experts that receive
+# the web_search tool. Claude / ChatGPT / GPT-OSS (subscription CLIs) get no web
 # tools; they critique and refine what the others found.
 originator: Nemotron
 originator_rotates: false
@@ -46,14 +46,18 @@ experts:
       citable facts about the company and propose AI use cases grounded in them.
 
   - name: GPT-OSS
-    provider: local
-    base_url: http://localhost:3010/v1
-    api_key_env: FREELLMAPI_API_KEY
-    model: gpt-oss-20b
-    max_tokens: 4096
+    # Moved off freellmapi on 2026-10-17: its NVIDIA route rejected the key
+    # (403 "Authorization failed" surfaced as a 429), so this seat was silent
+    # in most rounds. The Antigravity CLI serves GPT-OSS 120B on its own
+    # subscription login (confirmed live with the real 7,000-character brief).
+    # Trade-offs: no web_search tool (CLI experts get none), and each call
+    # takes ~155s, so the Council needs COUNCIL_CLI_TIMEOUT_SECONDS above 180.
+    provider: antigravity-cli
+    model: gpt-oss-120b-medium
     persona: >
       A technically sharp, cost-conscious engineer. You challenge use cases for
-      feasibility, hidden cost and over-engineering, and verify claims by search.
+      feasibility, hidden cost and over-engineering, and check the others' claims
+      against the evidence they cite.
 
   - name: Claude
     provider: claude-code-cli
