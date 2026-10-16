@@ -1,7 +1,17 @@
 import { Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import { asyncHandler } from "../asyncHandler.js";
-import { isValidTransition, validTransitionsFrom, type OpportunityStatus } from "./stateMachine.js";
+import {
+  GATED_MOVES,
+  STAGE_LABELS,
+  isGatedMove,
+  isValidTransition,
+  requiresReason,
+  stageCatalog,
+  validTransitionsFrom,
+  type OpportunityStatus,
+} from "./stateMachine.js";
+import { evaluateHypothesisGate } from "./gates.js";
 import type { AiClient } from "../ai/client.js";
 import { AiClientError, aiErrorStatus } from "../ai/errors.js";
 import { createAnalysisRouter, DEFAULT_ANALYSIS_CONFIG_PATH } from "./analysis.js";
@@ -211,6 +221,35 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
     })
   );
 
+  // The stages, their labels and which moves exist, so the client never keeps its own copy of the rules.
+  // Registered before "/:id" so that "stages" is not read as an id.
+  router.get("/stages", (_req, res) => {
+    res.status(200).json({ stages: stageCatalog() });
+  });
+
+  // The checklist for the move this opportunity is waiting on, or null when its next moves have no gate.
+  router.get(
+    "/:id/gate",
+    asyncHandler(async (req, res) => {
+      const opportunity = await prisma.opportunity.findUnique({ where: { id: req.params.id } });
+      if (!opportunity) {
+        res.status(404).json({ error: { code: "NOT_FOUND", message: "Opportunity not found" } });
+        return;
+      }
+      if (!GATED_MOVES.some((m) => m.from === opportunity.status)) {
+        res.status(200).json({ gate: null });
+        return;
+      }
+      const evidence = await prisma.evidence.findMany({
+        where: { opportunityId: opportunity.id },
+        select: { type: true, documentId: true },
+      });
+      res.status(200).json({
+        gate: evaluateHypothesisGate({ ...opportunity, aiDraftFields: opportunity.aiDraftFields ?? [] }, evidence),
+      });
+    })
+  );
+
   router.get(
     "/:id",
     asyncHandler(async (req, res) => {
@@ -265,7 +304,7 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
         res.status(404).json({ error: { code: "NOT_FOUND", message: "Opportunity not found" } });
         return;
       }
-      const { status } = (req.body ?? {}) as { status?: unknown };
+      const { status, reason } = (req.body ?? {}) as { status?: unknown; reason?: unknown };
       const currentStatus = existing.status as OpportunityStatus;
       if (typeof status !== "string" || !isValidTransition(currentStatus, status as OpportunityStatus)) {
         const valid = validTransitionsFrom(currentStatus);
@@ -279,9 +318,55 @@ export function createOpportunitiesRouter(prisma: PrismaClient, aiClient?: AiCli
         });
         return;
       }
+      const target = status as OpportunityStatus;
+      const validation = (message: string) => ({ error: { code: "VALIDATION_ERROR", message } });
+
+      // Some moves must pass a checklist first; a refusal says exactly what is missing.
+      if (isGatedMove(currentStatus, target)) {
+        const evidence = await prisma.evidence.findMany({
+          where: { opportunityId: existing.id },
+          select: { type: true, documentId: true },
+        });
+        const gate = evaluateHypothesisGate({ ...existing, aiDraftFields: existing.aiDraftFields ?? [] }, evidence);
+        if (!gate.met) {
+          res.status(422).json({
+            error: {
+              code: "GATE_UNMET",
+              message: `This opportunity is not ready to move to ${STAGE_LABELS[target]} yet.`,
+              criteria: gate.criteria,
+            },
+          });
+          return;
+        }
+      }
+
+      // A reason is kept as a decision. It is required before the moves that end an opportunity's journey.
+      let rationale: string | undefined;
+      if (reason !== undefined && reason !== null) {
+        if (typeof reason !== "string" || reason.length > 1000) {
+          res.status(400).json(validation("reason must be text of at most 1000 characters"));
+          return;
+        }
+        rationale = reason.trim() || undefined;
+      }
+      if (requiresReason(target) && !rationale) {
+        res.status(400).json(validation(`A reason is required to move to ${STAGE_LABELS[target]}`));
+        return;
+      }
+
+      if (rationale) {
+        const decision = `Moved to ${STAGE_LABELS[target]}`;
+        const updated = await prisma.$transaction(async (tx) => {
+          const row = await tx.opportunity.update({ where: { id: req.params.id }, data: { status: target } });
+          await tx.decision.create({ data: { opportunityId: existing.id, decision, rationale } });
+          return row;
+        });
+        res.status(200).json(updated);
+        return;
+      }
       const updated = await prisma.opportunity.update({
         where: { id: req.params.id },
-        data: { status: status as OpportunityStatus },
+        data: { status: target },
       });
       res.status(200).json(updated);
     })
