@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Mockup 11 - Report builder and analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockup.css">
+<style>
+  .state { width: 1200px; margin: 0 auto 28px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .state h2 { margin: 0; padding: 14px 24px; font-size: 13px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface); }
+  .pg { padding: 24px 32px 28px; display: flex; flex-direction: column; gap: 16px; }
+  .steps { display: flex; gap: 10px; }
+  .steps div { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 13px; }
+  .steps div.on { color: var(--text); border-color: var(--blue); font-weight: 600; } .steps div.done { color: var(--text); }
+  h1 { margin: 0; font-size: 22px; } .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); }
+  .tabs span { padding: 9px 16px; font-size: 13px; color: var(--muted); border-bottom: 2px solid transparent; }
+  .tabs span.on { color: var(--text); font-weight: 600; border-color: var(--blue); }
+  .cols { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .card h3 { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .opt { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--soft); line-height: 1.4; }
+  .opt small { display: block; color: var(--muted); font-size: 12px; }
+  .chk { flex: none; width: 17px; height: 17px; margin-top: 1px; border-radius: 4px; border: 1.5px solid var(--muted); display: grid; place-items: center; font-size: 11px; color: #fff; }
+  .chk.on { background: var(--blue-strong); border-color: var(--blue-strong); }
+  .seg { display: flex; gap: 6px; } .seg span { padding: 6px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 12.5px; color: var(--soft); } .seg span.on { border-color: var(--blue); color: var(--text); background: rgba(59,130,246,.12); }
+  .prev { background: var(--raised); border: 1px solid var(--border); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .prev .tb { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--soft); }
+  .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .thumb { aspect-ratio: 16/9; background: #fff; border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; color: #13203a; }
+  .thumb b { font-size: 10px; } .thumb i { display: block; height: 5px; border-radius: 3px; background: #d9e0ec; } .thumb i.s { width: 60%; } .thumb i.t { width: 85%; }
+  .thumb .bluebar { height: 4px; background: #2563eb; border-radius: 2px; }
+  .badge { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); }
+  .badge.draft { color: var(--orange); border-color: rgba(251,146,60,.5); background: rgba(251,146,60,.1); }
+  .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 18px; font-size: 12.5px; color: var(--soft); } .checks .ok::before { content: "✓ "; color: var(--green); }
+  .note { padding: 10px 12px; border-radius: 8px; font-size: 12.5px; border: 1px solid rgba(251,146,60,.35); background: rgba(251,146,60,.08); color: #fde2c7; }
+  .info { padding: 10px 12px; border-radius: 8px; font-size: 12.5px; border: 1px solid rgba(59,130,246,.35); background: rgba(59,130,246,.10); color: #cfe0ff; }
+  .acts { display: flex; gap: 10px; flex-wrap: wrap; }
+  .charts { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; }
+  .matrix { position: relative; height: 230px; border: 1px solid var(--border); border-radius: 8px; background:
+      linear-gradient(var(--border),var(--border)) 33.3% 0/1px 100% no-repeat, linear-gradient(var(--border),var(--border)) 66.6% 0/1px 100% no-repeat,
+      linear-gradient(var(--border),var(--border)) 0 33.3%/100% 1px no-repeat, linear-gradient(var(--border),var(--border)) 0 66.6%/100% 1px no-repeat; }
+  .dot { position: absolute; width: 26px; height: 26px; border-radius: 50%; background: var(--blue-strong); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700; border: 2px solid var(--surface); }
+  .axis { font-size: 11.5px; color: var(--muted); display: flex; justify-content: space-between; margin-top: 4px; }
+  .barrow { display: grid; grid-template-columns: 110px 1fr 28px; gap: 10px; align-items: center; font-size: 12.5px; color: var(--soft); margin: 7px 0; }
+  .barrow .b { height: 10px; border-radius: 5px; display: flex; overflow: hidden; background: var(--raised); } .barrow .b i { display: block; height: 100%; }
+</style>
+</head>
+<body>
+<div class="caption">11 · Wizard step 4: build the report, preview it, and see the analytics. Three states. <a href="index.html">All mockups</a> · <a href="10-browse-opportunities.html">← browse opportunities</a></div>
+
+<div class="state">
+  <h2>A · Report builder: choose what goes in, preview before anything is final</h2>
+  <div class="pg">
+    <div class="steps"><div class="done">✓ Company</div><div class="done">✓ Analysis</div><div class="done">✓ Opportunities</div><div class="on">4 Report</div></div>
+    <div><h1>Report for Momentum</h1><div class="sub">Analysis of 7 Oct 2026 · 5 shortlisted opportunities</div></div>
+    <div class="tabs"><span class="on">Report builder</span><span>Analytics</span><span>Versions</span></div>
+    <div class="cols">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card"><h3>Files to build</h3>
+          <div class="opt"><span class="chk on">✓</span><span>C-level deck<small>For the board: business case, risks, the decision we ask for</small></span></div>
+          <div class="opt"><span class="chk on">✓</span><span>C-level proposal<small>The same story as a document</small></span></div>
+          <div class="opt"><span class="chk on">✓</span><span>Technical deck<small>Architecture, data, integration, security, proof of value</small></span></div>
+          <div class="opt"><span class="chk on">✓</span><span>Technical proposal</span></div>
+        </div>
+        <div class="card"><h3>Format</h3><div class="seg"><span class="on">PowerPoint / Word</span><span>PDF as well</span></div>
+          <div class="info">PDF needs a document converter on the server (about 300 MB added to the app image). Decision for you: keep PowerPoint and Word only, or add PDF.</div></div>
+        <div class="card"><h3>What to include</h3>
+          <div class="opt"><span class="chk on">✓</span><span>Shortlisted opportunities only<small>5 of 8. Rejected and deferred ones are left out</small></span></div>
+          <div class="opt"><span class="chk on">✓</span><span>My wording edits<small>The AI's originals stay on record</small></span></div>
+          <div class="opt"><span class="chk">&nbsp;</span><span>My notes<small>Off by default: notes are private</small></span></div>
+          <div class="opt"><span class="chk on">✓</span><span>Evidence and source register</span></div>
+          <div class="opt"><span class="chk on">✓</span><span>Roadmap and risks</span></div>
+        </div>
+      </div>
+      <div class="prev">
+        <div class="tb"><span><b>Preview</b> · C-level deck · 14 slides</span><span class="badge draft">Draft: AI-generated, verify before sharing</span></div>
+        <div class="thumbs">
+          <div class="thumb"><div class="bluebar"></div><b>Executive summary</b><i class="t"></i><i></i><i class="s"></i></div>
+          <div class="thumb"><div class="bluebar"></div><b>Where AI creates value</b><i class="t"></i><i class="s"></i></div>
+          <div class="thumb"><div class="bluebar"></div><b>Value against feasibility</b><i></i><i class="t"></i></div>
+          <div class="thumb"><div class="bluebar"></div><b>Claims intake and routing</b><i class="t"></i><i></i><i class="s"></i></div>
+          <div class="thumb"><div class="bluebar"></div><b>Roadmap</b><i class="s"></i><i class="t"></i></div>
+          <div class="thumb"><div class="bluebar"></div><b>Risks</b><i class="t"></i><i></i></div>
+        </div>
+        <div class="checks"><div class="ok">All sections present</div><div class="ok">Evidence counts match the data</div><div class="ok">Every cited source exists</div><div class="ok">No invented figures</div></div>
+        <div class="note">Changing an option above rebuilds the preview from the saved content, so the wording does not change by itself. Approving locks this version and removes the draft mark.</div>
+        <div class="acts"><span class="btn sm">Write the report (about 5 minutes)</span><span class="btn secondary sm">Download C-level deck</span><span class="btn secondary sm">Approve this version</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="state">
+  <h2>B · Analytics tab: three charts drawn from the stored evidence (an exception to the app's rule that tiles and donuts live on the Dashboard only)</h2>
+  <div class="pg">
+    <div class="tabs"><span>Report builder</span><span class="on">Analytics</span><span>Versions</span></div>
+    <div class="charts">
+      <div class="card"><h3>Value against feasibility (the shortlisted five)</h3>
+        <div class="matrix">
+          <div class="dot" style="left:48%;top:12%">1</div><div class="dot" style="left:58%;top:30%">2</div><div class="dot" style="left:44%;top:38%">3</div><div class="dot" style="left:22%;top:22%">4</div><div class="dot" style="left:74%;top:60%">5</div>
+        </div>
+        <div class="axis"><span>Feasibility: low</span><span>high</span></div>
+        <div class="sub">Ratings are the qualitative ones in the report: no money figures are invented.</div>
+      </div>
+      <div class="card"><h3>How strong is the evidence?</h3>
+        <div class="barrow"><span>1 Claims intake</span><div class="b"><i style="width:60%;background:var(--green)"></i><i style="width:25%;background:var(--blue)"></i><i style="width:15%;background:var(--orange)"></i></div><span>9</span></div>
+        <div class="barrow"><span>2 Service copilot</span><div class="b"><i style="width:45%;background:var(--green)"></i><i style="width:35%;background:var(--blue)"></i><i style="width:20%;background:var(--orange)"></i></div><span>9</span></div>
+        <div class="barrow"><span>3 Churn</span><div class="b"><i style="width:30%;background:var(--green)"></i><i style="width:40%;background:var(--blue)"></i><i style="width:30%;background:var(--orange)"></i></div><span>7</span></div>
+        <div class="sub">Facts · inferences · assumptions</div>
+      </div>
+    </div>
+    <div class="info">Each chart has a text table beneath it for screen readers and for copying, and the same charts are used inside the decks.</div>
+  </div>
+</div>
+
+<div class="state">
+  <h2>C · The report did not pass its quality checks: the reason is shown and nothing is offered for download</h2>
+  <div class="pg">
+    <div class="card"><div style="display:flex;gap:12px;align-items:center"><strong>Version 3</strong><span class="badge" style="color:var(--red);border-color:rgba(248,113,113,.5)">Did not pass quality checks</span></div>
+      <div class="checks"><div class="ok">All sections present</div><div style="color:var(--soft)"><span style="color:var(--red)">✕ </span>Every figure comes from the saved facts</div></div>
+      <div style="font-size:13px;color:var(--soft)">“30%” in opportunities.0.whyItMatters is not in the saved facts. Write the report again; your shortlist and wording edits are kept.</div></div>
+  </div>
+</div>
+</body>
+</html>

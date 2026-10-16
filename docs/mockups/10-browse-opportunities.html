@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Mockup 10 - Browse and shortlist opportunities</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="mockup.css">
+<style>
+  .state { width: 1200px; margin: 0 auto 28px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .state h2 { margin: 0; padding: 14px 24px; font-size: 13px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface); }
+  .pg { padding: 24px 32px 28px; display: flex; flex-direction: column; gap: 16px; }
+  .steps { display: flex; gap: 10px; }
+  .steps div { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 13px; }
+  .steps div.on { color: var(--text); border-color: var(--blue); font-weight: 600; }
+  .steps div.done { color: var(--text); }
+  h1 { margin: 0; font-size: 22px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .in { height: 38px; padding: 0 12px; display: flex; align-items: center; min-width: 260px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; color: var(--muted); }
+  .chip { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); font-size: 12.5px; color: var(--soft); background: var(--surface); }
+  .chip.on { border-color: var(--blue); color: var(--text); background: rgba(59,130,246,.12); }
+  .sel { height: 38px; padding: 0 12px; display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; }
+  .row { display: grid; grid-template-columns: 28px 1fr 190px 110px 230px; gap: 14px; align-items: center; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  .row.open { border-color: var(--blue); }
+  .row.dim { opacity: .55; }
+  .chk { width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid var(--muted); display: grid; place-items: center; font-size: 12px; color: #fff; }
+  .chk.on { background: var(--blue-strong); border-color: var(--blue-strong); }
+  .t { font-weight: 600; font-size: 14px; }
+  .t em { font-style: normal; font-size: 11px; font-weight: 600; color: var(--orange); border: 1px solid rgba(251,146,60,.5); border-radius: 999px; padding: 1px 8px; margin-left: 8px; }
+  .d { color: var(--muted); font-size: 12.5px; margin-top: 3px; line-height: 1.45; }
+  .ev { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--raised); }
+  .ev i { display: block; height: 100%; }
+  .evl { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+  .badge { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); text-align: center; }
+  .badge.ok { color: var(--green); border-color: rgba(52,211,153,.5); background: rgba(52,211,153,.1); }
+  .badge.wait { color: var(--orange); border-color: rgba(251,146,60,.5); background: rgba(251,146,60,.1); }
+  .badge.no { color: var(--red); border-color: rgba(248,113,113,.5); background: rgba(248,113,113,.1); }
+  .acts { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  .acts .btn { height: 30px; padding: 0 12px; font-size: 12px; }
+  .panel { margin: -6px 0 0 42px; padding: 18px; background: var(--raised); border: 1px solid var(--blue); border-top: 0; border-radius: 0 0 10px 10px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
+  .panel h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .ta { min-height: 74px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; line-height: 1.5; color: var(--text); }
+  .orig { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .orig b { color: #8fb4ff; font-weight: 600; }
+  .evi { font-size: 12.5px; color: var(--soft); padding: 8px 0; border-bottom: 1px solid var(--border); line-height: 1.45; }
+  .evi small { color: var(--muted); display: block; }
+  .tag { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
+  .tag.f { background: rgba(52,211,153,.15); color: var(--green); } .tag.i { background: rgba(59,130,246,.15); color: #8fb4ff; } .tag.a { background: rgba(251,146,60,.15); color: var(--orange); }
+  .foot { position: sticky; bottom: 0; display: flex; justify-content: space-between; align-items: center; padding: 14px 32px; background: var(--surface); border-top: 1px solid var(--border); }
+  .note { padding: 10px 12px; border-radius: 8px; font-size: 12.5px; border: 1px solid rgba(59,130,246,.35); background: rgba(59,130,246,.10); color: #cfe0ff; }
+  .empty { padding: 34px; text-align: center; border: 1px dashed var(--border); border-radius: 10px; color: var(--muted); font-size: 13.5px; }
+</style>
+</head>
+<body>
+<div class="caption">10 · Wizard step 3: browse, judge and shortlist the opportunities a run found. Three states. <a href="index.html">All mockups</a> · <a href="09-company-reports.html">← company reports</a> · next: <a href="11-report-builder.html">report builder</a></div>
+
+<div class="state">
+  <h2>A · The list: filter, sort, decide, and pick what goes in the report</h2>
+  <div class="pg">
+    <div class="steps"><div class="done">✓ Company</div><div class="done">✓ Analysis</div><div class="on">3 Opportunities</div><div>4 Report</div></div>
+    <div><h1>Opportunities for Momentum</h1><div class="sub">Analysis of 7 Oct 2026 · 8 found · 5 shortlisted for the report</div></div>
+    <div class="bar">
+      <div class="in">Search titles and descriptions…</div>
+      <span class="chip on">All 8</span><span class="chip">Shortlisted 5</span><span class="chip">Deferred 1</span><span class="chip">Rejected 2</span>
+      <span class="sel">Sort: Evidence strength ▾</span>
+    </div>
+
+    <div class="row">
+      <div class="chk on">✓</div>
+      <div><div class="t">Claims document intake, routing and evidence assembly</div><div class="d">Read, classify and route incoming claims documents, and assemble the evidence file for the handler.</div></div>
+      <div><div class="ev"><i style="width:60%;background:var(--green)"></i><i style="width:25%;background:var(--blue)"></i><i style="width:15%;background:var(--orange)"></i></div><div class="evl">6 facts · 2 inferences · 1 assumption</div></div>
+      <div class="badge ok">Shortlisted</div>
+      <div class="acts"><span class="btn secondary sm">Defer</span><span class="btn secondary sm">Reject</span><span class="btn secondary sm">Details</span></div>
+    </div>
+
+    <div class="row">
+      <div class="chk on">✓</div>
+      <div><div class="t">Conversational service and agent copilot<em>edited</em></div><div class="d">Assist contact-centre agents with answers drawn from policy documents, with a human always sending the reply.</div></div>
+      <div><div class="ev"><i style="width:45%;background:var(--green)"></i><i style="width:35%;background:var(--blue)"></i><i style="width:20%;background:var(--orange)"></i></div><div class="evl">4 facts · 3 inferences · 2 assumptions</div></div>
+      <div class="badge ok">Shortlisted</div>
+      <div class="acts"><span class="btn secondary sm">Defer</span><span class="btn secondary sm">Reject</span><span class="btn secondary sm">Details</span></div>
+    </div>
+
+    <div class="row open">
+      <div class="chk on">✓</div>
+      <div><div class="t">Churn, lapse and sentiment prediction</div><div class="d">Flag policies likely to lapse early enough for an adviser to act.</div></div>
+      <div><div class="ev"><i style="width:30%;background:var(--green)"></i><i style="width:40%;background:var(--blue)"></i><i style="width:30%;background:var(--orange)"></i></div><div class="evl">2 facts · 3 inferences · 2 assumptions</div></div>
+      <div class="badge ok">Shortlisted</div>
+      <div class="acts"><span class="btn secondary sm">Defer</span><span class="btn secondary sm">Reject</span><span class="btn sm">Close</span></div>
+    </div>
+    <div class="panel">
+      <div>
+        <h3>Wording used in the report (you can change it)</h3>
+        <div class="ta">Flag policies that are likely to lapse early enough for an adviser to act, using service history and sentiment signals the client already holds.</div>
+        <div class="orig"><b>Edited</b> · the AI's original is kept. <b>Show original</b> · <b>Reset to original</b></div>
+        <h3 style="margin-top:16px">Your note (never sent to the AI, not in the report unless you tick it)</h3>
+        <div class="ta" style="min-height:48px;color:var(--muted)">Ask the client whether lapse reasons are captured today.</div>
+      </div>
+      <div>
+        <h3>Evidence behind it</h3>
+        <div class="evi"><span class="tag f">FACT</span>Reports lapse and retention as key performance measures.<small>Annual report · source S3 · confidence 0.9</small></div>
+        <div class="evi"><span class="tag i">INFERENCE</span>Adviser-led distribution makes an early warning actionable.<small>Reasoned from S3, S5 · confidence 0.6</small></div>
+        <div class="evi"><span class="tag a">ASSUMPTION</span>Service and sentiment data exist in one place.<small>Not confirmed with the client · confidence 0.4</small></div>
+      </div>
+    </div>
+
+    <div class="row dim">
+      <div class="chk"></div>
+      <div><div class="t">AI voice agents for renewals</div><div class="d">Outbound renewal calls handled by a voice agent with human escalation.</div></div>
+      <div><div class="ev"><i style="width:15%;background:var(--green)"></i><i style="width:35%;background:var(--blue)"></i><i style="width:50%;background:var(--orange)"></i></div><div class="evl">1 fact · 2 inferences · 3 assumptions</div></div>
+      <div class="badge no">Rejected</div>
+      <div class="acts"><span class="btn secondary sm">Restore</span></div>
+    </div>
+    <div class="note">Reject, defer and promote use the same decision steps as the Opportunity page, so every decision is on record with its date. Nothing here changes the AI's original text or evidence.</div>
+  </div>
+  <div class="foot"><span style="color:var(--muted);font-size:13px">5 of 8 shortlisted for the report</span><span><span class="btn secondary sm">Back</span> &nbsp; <span class="btn sm">Continue to the report</span></span></div>
+</div>
+
+<div class="state">
+  <h2>B · A filter with nothing in it</h2>
+  <div class="pg">
+    <div class="bar"><div class="in">Search titles and descriptions… voice</div><span class="chip">All 8</span><span class="chip on">Shortlisted 5</span><span class="chip">Deferred 1</span><span class="chip">Rejected 2</span></div>
+    <div class="empty">No shortlisted opportunity mentions “voice”.<br><span style="color:var(--blue)">Clear the search</span> or show all 8 opportunities.</div>
+  </div>
+</div>
+
+<div class="state">
+  <h2>C · Nothing shortlisted yet (the report step is held back until at least one is)</h2>
+  <div class="pg">
+    <div><h1>Opportunities for Momentum</h1><div class="sub">Analysis of 7 Oct 2026 · 8 found · 0 shortlisted</div></div>
+    <div class="note">Tick the opportunities that belong in the report. A report with none would be empty, so Continue stays off until you pick at least one.</div>
+  </div>
+  <div class="foot"><span style="color:var(--muted);font-size:13px">0 of 8 shortlisted</span><span><span class="btn secondary sm">Back</span> &nbsp; <span class="btn sm" style="opacity:.45">Continue to the report</span></span></div>
+</div>
+</body>
+</html>
