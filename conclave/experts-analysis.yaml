@@ -46,9 +46,10 @@ experts:
       citable facts about the company and propose AI use cases grounded in them.
 
   - name: GPT-OSS
-    # Moved off freellmapi on 2026-10-17: its NVIDIA route rejected the key
-    # (403 "Authorization failed" surfaced as a 429), so this seat was silent
-    # in most rounds. The Antigravity CLI serves GPT-OSS 120B on its own
+    # Moved off freellmapi on 2026-10-17: its gpt-oss-20b route returned
+    # 403 "Authorization failed" (surfaced as a 429) while the same NVIDIA key
+    # still serves Nemotron, so only this model route is refused and the seat
+    # was silent in most rounds. The Antigravity CLI serves GPT-OSS 120B on its own
     # subscription login (confirmed live with the real 7,000-character brief).
     # Trade-offs: no web_search tool (CLI experts get none), and each call
     # takes ~155s, so the Council needs COUNCIL_CLI_TIMEOUT_SECONDS above 180.
